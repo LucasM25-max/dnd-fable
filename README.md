@@ -57,13 +57,27 @@ ambient occlusion and per-voxel colour jitter.
 
 Everything is procedural, blended continuously by speed and state:
 
-* **Idle** — breathing, weight shift, slow head drift, softly bent knees.
-* **Walk / sprint** — one phase drives both; stride length grows with speed so the
-  feet keep pace with the ground. Heel strike, stance absorb, toe-off and swing
-  tuck on the ankles and knees; pelvis and shoulders counter-rotate; the head
-  stays level; the beard lags a beat behind; the body banks into turns.
+* **Idle** — breathing, a slow weight shift from boot to boot (the loaded knee
+  straightens, the body leans over it), head drift, softly bent knees.
+* **Walk** — a heavy dwarf trudge, not a catwalk: wide planted stance with the
+  toes turned out, short quick strides, almost no pelvis yaw or hip sway. The
+  weight rolls over each boot instead (the body shifts laterally over the stance
+  leg), every footfall lands with a thud that compresses the spine, nods the
+  head, jolts the arm swing and shakes the beard. Heel strike, stance absorb,
+  toe-off and swing tuck on the ankles and knees; the head stays level; the body
+  banks into turns.
+* **Sprint** — same cycle pushed over: deep forward lean, longer stride, high
+  knee tuck, arms pumping across the chest, and a capped pelvis dip so the run
+  gets a flight phase.
 * **Jump** — a short crouch before take-off, a tuck on the way up, legs reaching on
   the way down, and a weighted crouch-and-recover on landing scaled by impact.
+* **Carried kit has physics** — every held weapon (and the sheaf or quiver that
+  comes with it) hangs off a damped angular spring driven by the real
+  acceleration of the hand, measured in world space each frame and resolved into
+  the hand's own frame. Start, stop, turn, jump or land and the greatsword lags
+  and overshoots; the flail — light spring, loose damping — swings a lot more
+  than the javelin, which is stiff and quick. Nothing is ever rigid: a slow
+  two-frequency drift keeps it breathing even when he is standing still.
 * **Foot/ground solver** — the pelvis height is solved from the leg chain each frame
   so the planted boot sits exactly on the floor (this is what produces the walk's
   bob) and nothing ever sinks through the ground; at a sprint the dip is capped so
