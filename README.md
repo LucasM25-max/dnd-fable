@@ -18,8 +18,12 @@ npm run dev
 | Mouse (click to lock pointer) | Look / orbit |
 | Mouse wheel | Third-person camera distance |
 | `V` | Toggle third-person / first-person |
-| `1` – `5` | Draw greatsword / flail / javelin / spear / shortbow (purely cosmetic) |
-| `0` | Stow everything |
+| `1` – `5` | Equip greatsword / flail / javelin / spear / shortbow (purely cosmetic) |
+| `0` | Put the weapon away (empty handed) |
+
+Only the equipped weapon is drawn — nothing is slung on his back otherwise. The
+javelin brings its sheaf of the other 7 with it, and the shortbow brings its
+quiver of 20 arrows, since those are part of the same equipped weapon.
 
 ## The dwarf
 
@@ -34,7 +38,8 @@ ambient occlusion and per-voxel colour jitter.
   under the mail, trousers, wide leather belt with a brass buckle, belt pouch, rope coil,
   laced hobnailed boots, knee pads and bracers.
 * **Gear (all cosmetic, no effects)** — greatsword, flail, 8 javelins in a leather
-  sheaf, a spear, a shortbow, and a quiver of exactly 20 fletched arrows.
+  sheaf, a spear, a shortbow, and a quiver of exactly 20 fletched arrows. Only
+  what is equipped is rendered.
 * Braided beard with gold rings, bushy brows, big nose — the usual.
 
 ## Code map
@@ -46,7 +51,30 @@ ambient occlusion and per-voxel colour jitter.
 * `src/components/VoxelMesh.jsx` — renders a baked part as `InstancedMesh`es, one per
   material (matte / leather / metal / wood).
 * `src/components/Dwarf.jsx` — the skeleton (hips → torso → head/arms, hips → legs),
-  where the gear rides when stowed or wielded, and the procedural idle / walk /
-  sprint / jump animation.
+  how the equipped weapon is held, and the procedural animation.
+
+## Animation
+
+Everything is procedural, blended continuously by speed and state:
+
+* **Idle** — breathing, weight shift, slow head drift, softly bent knees.
+* **Walk / sprint** — one phase drives both; stride length grows with speed so the
+  feet keep pace with the ground. Heel strike, stance absorb, toe-off and swing
+  tuck on the ankles and knees; pelvis and shoulders counter-rotate; the head
+  stays level; the beard lags a beat behind; the body banks into turns.
+* **Jump** — a short crouch before take-off, a tuck on the way up, legs reaching on
+  the way down, and a weighted crouch-and-recover on landing scaled by impact.
+* **Foot/ground solver** — the pelvis height is solved from the leg chain each frame
+  so the planted boot sits exactly on the floor (this is what produces the walk's
+  bob) and nothing ever sinks through the ground; at a sprint the dip is capped so
+  the run gets a flight phase.
+
+## No clipping
+
+The mail skirt is wide enough to contain the thighs at full stride, every joint has
+a ball at its pivot so bends never open a seam, the beard is built against the
+surface of the chest instead of through it, the hair stops above the shoulders, the
+arms are held slightly out from the mail, the equipped weapon is rotated to stand
+clear of the body, and the third-person camera is kept above the floor.
 * `src/components/Player.jsx` — movement, jumping, pointer-lock camera, weapon keys.
 * `src/App.jsx` — the blank white world and lighting.

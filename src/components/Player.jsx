@@ -5,9 +5,12 @@ import Dwarf from './Dwarf.jsx'
 
 const WALK = 1.7
 const SPRINT = 3.6
-const ACCEL = 14
-const JUMP_V = 4.0
-const GRAVITY = 13.5
+const ACCEL = 13
+const DECEL = 18
+const JUMP_V = 4.1
+const GRAVITY = 14
+const PREP_TIME = 0.085 // crouch before the dwarf leaves the ground
+const LAND_TIME = 0.26 // crouch recovery after a landing
 
 const WEAPON_KEYS = {
   Digit1: 'greatsword',
@@ -22,14 +25,18 @@ export default function Player() {
   const body = useRef()
   const sun = useRef()
   const sunTarget = useRef()
-  const motion = useRef({ speed: 0, grounded: true, vy: 0 })
+  const motion = useRef({ speed: 0, grounded: true, vy: 0, y: 0, prep: 0, land: 0, turn: 0 })
   const keys = useRef({})
-  const look = useRef({ yaw: 0, pitch: -0.1 })
+  const look = useRef({ yaw: 0, pitch: -0.08 })
   const state = useRef({
     pos: new THREE.Vector3(0, 0, 0),
     vel: new THREE.Vector3(),
     facing: Math.PI,
     camDist: 3.1,
+    prepT: 0,
+    landT: 0,
+    jumpQueued: false,
+    wasGrounded: true,
   })
   const [held, setHeld] = useState(null)
   const [firstPerson, setFirstPerson] = useState(false)
@@ -37,6 +44,10 @@ export default function Player() {
   useEffect(() => {
     const canvas = gl.domElement
     const onKeyDown = (e) => {
+      if (e.repeat) {
+        if (e.code === 'Space') e.preventDefault()
+        return
+      }
       keys.current[e.code] = true
       if (e.code === 'KeyV') setFirstPerson((f) => !f)
       if (e.code === 'Digit0' || e.code === 'Backquote') setHeld(null)
@@ -52,8 +63,8 @@ export default function Player() {
       look.current.yaw -= e.movementX * 0.0024
       look.current.pitch = THREE.MathUtils.clamp(
         look.current.pitch - e.movementY * 0.0022,
-        -1.1,
-        1.1
+        -1.0,
+        1.0
       )
     }
     const onClick = () => {
@@ -62,19 +73,24 @@ export default function Player() {
     const onWheel = (e) => {
       state.current.camDist = THREE.MathUtils.clamp(
         state.current.camDist + e.deltaY * 0.002,
-        1.2,
+        1.6,
         9
       )
+    }
+    const onBlur = () => {
+      keys.current = {}
     }
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('blur', onBlur)
     canvas.addEventListener('click', onClick)
     canvas.addEventListener('wheel', onWheel, { passive: true })
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('blur', onBlur)
       canvas.removeEventListener('click', onClick)
       canvas.removeEventListener('wheel', onWheel)
     }
@@ -85,7 +101,7 @@ export default function Player() {
     const k = keys.current
     const st = state.current
 
-    // input in camera space
+    /* ---------------- input ---------------- */
     let ix = 0
     let iz = 0
     if (k.KeyW || k.ArrowUp) iz += 1
@@ -110,17 +126,31 @@ export default function Player() {
       wishZ = dir.z * maxSpeed
     }
 
-    const blend = 1 - Math.exp(-ACCEL * dt * (mag > 0 ? 1 : 1.6))
+    const grounded = st.pos.y <= 1e-4 && st.vel.y <= 0
+    // less control in the air, like a real body in flight
+    const rate = (mag > 0 ? ACCEL : DECEL) * (grounded ? 1 : 0.35)
+    const blend = 1 - Math.exp(-rate * dt)
     st.vel.x += (wishX - st.vel.x) * blend
     st.vel.z += (wishZ - st.vel.z) * blend
 
-    // jump + gravity
-    const grounded = st.pos.y <= 1e-4 && st.vel.y <= 0
-    if (grounded && (k.Space || k.KeyZ)) {
-      st.vel.y = JUMP_V
-    } else if (!grounded) {
-      st.vel.y -= GRAVITY * dt
-    } else {
+    /* ---------------- jump: crouch, launch, land ---------------- */
+    if (grounded && (k.Space || k.KeyZ) && !st.jumpQueued && st.landT <= 0) {
+      st.jumpQueued = true
+      st.prepT = PREP_TIME
+    }
+    if (st.jumpQueued) {
+      st.prepT -= dt
+      if (st.prepT <= 0) {
+        const run = Math.hypot(st.vel.x, st.vel.z)
+        st.vel.y = JUMP_V + run * 0.1 // a running jump carries further
+        st.jumpQueued = false
+        st.prepT = 0
+      }
+    }
+    if (st.landT > 0) st.landT = Math.max(0, st.landT - dt)
+
+    if (!grounded || st.vel.y > 0) st.vel.y -= GRAVITY * dt
+    else {
       st.vel.y = 0
       st.pos.y = 0
     }
@@ -129,23 +159,36 @@ export default function Player() {
     st.pos.z += st.vel.z * dt
     st.pos.y += st.vel.y * dt
     if (st.pos.y < 0) {
+      // touchdown
+      const impact = -st.vel.y
       st.pos.y = 0
       st.vel.y = 0
+      if (!st.wasGrounded) st.landT = LAND_TIME * THREE.MathUtils.clamp(impact / 4, 0.35, 1)
     }
+    const nowGrounded = st.pos.y <= 1e-4 && st.vel.y <= 0
+    st.wasGrounded = nowGrounded
 
+    /* ---------------- facing ---------------- */
     const planar = Math.hypot(st.vel.x, st.vel.z)
-    motion.current.speed = planar
-    motion.current.grounded = st.pos.y <= 1e-4
-    motion.current.vy = st.vel.y
-
-    // body facing
+    const prevFacing = st.facing
     const targetFacing = firstPerson
       ? look.current.yaw + Math.PI
-      : planar > 0.15
+      : planar > 0.12
         ? Math.atan2(st.vel.x, st.vel.z)
         : st.facing
-    let delta = ((targetFacing - st.facing + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI
-    st.facing += delta * (1 - Math.exp(-(firstPerson ? 30 : 12) * dt))
+    const delta =
+      ((((targetFacing - st.facing + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) -
+      Math.PI
+    st.facing += delta * (1 - Math.exp(-(firstPerson ? 30 : 11) * dt))
+
+    /* ---------------- publish to the animation rig ---------------- */
+    motion.current.speed = planar
+    motion.current.grounded = nowGrounded && !st.jumpQueued
+    motion.current.vy = st.vel.y
+    motion.current.y = st.pos.y
+    motion.current.prep = st.jumpQueued ? 1 : 0
+    motion.current.land = st.landT > 0 ? st.landT / LAND_TIME : 0
+    motion.current.turn = dt > 0 ? (st.facing - prevFacing) / dt : 0
 
     if (body.current) {
       body.current.position.set(st.pos.x, st.pos.y, st.pos.z)
@@ -160,28 +203,35 @@ export default function Player() {
       sun.current.target = sunTarget.current
     }
 
-    // camera
+    /* ---------------- camera ---------------- */
     const { yaw, pitch } = look.current
     if (firstPerson) {
-      const headY = st.pos.y + 1.13
       camera.position.set(
         st.pos.x + Math.sin(st.facing) * 0.12,
-        headY,
+        st.pos.y + 1.13,
         st.pos.z + Math.cos(st.facing) * 0.12
       )
       camera.rotation.set(0, 0, 0)
       camera.rotateY(yaw)
       camera.rotateX(pitch)
     } else {
-      const d = st.camDist
       const cp = Math.cos(pitch)
       const target = new THREE.Vector3(st.pos.x, st.pos.y + 0.95, st.pos.z)
+      // never let the camera dip below the floor or push into the dwarf
+      const dist = Math.max(st.camDist, 1.6)
       const desired = new THREE.Vector3(
-        target.x + Math.sin(yaw) * cp * d,
-        Math.max(0.25, target.y + Math.sin(pitch) * d + 0.25),
-        target.z + Math.cos(yaw) * cp * d
+        target.x + Math.sin(yaw) * cp * dist,
+        target.y + Math.sin(pitch) * dist,
+        target.z + Math.cos(yaw) * cp * dist
       )
-      camera.position.lerp(desired, 1 - Math.exp(-14 * dt))
+      if (desired.y < 0.3) {
+        // slide along the ground instead of clipping through it
+        const t = (target.y - 0.3) / Math.max(1e-3, target.y - desired.y)
+        desired.lerpVectors(target, desired, THREE.MathUtils.clamp(t, 0.25, 1))
+        desired.y = Math.max(desired.y, 0.3)
+      }
+      camera.position.lerp(desired, 1 - Math.exp(-16 * dt))
+      if (camera.position.y < 0.25) camera.position.y = 0.25
       camera.lookAt(target)
     }
   })

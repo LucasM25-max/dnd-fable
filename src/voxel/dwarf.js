@@ -87,6 +87,13 @@ function grain(base, dark) {
   return (x, y, z) => (hash3(x * 3, y, z * 3) > 0.72 ? dark : base)
 }
 
+// where the front of the chest sits at a given height — the beard and the
+// gear straps ride on this so nothing sinks into the mail
+export function chestZ(y) {
+  const t = Math.max(0, Math.min(1, (y - 30) / 19))
+  return 6.0 + Math.sin(t * Math.PI * 0.9) * 1.9
+}
+
 /* ------------------------------------------------------------------ */
 /* body parts                                                          */
 /* ------------------------------------------------------------------ */
@@ -96,24 +103,24 @@ function buildHips() {
   // pelvis / trousers
   b.taper(24, 31, [0, 0], [7.5, 5], [0, 0], [9, 5.6], weave(C.trousers, C.trousersDark), MAT.MATTE, { square: 0.7 })
   // mail skirt hanging over the hips, scalloped hem
-  b.region([-13, 13], [21, 32], [-9, 9], (x, y, z) => {
-    const t = (y - 21) / 11
-    const rx = 9.6 - t * 0.6
-    const rz = 6.4 - t * 0.4
+  b.region([-14, 14], [22.5, 32], [-10, 10], (x, y, z) => {
+    const t = (y - 22.5) / 9.5
+    const rx = 11.0 - t * 1.0
+    const rz = 7.8 - t * 0.9
     const n = (x / rx) ** 4 + (z / rz) ** 4
-    if (n > 1 || n < 0.42) return null
+    if (n > 1 || n < 0.5) return null
     // scalloped hem: the lowest rows wobble
-    if (y < 23 && (Math.round(x) + Math.round(z) * 2) % 7 === 0) return null
-    if (y < 21.5 && Math.abs(x) > 8) return null
+    if (y < 24 && (Math.round(x) + Math.round(z) * 2) % 7 === 0) return null
+    if (y < 23 && Math.abs(x) > 9) return null
     return mailSkirt(x, y, z)
   }, MAT.METAL)
   // wide leather belt with a big buckle
-  b.taper(32, 35, [0, 0], [10, 6.8], [0, 0], [10, 6.8], grain(C.leather, C.leatherDark), MAT.LEATHER, { square: 0.85 })
+  b.taper(32, 35, [0, 0], [10.2, 7.0], [0, 0], [10.2, 7.0], grain(C.leather, C.leatherDark), MAT.LEATHER, { square: 0.85 })
   b.box([-3, 3], [31, 36], [6, 7], C.gold, MAT.METAL)
   b.box([-2, 2], [32, 35], [7, 8], C.goldDark, MAT.METAL)
   // belt pouch (left hip) and a coil of rope (right hip)
-  b.ellipsoid([9, 29, 3], [3.5, 4, 3], grain(C.leatherLight, C.leatherDark), MAT.LEATHER)
-  b.box([6, 12], [32, 34], [1, 5], C.leatherDark, MAT.LEATHER)
+  b.ellipsoid([9.4, 29, 4], [3.2, 3.8, 2.8], grain(C.leatherLight, C.leatherDark), MAT.LEATHER)
+  b.box([6.5, 12], [32, 34], [2, 6], C.leatherDark, MAT.LEATHER)
   for (let i = 0; i < 3; i++)
     b.capsule([-9, 30 + i, -5], [-9, 30 + i, -5], [4.2, 0.9, 3.2], C.rope, MAT.MATTE)
   return b
@@ -180,36 +187,49 @@ function buildHead() {
     if (y < 52 && z > -1) return null
     return hash3(x, y * 2, z) > 0.78 ? C.hairLight : hash3(x, y, z) > 0.4 ? C.hair : C.hairDark
   }, MAT.MATTE, { hollow: 0.72 })
-  b.taper(47, 57, [0, -5], [7.2, 3.6], [0, -3], [8, 5], (x, y, z) =>
+  b.taper(50, 57, [0, -6], [6.8, 2.6], [0, -3], [8, 5], (x, y, z) =>
     hash3(x, y * 2, z) > 0.8 ? C.hairLight : hash3(x, y, z) > 0.45 ? C.hair : C.hairDark, MAT.MATTE)
   return b
 }
 
 function buildBeard() {
-  // pivot sits just under the chin so the beard can sway
+  // pivot sits just under the chin so the beard can sway.
+  // Below the jaw the beard follows the surface of the chest, so it lies on
+  // the mail instead of disappearing into it.
   const b = new VoxelBuilder(S)
+  const surface = (y) => (y >= 47 ? 4.2 : chestZ(y) + 0.4)
+
   // moustache
-  b.box([-5, 5], [51, 52], [5, 8], (x, y, z) => (hash3(x, y, z) > 0.5 ? C.hair : C.hairDark), MAT.MATTE)
-  // main beard mass, widening then tapering to a point
-  b.region([-9, 9], [32, 52], [-3, 10], (x, y, z) => {
-    const t = (y - 32) / 20
-    const rx = 1.6 + Math.sin(Math.min(1, t * 1.15) * Math.PI * 0.72) * 6.6
-    const rz = 2.2 + t * 4.4
+  b.region([-5.5, 5.5], [50.6, 52.4], [4.5, 8.4], (x, y, z) => {
+    if (Math.abs(x) < 1.2 && z < 7) return null
+    return hash3(x, y, z) > 0.5 ? C.hair : C.hairDark
+  })
+
+  // main beard mass: a thick plait from the jaw to just above the belt
+  b.region([-8, 8], [35, 52], [-4, 12], (x, y, z) => {
+    const t = (y - 35) / 17 // 0 at the tip, 1 at the jaw
+    const rx = 1.9 + Math.sin(Math.min(1, t * 1.2) * Math.PI * 0.72) * 4.9
     if (Math.abs(x) > rx) return null
-    const front = 2 + (1 - t) * 1.5
-    if (z > rz || z < -front) return null
+    const back = y >= 48 ? -2.5 : surface(y) - 1.2 // rests against the mail
+    const thick = y >= 48 ? 11 : 3.0 + t * 2.2
+    if (z < back || z > back + thick) return null
     if (y > 49 && z < 2) return null // don't swallow the jaw
     const n = hash3(x, y, z)
-    if (y < 36 && n > 0.5 + t) return null // wispy, straggly tip
+    if (t < 0.22 && n > 0.2 + t * 3.4) return null // wispy, straggly tip
     if (n > 0.965) return null // teased-out strands all over
     return n > 0.82 ? C.hairLight : n > 0.42 ? C.hair : C.hairDark
   })
-  // two braids with gold rings
+
+  // two braids with gold rings, lying on the surface of the beard
   for (const sx of [-1, 1]) {
-    b.capsule([sx * 5.5, 48, 6], [sx * 6.5, 33, 4], [2.1, 2.1, 2.1], (x, y, z) =>
-      ((y + x) % 4 < 2 ? C.hairDark : C.hair), MAT.MATTE)
-    b.capsule([sx * 6.4, 35, 4.2], [sx * 6.6, 34, 4.1], [2.6, 1.0, 2.6], C.gold, MAT.METAL)
-    b.capsule([sx * 5.8, 44, 5.4], [sx * 5.9, 43, 5.3], [2.6, 1.0, 2.6], C.goldDark, MAT.METAL)
+    for (let y = 37; y <= 48; y += 0.5) {
+      const z = (y >= 47 ? 7.4 : surface(y) + 2.6) + Math.sin(y * 0.4) * 0.3
+      const x = sx * (4.4 + (48 - y) * 0.09)
+      b.capsule([x, y, z], [x, y + 0.5, z], [1.7, 1.0, 1.6], (ax, ay, az) =>
+        (Math.round(ay * 2 + ax) % 4 < 2 ? C.hairDark : C.hair), MAT.MATTE)
+    }
+    b.capsule([sx * 5.4, 38.4, surface(38) + 2.6], [sx * 5.4, 37.6, surface(38) + 2.6], [2.1, 0.9, 2.0], C.gold, MAT.METAL)
+    b.capsule([sx * 4.8, 45.4, surface(45) + 2.6], [sx * 4.8, 44.6, surface(45) + 2.6], [2.1, 0.9, 2.0], C.goldDark, MAT.METAL)
   }
   return b
 }
@@ -228,7 +248,8 @@ function buildUpperArm(side) {
 function buildLowerArm(side) {
   // pivot at the elbow
   const b = new VoxelBuilder(S)
-  // tunic sleeve
+  // elbow ball + tunic sleeve
+  b.ellipsoid([0, 0, 0], [3.9, 3.9, 3.9], weave(C.tunic, C.tunicDark), MAT.MATTE)
   b.capsule([0, 0, 0], [0, -3.5, 0], [3.8, 3.8, 3.8], weave(C.tunic, C.tunicDark), MAT.MATTE)
   // leather bracer
   b.capsule([0, -3.5, 0], [side * 0.4, -8.5, 0], [3.6, 3.6, 3.6], grain(C.leather, C.leatherDark), MAT.LEATHER)
@@ -244,13 +265,17 @@ function buildLowerArm(side) {
 
 function buildThigh() {
   const b = new VoxelBuilder(S) // pivot at the hip (y = 27)
-  b.taper(-12, 0, [0, 0], [4.2, 4.4], [0, 0], [5.4, 5.6], weave(C.trousers, C.trousersDark), MAT.MATTE, { square: 0.3 })
+  b.taper(-12, 0, [0, 0], [4.0, 4.2], [0, 0], [4.6, 5.0], weave(C.trousers, C.trousersDark), MAT.MATTE, { square: 0.3 })
+  // ball at the pivot: keeps the joint closed at any swing angle
+  b.ellipsoid([0, 0, 0], [4.5, 4.5, 4.9], weave(C.trousers, C.trousersDark), MAT.MATTE)
+  b.ellipsoid([0, -12, 0], [4.0, 4.0, 4.2], weave(C.trousers, C.trousersDark), MAT.MATTE)
   return b
 }
 
 function buildShin(side) {
   const b = new VoxelBuilder(S) // pivot at the knee (y = 15)
-  b.taper(-10, 0, [0, 0], [3.4, 3.6], [0, 0], [4.4, 4.6], weave(C.trousers, C.trousersDark), MAT.MATTE, { square: 0.3 })
+  b.taper(-10, 0, [0, 0], [3.4, 3.6], [0, 0], [4.2, 4.4], weave(C.trousers, C.trousersDark), MAT.MATTE, { square: 0.3 })
+  b.ellipsoid([0, 0, 0], [4.1, 4.1, 4.3], weave(C.trousers, C.trousersDark), MAT.MATTE)
   // boot shaft with cross lacing
   b.taper(-10, -4, [0, 0], [4.0, 4.2], [0, 0], [4.4, 4.6], grain(C.boot, C.leatherDark), MAT.LEATHER, { square: 0.5 })
   for (let i = 0; i < 3; i++)
@@ -263,6 +288,7 @@ function buildShin(side) {
 function buildFoot() {
   const b = new VoxelBuilder(S) // pivot at the ankle (y = 5)
   b.taper(-5, 0, [0, 1.5], [4.2, 6.0], [0, 0.5], [4.2, 4.6], grain(C.boot, C.leatherDark), MAT.LEATHER, { square: 0.85 })
+  b.ellipsoid([0, 0, 0.5], [3.9, 3.6, 4.0], grain(C.boot, C.leatherDark), MAT.LEATHER)
   // toe cap + sole
   b.ellipsoid([0, -2.5, 5], [3.9, 2.5, 3.0], grain(C.boot, C.leatherDark), MAT.LEATHER)
   b.box([-4, 4], [-5, -4], [-3.5, 7.5], C.leatherDark, MAT.LEATHER, { filter: (x, y, z) => Math.abs(x) <= 4 - (z > 5 ? 1.2 : 0) })
@@ -484,7 +510,6 @@ export function buildDwarf() {
     flail: { b: buildFlail() },
     spear: { b: buildSpear() },
     javelin: { b: buildJavelin() },
-    javelins8: { b: buildJavelinBundle(8) },
     javelins7: { b: buildJavelinBundle(7) },
     shortbow: { b: buildShortbow() },
     quiver: { b: buildArrowQuiver(20) },
