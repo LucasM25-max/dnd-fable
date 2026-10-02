@@ -51,26 +51,32 @@ ambient occlusion and per-voxel colour jitter.
 * `src/components/VoxelMesh.jsx` — renders a baked part as `InstancedMesh`es, one per
   material (matte / leather / metal / wood).
 * `src/components/Dwarf.jsx` — the skeleton (hips → torso → head/arms, hips → legs),
-  how the equipped weapon is held, and the procedural animation.
+  how the equipped weapon is held, and the carried-kit spring simulation.
+* `src/anim/poseRig.js` — the animation system: keyframe clips, spline sampling,
+  speed blending, jump/land layers and the foot/ground solver.
 
 ## Animation
 
-Everything is procedural, blended continuously by speed and state:
+Hand-authored keyframe clips, not stacked sine waves. `src/anim/poseRig.js` owns
+every joint angle in the body: three looping locomotion clips (idle / walk / run)
+are sampled with a cyclic Catmull-Rom spline, cross-faded by speed, then crouch,
+take-off and falling poses are layered over the top before a foot/ground solver
+settles him on the floor. Each clip stores one leg and one arm; the other side is
+the same track half a cycle later, so the gait is symmetric by construction and
+the arms always swing opposite their own leg.
 
-* **Idle** — breathing, a slow weight shift from boot to boot (the loaded knee
-  straightens, the body leans over it), head drift, softly bent knees.
-* **Walk** — a heavy dwarf trudge, not a catwalk: wide planted stance with the
-  toes turned out, short quick strides, almost no pelvis yaw or hip sway. The
-  weight rolls over each boot instead (the body shifts laterally over the stance
-  leg), every footfall lands with a thud that compresses the spine, nods the
-  head, jolts the arm swing and shakes the beard. Heel strike, stance absorb,
-  toe-off and swing tuck on the ankles and knees; the head stays level; the body
-  banks into turns.
-* **Sprint** — same cycle pushed over: deep forward lean, longer stride, high
-  knee tuck, arms pumping across the chest, and a capped pelvis dip so the run
-  gets a flight phase.
-* **Jump** — a short crouch before take-off, a tuck on the way up, legs reaching on
-  the way down, and a weighted crouch-and-recover on landing scaled by impact.
+* **Idle** — a slow six-second weight shift from boot to boot, two-frequency
+  breathing, soft knees, drifting head and beard.
+* **Walk** — a heavy dwarf trudge: wide planted stance, toes turned out, heel
+  strike, stance absorb, toe-off, swing tuck. Each footfall compresses the spine
+  and nods the head; the body banks into turns.
+* **Sprint** — longer reach, a deep heel-to-backside knee fold during recovery,
+  a forward lean, pumping arms and a capped pelvis dip so the cycle gets a
+  flight phase.
+* **Jump** — a short deep crouch before take-off, an asymmetric tuck on the way
+  up, legs reaching on the way down, and a weighted crouch-and-recover on landing.
+* **Stride matching** — the cycle rate is derived from the stride length and the
+  actual ground speed, so the boots never skate.
 * **Carried kit has physics** — every held weapon (and the sheaf or quiver that
   comes with it) hangs off a damped angular spring driven by the real
   acceleration of the hand, measured in world space each frame and resolved into
@@ -78,10 +84,9 @@ Everything is procedural, blended continuously by speed and state:
   and overshoots; the flail — light spring, loose damping — swings a lot more
   than the javelin, which is stiff and quick. Nothing is ever rigid: a slow
   two-frequency drift keeps it breathing even when he is standing still.
-* **Foot/ground solver** — the pelvis height is solved from the leg chain each frame
-  so the planted boot sits exactly on the floor (this is what produces the walk's
-  bob) and nothing ever sinks through the ground; at a sprint the dip is capped so
-  the run gets a flight phase.
+* **Foot/ground solver** — the pelvis height is solved from the leg chain each
+  frame so the planted boot sits exactly on the floor (this is what produces the
+  bob) and nothing ever sinks through the ground.
 
 ## No clipping
 

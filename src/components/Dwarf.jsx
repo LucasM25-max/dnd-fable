@@ -3,23 +3,10 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import VoxelMesh from './VoxelMesh.jsx'
 import { buildDwarf, UNIT } from '../voxel/dwarf.js'
+import { METRICS, createAnimState, updatePose, carryArm } from '../anim/poseRig.js'
 
 const v = (n) => n * UNIT
-const lerp = (a, b, t) => a + (b - a) * t
-const damp = (a, b, lambda, dt) => lerp(a, b, 1 - Math.exp(-lambda * dt))
-const clamp = (x, a, b) => Math.max(a, Math.min(b, x))
-
-/* ------------------------------------------------------------------ */
-/* skeleton metrics (metres) — also used for the foot/ground solver     */
-/* ------------------------------------------------------------------ */
-const HIPS_Y = v(30) // hips pivot above the feet
-const HIP_X = v(5.5)
-const HIP_Y = v(-3) // hip joint, relative to the hips pivot
-const THIGH = v(12)
-const SHIN = v(10)
-const SOLE = v(5.2) // ankle pivot down to the bottom of the boot
-const HEEL_Z = v(-3.8)
-const TOE_Z = v(7.6)
+const { HIPS_Y, HIP_X, HIP_Y, THIGH, SHIN } = METRICS
 
 /* ------------------------------------------------------------------ */
 /* where kit rides                                                      */
@@ -70,16 +57,7 @@ export default function Dwarf({ motion, held, hideHead = false }) {
   const rig = useRef({})
   const kit = useRef({})
   const sim = useRef({})
-  const s = useRef({
-    phase: 0,
-    speed: 0,
-    air: 0,
-    lean: 0,
-    turn: 0,
-    prep: 0,
-    land: 0,
-    strideBlend: 0,
-  })
+  const anim = useRef(createAnimState())
 
   const set = (name) => (el) => {
     if (el) rig.current[name] = el
@@ -167,197 +145,41 @@ export default function Dwarf({ motion, held, hideHead = false }) {
     const dt = Math.min(Math.max(rawDt, 1 / 240), 1 / 20)
     const r = rig.current
     if (!r.root) return
-    const m = motion.current
     const t = state.clock.elapsedTime
-    const S = s.current
 
-    /* ---------------- gait blending ---------------- */
-    S.speed = damp(S.speed, m.speed, 12, dt)
-    const sp = S.speed
-    const walkN = clamp(sp / 1.7, 0, 1)
-    const sprintN = clamp((sp - 1.7) / 1.9, 0, 1)
-    const idle = 1 - walkN
+    // one call does the whole body: clips, blending, ground solve
+    const pose = updatePose(anim.current, motion.current, dt, t)
 
-    S.air = damp(S.air, m.grounded ? 0 : 1, 16, dt)
-    S.prep = damp(S.prep, m.prep || 0, 22, dt)
-    S.land = damp(S.land, m.land || 0, 18, dt)
-    S.turn = damp(S.turn, clamp(m.turn || 0, -3, 3), 8, dt)
-    const air = S.air
-    const prep = S.prep
-    const land = S.land
-    const vyN = clamp(m.vy / 4.2, -1, 1)
-
-    // short, quick dwarf steps
-    const stride = 0.44 + 0.26 * sprintN
-    const cycles = sp > 0.04 ? sp / (2 * stride) : 0
-    S.phase += dt * cycles * Math.PI * 2
-    if (S.phase > Math.PI * 4) S.phase -= Math.PI * 4
-
-    S.strideBlend = damp(S.strideBlend, walkN, 9, dt)
-    const amp = S.strideBlend
-    const p = S.phase
-
-    const legAmp = (0.40 + 0.22 * sprintN) * amp
-    const armAmp = (0.30 + 0.38 * sprintN) * amp
-    const breathe = Math.sin(t * 1.5) * 0.018 + Math.sin(t * 0.9) * 0.008
-    // heavy footfall: a sharp pulse as each boot lands
-    const thud =
-      (Math.max(0, Math.cos(p)) ** 16 + Math.max(0, -Math.cos(p)) ** 16) * amp
-    // slow weight shift from boot to boot while standing
-    const sway = Math.sin(t * 0.45) * idle
-
-    /* ---------------- torso / spine ---------------- */
-    const leanTarget = 0.06 + 0.12 * walkN + 0.34 * sprintN + 0.32 * prep + 0.24 * land
-    S.lean = damp(S.lean, leanTarget, 9, dt)
-    const lean = S.lean * (1 - air * 0.55)
-
-    // a dwarf rolls over his boots — he does not swing his hips
-    const hipsYaw = Math.cos(p) * 0.035 * amp * (1 + sprintN)
-    const torsoYaw = -Math.cos(p) * 0.1 * amp * (1 + sprintN * 0.8)
-    const bank = clamp(-S.turn * 0.1, -0.24, 0.24) * clamp(sp / 1.6, 0, 1)
-    const weight = Math.sin(p) * amp // +1 over the left boot, -1 over the right
-
-    r.hips.rotation.x = lean * 0.4 + air * (vyN > 0 ? -0.1 : 0.16) - thud * 0.02
-    r.hips.rotation.y = hipsYaw
-    r.hips.rotation.z = bank + weight * 0.018 + sway * 0.012
-    r.torso.rotation.x =
-      lean * 0.6 + breathe + air * (vyN > 0 ? -0.12 : 0.14) + thud * 0.045
-    r.torso.rotation.y = torsoYaw + Math.sin(t * 0.5) * 0.03 * idle
-    r.torso.rotation.z = -weight * 0.035 - bank * 0.4 - sway * 0.022
-
-    /* ---------------- head: stays level ---------------- */
-    const headStab = -(r.hips.rotation.x + r.torso.rotation.x) * 0.85
-    r.head.rotation.x = headStab - thud * 0.03 + 0.06 * air * vyN
-    r.head.rotation.y =
-      -torsoYaw * 0.7 + clamp(S.turn * 0.12, -0.3, 0.3) + Math.sin(t * 0.37) * 0.1 * idle
-    r.head.rotation.z = weight * 0.02 + Math.sin(t * 0.6) * 0.02 * idle
+    r.root.position.set(pose.rootX, pose.rootY, 0)
+    r.hips.rotation.set(pose.hips[0], pose.hips[1], pose.hips[2])
+    r.torso.rotation.set(pose.torso[0], pose.torso[1], pose.torso[2])
+    r.head.rotation.set(pose.head[0], pose.head[1], pose.head[2])
     r.head.visible = !hideHead
+    r.beard.rotation.set(pose.beard[0], pose.beard[1], pose.beard[2])
 
-    // beard: lags the body, and never swings back into the chest
-    const beardSway =
-      -0.06 -
-      Math.sin(p - 1.0) * 0.08 * amp -
-      air * 0.3 * vyN -
-      prep * 0.12 -
-      thud * 0.06 +
-      breathe
-    r.beard.rotation.x = clamp(beardSway, -0.42, 0.02)
-    r.beard.rotation.z = clamp(Math.sin(p * 0.5 - 0.7) * 0.05 * amp + bank * 0.5, -0.2, 0.2)
+    const splay = pose.splay
+    // +z roll on his left leg / -z on his right tips both boots outward
+    r.hipL.rotation.set(pose.legL.hip, pose.toeOut, splay)
+    r.kneeL.rotation.x = pose.legL.knee
+    r.ankleL.rotation.set(pose.legL.ankle, 0, -splay) // keep the sole flat
+    r.hipR.rotation.set(pose.legR.hip, -pose.toeOut, -splay)
+    r.kneeR.rotation.x = pose.legR.knee
+    r.ankleR.rotation.set(pose.legR.ankle, 0, splay)
 
-    /* ---------------- legs ---------------- */
-    const kneeIdle = 0.1 + 0.05 * Math.sin(t * 1.5) * idle
-    const crouch = prep * 0.95 + land * 0.8
-    // wide, planted stance — the legs stay apart and the toes point out
-    const splay = 0.1 + 0.03 * walkN + 0.02 * crouch
+    // arms: blend to the carry pose for whichever hand is holding something
+    const info = held ? HELD[held] : null
+    const busyL = info && info.hand === 'L' ? 1 : 0
+    const busyR = info && info.hand === 'R' ? 1 : 0
+    const armL = carryArm(pose.armL, busyL, t, 0)
+    const armR = carryArm(pose.armR, busyR, t, 2.1)
 
-    const legAngles = (ph, sideSign) => {
-      const c = Math.cos(ph)
-      const sn = Math.sin(ph)
-      let hip = -legAmp * c
-      let knee =
-        kneeIdle +
-        Math.max(0, -sn) ** 1.1 * (1.05 + 0.45 * sprintN) * amp + // swing tuck
-        Math.max(0, sn) * (0.18 + 0.3 * sprintN) * amp + // stance absorb
-        Math.max(0, c) ** 16 * 0.14 * amp // soak up the landing
-      let ankle = -0.22 * c * amp - 0.18 * Math.max(0, -sn) * amp
+    const armOut = 0.2 + 0.05 * pose.runW
+    r.shoulderL.rotation.set(armL.shoulder, armL.shoulder * -0.1, armOut + 0.05 * busyL)
+    r.elbowL.rotation.set(armL.elbow, 0.12 * busyL, 0)
+    r.shoulderR.rotation.set(armR.shoulder, armR.shoulder * 0.1, -armOut - 0.05 * busyR)
+    r.elbowR.rotation.set(armR.elbow, -0.12 * busyR, 0)
 
-      // standing: most of the weight on one boot, the other knee softer
-      knee += idle * Math.max(0, sideSign * sway) * 0.12
-
-      // crouching for take-off / landing
-      hip -= crouch * 0.42
-      knee += crouch * 0.95
-      ankle -= crouch * 0.5
-
-      // airborne: tuck on the way up, reach on the way down
-      const up = Math.max(0, vyN)
-      const down = Math.max(0, -vyN)
-      const tuck = sideSign > 0 ? 1.1 : 0.85 // a little asymmetry reads as weight
-      const airHip = (-0.62 * up - 0.18 * down) * tuck
-      const airKnee = (1.25 * up + 0.3 * down) * tuck
-      const airAnkle = 0.42 * up - 0.3 * down
-      hip = lerp(hip, airHip, air)
-      knee = lerp(knee, airKnee, air)
-      ankle = lerp(ankle, airAnkle, air)
-      return [hip, knee, clamp(ankle, -0.5, 0.6)]
-    }
-
-    const [hipL, kneeL, ankL] = legAngles(p, 1)
-    const [hipR, kneeR, ankR] = legAngles(p + Math.PI, -1)
-
-    r.hipL.rotation.set(hipL, 0.09, -splay)
-    r.kneeL.rotation.x = kneeL
-    r.ankleL.rotation.set(ankL, 0, splay) // keep the sole flat
-    r.hipR.rotation.set(hipR, -0.09, splay)
-    r.kneeR.rotation.x = kneeR
-    r.ankleR.rotation.set(ankR, 0, -splay)
-
-    /* -------- root: solve so the lowest boot sits on the floor ---- */
-    const hx = r.hips.rotation.x
-    const hipJointY = HIPS_Y + HIP_Y * Math.cos(hx)
-    const legScale = Math.cos(splay)
-    const soleY = (hip, knee, ankle) => {
-      const a = hx + hip
-      const b = a + knee
-      const c = b + ankle
-      const ky = hipJointY - THIGH * legScale * Math.cos(a)
-      const ay = ky - SHIN * legScale * Math.cos(b)
-      const heel = ay + (-SOLE * Math.cos(c) - HEEL_Z * Math.sin(c))
-      const toe = ay + (-SOLE * Math.cos(c) - TOE_Z * Math.sin(c))
-      return Math.min(heel, toe)
-    }
-    const lowest = Math.min(soleY(hipL, kneeL, ankL), soleY(hipR, kneeR, ankR))
-
-    const worldY = m.y || 0
-    const planted = Math.max(-lowest, -0.025 * sprintN)
-    const airborne = Math.max(0, -worldY - lowest)
-    let rootY = lerp(planted, airborne, air)
-    rootY += Math.sin(t * 1.3) * v(0.12) * idle
-    r.root.position.y = damp(r.root.position.y, rootY, 34, dt)
-    // waddle: the body rides over whichever boot is carrying him
-    const rootX = (weight * 0.016 + sway * 0.013) * (1 - air)
-    r.root.position.x = damp(r.root.position.x, rootX, 16, dt)
-
-    /* ---------------- arms ---------------- */
-    const heldInfo = held ? HELD[held] : null
-    const rightBusy = heldInfo && heldInfo.hand === 'R' ? 1 : 0
-    const leftBusy = heldInfo && heldInfo.hand === 'L' ? 1 : 0
-
-    const armPose = (shoulder, elbow, ph, side, busy) => {
-      const c = Math.cos(ph)
-      const swing = armAmp * c
-      const freeShoulder = swing + idle * 0.02 + Math.sin(t * 1.2) * 0.015 * idle
-      // heavy arms: the bend lives in the shoulder, the elbow stays loaded
-      const freeElbow = -(0.3 + 0.75 * sprintN + Math.max(0, c) * (0.3 + 0.25 * sprintN) * amp)
-
-      const busyShoulder = -0.5 - 0.12 * sprintN
-      const busyElbow = -1.2
-
-      let sx = lerp(freeShoulder, busyShoulder, busy)
-      let ex = lerp(freeElbow, busyElbow, busy)
-
-      sx += busy ? -0.12 * crouch : 0.55 * crouch
-      ex -= crouch * 0.25
-      sx += thud * (busy ? 0.02 : 0.06) // the swing jolts on each footfall
-
-      const up = Math.max(0, vyN)
-      const down = Math.max(0, -vyN)
-      sx = lerp(sx, busy ? -0.75 : -1.15 * up - 0.45 * down, air * (busy ? 0.5 : 1))
-      ex = lerp(ex, busy ? -1.3 : -0.75 * up - 0.5 * down, air * (busy ? 0.5 : 1))
-
-      shoulder.rotation.x = sx
-      // barrel chest: the arms are carried well clear of the mail
-      shoulder.rotation.z =
-        side *
-        (0.21 + 0.06 * sprintN + 0.06 * busy + Math.max(0, -c) * 0.05 * amp + idle * 0.01)
-      shoulder.rotation.y = side * (swing * 0.1 + sprintN * 0.12 * amp * Math.max(0, c))
-      elbow.rotation.x = clamp(ex, -2.1, 0.1)
-      elbow.rotation.y = side * busy * 0.12
-    }
-    armPose(r.shoulderL, r.elbowL, p + Math.PI, 1, leftBusy)
-    armPose(r.shoulderR, r.elbowR, p, -1, rightBusy)
-
-    /* ---------------- carried kit swings on its own ---------------- */
+    /* carried kit swings on its own */
     if (held) simulateKit(held, HELD[held].r, dt, t)
     if (held === 'javelin') simulateKit('javelins', STOWED.javelins.r, dt, t)
     if (held === 'shortbow') simulateKit('quiver', STOWED.quiver.r, dt, t)
