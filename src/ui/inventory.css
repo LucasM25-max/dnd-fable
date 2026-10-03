@@ -1,22 +1,31 @@
 /* ------------------------------------------------------------------ *
- * The pack: a brass-and-leather panel that slides out from under the   *
- * satchel button in the top right corner.                              *
+ * The pack: a brass-and-leather panel that opens from the satchel      *
+ * button in the top right corner.                                      *
  *                                                                      *
- * Everything here is real vector/CSS work — gradients, hairline brass   *
- * rules, inline SVG flourishes — and the type is set in proper fonts    *
- * at sensible sizes. No pixel fonts, no bitmap UI, nothing blurry.      *
+ * Built the way a game UI is built rather than the way a web card is:   *
+ * every surface has a material (tooled leather, aged brass, sunken      *
+ * stone), the light comes from one direction so bevels agree with each  *
+ * other, and the type is real type — Cinzel over EB Garamond, normal UI *
+ * sizes, no bitmap or pixel fonts anywhere.                             *
  * ------------------------------------------------------------------ */
 
 .inv {
+  /* brass */
+  --brass-lit: #f6dfae;
   --brass: #d7b26c;
   --brass-dim: #a07f41;
   --brass-deep: #5d4621;
-  --ink: #f0e5cd;
-  --ink-dim: #bba985;
-  --ink-faint: #8d7c5e;
-  --leather: #1b1510;
-  --leather-hi: #2b2118;
-  --ember: #e08a3c;
+  /* ink on leather */
+  --ink: #f2e8d2;
+  --ink-dim: #c0ad88;
+  --ink-faint: #8e7d5e;
+  /* leather */
+  --hide-hi: #2a2017;
+  --hide: #1d160f;
+  --hide-deep: #120d08;
+
+  /* one tileable grain, reused as an overlay on every leather surface */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
 
   position: fixed;
   top: 0;
@@ -30,148 +39,159 @@
   font-variant-numeric: tabular-nums lining-nums;
 }
 
+/* a shared grain overlay for leather surfaces */
+.inv .grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--grain);
+  background-size: 180px 180px;
+  mix-blend-mode: overlay;
+  opacity: 0.085;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
 /* ---------------- the satchel button ---------------- */
 
 .inv-btn {
   position: fixed;
   top: 18px;
   right: 18px;
-  width: 56px;
-  height: 56px;
+  width: 58px;
+  height: 58px;
   padding: 0;
   cursor: pointer;
-  border: 1px solid #3a2c1b;
-  border-radius: 12px;
+  border: 1px solid #0d0906;
+  border-radius: 13px;
   background:
-    radial-gradient(120% 100% at 30% 0%, rgba(255, 221, 160, 0.16), transparent 62%),
-    linear-gradient(176deg, #2d2318 0%, #1d160f 52%, #140f0a 100%);
+    radial-gradient(120% 95% at 32% -5%, rgba(255, 222, 165, 0.22), transparent 60%),
+    linear-gradient(176deg, #332818 0%, #1f1810 54%, #130d08 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(215, 178, 108, 0.42),
-    inset 0 1px 0 rgba(255, 228, 176, 0.22),
-    inset 0 -8px 16px rgba(0, 0, 0, 0.5),
-    0 4px 14px rgba(0, 0, 0, 0.42);
+    inset 0 0 0 1px rgba(215, 178, 108, 0.45),
+    inset 0 1px 0 rgba(255, 230, 180, 0.3),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.55),
+    0 5px 16px rgba(0, 0, 0, 0.45);
   color: var(--brass);
   display: grid;
   place-items: center;
   transition:
-    transform 140ms cubic-bezier(0.2, 0.7, 0.3, 1),
-    box-shadow 160ms ease,
-    color 160ms ease;
+    transform 150ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 180ms ease,
+    color 180ms ease;
 }
 .inv-btn:hover {
   transform: translateY(-1px);
-  color: #f2d495;
+  color: var(--brass-lit);
   box-shadow:
-    inset 0 0 0 1px rgba(242, 212, 149, 0.75),
-    inset 0 1px 0 rgba(255, 234, 190, 0.3),
-    inset 0 -8px 16px rgba(0, 0, 0, 0.45),
-    0 6px 18px rgba(0, 0, 0, 0.5),
-    0 0 20px rgba(224, 160, 70, 0.28);
+    inset 0 0 0 1px rgba(246, 223, 174, 0.8),
+    inset 0 1px 0 rgba(255, 236, 196, 0.35),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.5),
+    0 0 22px rgba(224, 160, 70, 0.3);
 }
 .inv-btn:active {
-  transform: translateY(1px) scale(0.98);
+  transform: translateY(1px) scale(0.985);
 }
 .inv-btn:focus-visible {
-  outline: 2px solid #f2d495;
+  outline: 2px solid var(--brass-lit);
   outline-offset: 3px;
 }
 .inv-btn.is-open {
-  color: #ffe3ab;
+  color: #ffe8bb;
   background:
-    radial-gradient(120% 100% at 30% 0%, rgba(255, 205, 130, 0.26), transparent 62%),
-    linear-gradient(176deg, #3a2c1b 0%, #241b12 60%, #171009 100%);
+    radial-gradient(120% 95% at 32% -5%, rgba(255, 205, 130, 0.3), transparent 60%),
+    linear-gradient(176deg, #40311d 0%, #271d13 58%, #180f09 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 220, 160, 0.9),
-    inset 0 -8px 16px rgba(0, 0, 0, 0.45),
-    0 6px 18px rgba(0, 0, 0, 0.5),
-    0 0 22px rgba(224, 160, 70, 0.3);
+    inset 0 0 0 1px rgba(255, 224, 168, 0.95),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.5),
+    0 0 26px rgba(224, 160, 70, 0.34);
 }
 .inv-btn svg {
-  width: 30px;
-  height: 30px;
+  width: 31px;
+  height: 31px;
   display: block;
-  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
 }
-/* the little engraved key hint on the corner of the button */
 .inv-btn .inv-kbd {
   position: absolute;
   right: -5px;
   bottom: -5px;
 }
-.inv-kbd {
-  display: inline-grid;
-  place-items: center;
-  min-width: 19px;
-  height: 19px;
-  padding: 0 4px;
-  border-radius: 5px;
-  border: 1px solid rgba(215, 178, 108, 0.55);
-  background: linear-gradient(180deg, #3b2d1c, #1d1510);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 225, 170, 0.22);
-  font-family: 'Cinzel', Georgia, serif;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 0.02em;
-  color: #e7c98d;
-}
-
-/* count of what is in the pack, riding on the button */
 .inv-btn .inv-tally {
   position: absolute;
   top: -6px;
   left: -6px;
-  min-width: 20px;
-  height: 20px;
+  min-width: 21px;
+  height: 21px;
   padding: 0 5px;
-  border-radius: 10px;
+  border-radius: 11px;
   display: grid;
   place-items: center;
   font-family: 'Cinzel', Georgia, serif;
   font-size: 11px;
   font-weight: 700;
   color: #30220d;
-  background: linear-gradient(180deg, #f6dda2 0%, #d7b26c 48%, #a9823c 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 252, 235, 0.7);
+  background: linear-gradient(180deg, #fbe7ae 0%, #d9b46e 46%, #a47c37 100%);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 253, 238, 0.8),
+    inset 0 -2px 3px rgba(94, 66, 18, 0.5);
+}
+
+/* engraved key cap, used on the button and on every item row */
+.inv-kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid rgba(215, 178, 108, 0.5);
+  background: linear-gradient(180deg, #41321f, #1d1510);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 226, 172, 0.26);
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: #e9cc92;
 }
 
 /* ---------------- the panel ---------------- */
 
 .inv-panel {
   position: fixed;
-  top: 86px;
+  top: 88px;
   right: 18px;
-  width: min(396px, calc(100vw - 36px));
-  max-height: min(78vh, calc(100vh - 110px));
+  width: min(410px, calc(100vw - 36px));
+  max-height: min(80vh, calc(100vh - 112px));
   display: flex;
   flex-direction: column;
-  border-radius: 14px;
-  border: 1px solid #0e0a06;
+  border-radius: 15px;
+  border: 1px solid #0b0805;
   background:
-    linear-gradient(180deg, rgba(255, 226, 170, 0.07), rgba(0, 0, 0, 0) 22%),
-    radial-gradient(130% 70% at 50% -10%, rgba(224, 160, 70, 0.14), transparent 60%),
-    repeating-linear-gradient(
-      101deg,
-      rgba(255, 255, 255, 0.015) 0px,
-      rgba(255, 255, 255, 0.015) 1px,
-      rgba(0, 0, 0, 0) 1px,
-      rgba(0, 0, 0, 0) 4px
-    ),
-    linear-gradient(168deg, #241b13 0%, #1a140e 46%, #120d09 100%);
+    linear-gradient(180deg, rgba(255, 226, 170, 0.075), rgba(0, 0, 0, 0) 20%),
+    radial-gradient(130% 62% at 50% -12%, rgba(224, 160, 70, 0.16), transparent 62%),
+    radial-gradient(120% 100% at 50% 115%, rgba(0, 0, 0, 0.5), transparent 58%),
+    linear-gradient(168deg, var(--hide-hi) 0%, var(--hide) 46%, var(--hide-deep) 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(215, 178, 108, 0.5),
-    inset 0 0 0 5px rgba(12, 8, 5, 0.85),
-    inset 0 0 0 6px rgba(160, 127, 65, 0.3),
-    inset 0 30px 60px rgba(0, 0, 0, 0.45),
-    0 18px 48px rgba(0, 0, 0, 0.55);
+    inset 0 0 0 1px rgba(215, 178, 108, 0.52),
+    inset 0 0 0 5px rgba(10, 7, 4, 0.9),
+    inset 0 0 0 6px rgba(160, 127, 65, 0.32),
+    inset 0 34px 64px rgba(0, 0, 0, 0.4),
+    0 22px 56px rgba(0, 0, 0, 0.58),
+    0 2px 0 rgba(255, 228, 176, 0.06);
   overflow: hidden;
   transform-origin: 92% 0%;
-  animation: inv-in 200ms cubic-bezier(0.18, 0.9, 0.3, 1.02) both;
+  animation: inv-in 220ms cubic-bezier(0.18, 0.9, 0.3, 1.02) both;
 }
 @keyframes inv-in {
   from {
     opacity: 0;
-    transform: translate(10px, -8px) scale(0.965);
+    transform: translate(12px, -10px) scale(0.955);
   }
   to {
     opacity: 1;
@@ -191,32 +211,44 @@
 /* brass corner flourishes */
 .inv-corner {
   position: absolute;
-  width: 26px;
-  height: 26px;
-  color: rgba(215, 178, 108, 0.78);
+  width: 28px;
+  height: 28px;
+  color: rgba(226, 192, 126, 0.82);
   pointer-events: none;
+  z-index: 3;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.5));
 }
-.inv-corner.tl { top: 7px; left: 7px; }
-.inv-corner.tr { top: 7px; right: 7px; transform: scaleX(-1); }
-.inv-corner.bl { bottom: 7px; left: 7px; transform: scaleY(-1); }
-.inv-corner.br { bottom: 7px; right: 7px; transform: scale(-1, -1); }
+.inv-corner.tl { top: 8px; left: 8px; }
+.inv-corner.tr { top: 8px; right: 8px; transform: scaleX(-1); }
+.inv-corner.bl { bottom: 8px; left: 8px; transform: scaleY(-1); }
+.inv-corner.br { bottom: 8px; right: 8px; transform: scale(-1, -1); }
 
 /* ---------------- header ---------------- */
 
 .inv-head {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 18px 10px 20px;
+  gap: 13px;
+  padding: 17px 18px 12px 20px;
+  background: linear-gradient(180deg, rgba(255, 222, 168, 0.06), transparent);
 }
 .inv-crest {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   flex: none;
   display: grid;
   place-items: center;
-  color: #e9c98f;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+  border-radius: 50%;
+  color: #f0d6a0;
+  background:
+    radial-gradient(70% 70% at 35% 25%, rgba(255, 226, 170, 0.16), transparent 70%),
+    linear-gradient(180deg, #2e2317, #17110b);
+  box-shadow:
+    inset 0 0 0 1px rgba(215, 178, 108, 0.55),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(255, 229, 180, 0.08);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
 }
 .inv-title {
   flex: 1;
@@ -224,69 +256,73 @@
 }
 .inv-title h2 {
   margin: 0;
-  font-family: 'Cinzel', Georgia, serif;
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #f6e3b7;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6), 0 0 18px rgba(224, 160, 70, 0.22);
+  line-height: 1.1;
+  background: linear-gradient(180deg, #fff3d6 0%, #f0d49a 45%, #c79c51 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55));
 }
 .inv-title p {
-  margin: 2px 0 0;
+  margin: 3px 0 0;
   font-size: 13.5px;
   font-style: italic;
-  letter-spacing: 0.01em;
   color: var(--ink-faint);
 }
 .inv-close {
   font: inherit;
   flex: none;
-  width: 28px;
-  height: 28px;
+  width: 29px;
+  height: 29px;
   display: grid;
   place-items: center;
   cursor: pointer;
-  border-radius: 7px;
-  border: 1px solid rgba(215, 178, 108, 0.32);
-  background: linear-gradient(180deg, rgba(255, 226, 170, 0.08), rgba(0, 0, 0, 0.25));
+  border-radius: 8px;
+  border: 1px solid rgba(215, 178, 108, 0.3);
+  background: linear-gradient(180deg, rgba(255, 226, 170, 0.09), rgba(0, 0, 0, 0.3));
   color: var(--ink-dim);
   font-size: 15px;
   line-height: 1;
-  transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
 }
 .inv-close:hover {
-  color: #ffe6b8;
-  border-color: rgba(242, 212, 149, 0.8);
-  background: linear-gradient(180deg, rgba(255, 226, 170, 0.16), rgba(0, 0, 0, 0.2));
+  color: #ffeac2;
+  border-color: rgba(246, 223, 174, 0.85);
+  background: linear-gradient(180deg, rgba(255, 226, 170, 0.18), rgba(0, 0, 0, 0.22));
 }
 .inv-close:focus-visible {
-  outline: 2px solid #f2d495;
+  outline: 2px solid var(--brass-lit);
   outline-offset: 2px;
 }
 
-/* a hairline brass rule with a diamond set into the middle */
+/* hairline brass rule with a diamond set into the middle */
 .inv-rule {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 18px;
-  color: rgba(215, 178, 108, 0.55);
+  gap: 9px;
+  padding: 0 20px;
+  color: rgba(215, 178, 108, 0.5);
 }
 .inv-rule::before,
 .inv-rule::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, transparent, currentColor 30%, currentColor 70%, transparent);
-  opacity: 0.75;
+  background: linear-gradient(90deg, transparent, currentColor 28%, currentColor 72%, transparent);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
 }
 .inv-rule i {
   width: 7px;
   height: 7px;
   transform: rotate(45deg);
-  background: linear-gradient(135deg, #f3dca7, #a9823c);
-  box-shadow: 0 0 8px rgba(224, 160, 70, 0.35);
+  background: linear-gradient(135deg, #fbeec6, #a9823c);
+  box-shadow: 0 0 9px rgba(224, 160, 70, 0.4), 0 1px 0 rgba(0, 0, 0, 0.5);
 }
 
 /* ---------------- item list ---------------- */
@@ -294,115 +330,156 @@
 .inv-list {
   list-style: none;
   margin: 0;
-  padding: 12px 14px 14px;
+  padding: 13px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 11px;
   min-height: 0; /* so the list, not the panel, is what scrolls */
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-color: #6e5529 rgba(0, 0, 0, 0.3);
+  scrollbar-width: thin;
 }
 .inv-list::-webkit-scrollbar {
-  width: 9px;
+  width: 10px;
 }
 .inv-list::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.32);
+  border-radius: 10px;
 }
 .inv-list::-webkit-scrollbar-thumb {
-  border-radius: 9px;
-  background: linear-gradient(180deg, #7a5f2f, #4a3819);
-  border: 1px solid rgba(215, 178, 108, 0.35);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #8a6b33, #4a3819);
+  border: 1px solid rgba(215, 178, 108, 0.32);
+}
+.inv-list li {
+  animation: inv-row-in 260ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms + 40ms);
+}
+@keyframes inv-row-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
 }
 
+/* an item card: a tooled leather plate with a brass edge */
 .inv-row {
   position: relative;
   width: 100%;
   display: flex;
-  gap: 13px;
-  align-items: stretch;
+  gap: 14px;
+  align-items: flex-start;
   text-align: left;
-  padding: 11px 12px 11px 13px;
+  padding: 12px 13px 12px 14px;
   cursor: pointer;
-  border-radius: 10px;
-  border: 1px solid rgba(215, 178, 108, 0.16);
+  border-radius: 11px;
+  border: 1px solid rgba(215, 178, 108, 0.17);
   background:
-    linear-gradient(180deg, rgba(255, 232, 190, 0.045), rgba(0, 0, 0, 0.16)),
-    linear-gradient(160deg, #221a12, #17110c);
-  box-shadow: inset 0 1px 0 rgba(255, 229, 180, 0.07), 0 2px 8px rgba(0, 0, 0, 0.3);
+    linear-gradient(180deg, rgba(255, 232, 190, 0.05), rgba(0, 0, 0, 0.18)),
+    linear-gradient(158deg, #251c13, #171108);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 229, 180, 0.08),
+    inset 0 -14px 22px rgba(0, 0, 0, 0.3),
+    0 3px 10px rgba(0, 0, 0, 0.34);
   color: inherit;
   font: inherit;
+  overflow: hidden;
   transition:
-    transform 140ms cubic-bezier(0.2, 0.7, 0.3, 1),
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    background 160ms ease;
+    transform 150ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
-.inv-row:hover {
-  transform: translateY(-1px);
-  border-color: rgba(238, 205, 143, 0.5);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 229, 180, 0.12),
-    0 6px 16px rgba(0, 0, 0, 0.42),
-    0 0 0 1px rgba(224, 160, 70, 0.12);
-}
-.inv-row:focus-visible {
-  outline: 2px solid #f2d495;
-  outline-offset: 2px;
-}
-.inv-row.is-equipped {
-  border-color: rgba(240, 205, 140, 0.62);
-  background:
-    linear-gradient(180deg, rgba(255, 213, 143, 0.11), rgba(0, 0, 0, 0.12)),
-    linear-gradient(160deg, #2b2016, #1a130d);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 232, 186, 0.16),
-    inset 0 0 26px rgba(224, 160, 70, 0.1),
-    0 4px 14px rgba(0, 0, 0, 0.42);
-}
-/* lit edge down the side of whatever is in his hands */
-.inv-row.is-equipped::before {
+/* accent edge: dim normally, lit when the weapon is in his hands */
+.inv-row::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 9px;
-  bottom: 9px;
+  top: 10px;
+  bottom: 10px;
   width: 3px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #ffe3ab, #c9953f);
-  box-shadow: 0 0 10px rgba(255, 190, 110, 0.55);
+  border-radius: 0 3px 3px 0;
+  background: var(--accent, #d7b26c);
+  opacity: 0.22;
+  transition: opacity 180ms ease, box-shadow 180ms ease;
+}
+/* a slow sheen that only shows on hover */
+.inv-row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(104deg, transparent 32%, rgba(255, 236, 196, 0.07) 48%, transparent 62%);
+  opacity: 0;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+.inv-row:hover {
+  transform: translateY(-1px);
+  border-color: rgba(240, 210, 152, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 186, 0.13),
+    inset 0 -14px 22px rgba(0, 0, 0, 0.26),
+    0 8px 20px rgba(0, 0, 0, 0.45);
+}
+.inv-row:hover::before {
+  opacity: 0.6;
+}
+.inv-row:hover::after {
+  opacity: 1;
+}
+.inv-row:active {
+  transform: translateY(0);
+}
+.inv-row:focus-visible {
+  outline: 2px solid var(--brass-lit);
+  outline-offset: 2px;
+}
+.inv-row.is-equipped {
+  border-color: rgba(243, 212, 150, 0.62);
+  background:
+    linear-gradient(180deg, rgba(255, 214, 145, 0.11), rgba(0, 0, 0, 0.14)),
+    linear-gradient(158deg, #2e2217, #1a130c);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 234, 190, 0.17),
+    inset 0 0 30px rgba(224, 160, 70, 0.11),
+    0 5px 16px rgba(0, 0, 0, 0.44);
+}
+.inv-row.is-equipped::before {
+  opacity: 1;
+  box-shadow: 0 0 12px var(--accent, #e0a046);
 }
 
-/* the icon slot: sunk stone with brass brackets */
+/* ---------------- the icon slot ---------------- */
+
 .inv-slot {
   position: relative;
   flex: none;
-  width: 104px;
-  height: 104px;
-  border-radius: 8px;
+  width: 108px;
+  height: 108px;
+  border-radius: 9px;
   display: grid;
   place-items: center;
   overflow: hidden;
   background:
-    radial-gradient(90% 70% at 50% 12%, rgba(255, 222, 170, 0.14), transparent 62%),
-    radial-gradient(120% 120% at 50% 120%, rgba(0, 0, 0, 0.6), transparent 60%),
-    linear-gradient(170deg, #2a2119 0%, #191310 60%, #100c08 100%);
+    radial-gradient(86% 64% at 50% 10%, rgba(255, 224, 172, 0.13), transparent 64%),
+    radial-gradient(130% 120% at 50% 122%, rgba(0, 0, 0, 0.68), transparent 62%),
+    linear-gradient(168deg, #2c2219 0%, #191310 58%, #0e0a07 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(215, 178, 108, 0.3),
-    inset 0 2px 10px rgba(0, 0, 0, 0.6);
+    inset 0 0 0 1px rgba(215, 178, 108, 0.26),
+    inset 0 2px 12px rgba(0, 0, 0, 0.7),
+    inset 0 -1px 0 rgba(255, 226, 172, 0.07);
 }
-.inv-slot canvas {
-  display: block;
-}
-/* corner brackets */
+/* brass corner brackets */
 .inv-slot::before,
 .inv-slot::after {
   content: '';
   position: absolute;
-  width: 13px;
-  height: 13px;
-  border: 1.5px solid rgba(226, 192, 126, 0.7);
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(228, 196, 134, 0.65);
   pointer-events: none;
+  z-index: 3;
 }
 .inv-slot::before {
   top: 5px;
@@ -418,20 +495,61 @@
   border-top: none;
   border-radius: 0 0 4px 0;
 }
+/* warm pool of light the item turns in */
+.inv-glow {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  /* plain fallback first, then the accent-tinted pool where color-mix lands */
+  background: radial-gradient(circle at 50% 46%, rgba(224, 160, 70, 0.32) 0%, transparent 68%);
+  background: radial-gradient(
+    circle at 50% 46%,
+    color-mix(in srgb, var(--accent, #e0a046) 36%, transparent) 0%,
+    transparent 68%
+  );
+  opacity: 0.5;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+.inv-row:hover .inv-glow,
+.inv-row.is-equipped .inv-glow {
+  opacity: 0.95;
+}
+/* the shadow it stands in */
+.inv-floor {
+  position: absolute;
+  left: 50%;
+  bottom: 11px;
+  width: 58%;
+  height: 11px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.6), transparent 72%);
+  pointer-events: none;
+}
+.inv-slot canvas {
+  display: block;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
+}
 .inv-qty {
   position: absolute;
-  right: 5px;
-  top: 5px;
-  z-index: 2;
-  padding: 1px 6px;
+  right: 6px;
+  top: 6px;
+  z-index: 4;
+  padding: 1.5px 7px 1px;
   border-radius: 999px;
   font-family: 'Cinzel', Georgia, serif;
   font-size: 11.5px;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   color: #2a1d0b;
-  background: linear-gradient(180deg, #f8e2ac, #c9a155);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 253, 240, 0.7);
+  background: linear-gradient(180deg, #fbe7ae 0%, #d9b46e 50%, #bb914a 100%);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 253, 240, 0.75),
+    inset 0 -2px 3px rgba(94, 66, 18, 0.4);
 }
 
 /* ---------------- item text ---------------- */
@@ -442,7 +560,7 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding-top: 1px;
+  padding-top: 2px;
 }
 .inv-name {
   display: flex;
@@ -453,14 +571,18 @@
   display: block;
   min-width: 0;
   font-family: 'Cinzel', Georgia, serif;
-  font-size: 16px;
+  font-size: 16.5px;
   font-weight: 600;
-  letter-spacing: 0.055em;
-  color: #fbeccb;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+  letter-spacing: 0.05em;
+  color: #fdf0d4;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.inv-row.is-equipped .inv-name .n {
+  color: #ffeec4;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6), 0 0 14px rgba(255, 196, 112, 0.35);
 }
 .inv-name .inv-kbd {
   margin-left: auto;
@@ -471,13 +593,12 @@
   font-size: 13px;
   font-style: italic;
   color: var(--ink-dim);
-  letter-spacing: 0.012em;
 }
 .inv-traits {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  margin: 2px 0 1px;
+  margin: 3px 0 1px;
 }
 .inv-traits span {
   font-family: 'Cinzel', Georgia, serif;
@@ -485,18 +606,18 @@
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #d9c49a;
+  color: #dcc7a0;
   padding: 2.5px 7px 2px;
   border-radius: 4px;
-  border: 1px solid rgba(215, 178, 108, 0.3);
-  background: rgba(255, 221, 166, 0.06);
+  border: 1px solid rgba(215, 178, 108, 0.28);
+  background: linear-gradient(180deg, rgba(255, 224, 170, 0.08), rgba(0, 0, 0, 0.18));
   white-space: nowrap;
 }
 .inv-traits .is-on {
   color: #2b1e0a;
-  border-color: rgba(255, 226, 170, 0.9);
-  background: linear-gradient(180deg, #f7e0a8, #cda255);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 253, 240, 0.65);
+  border-color: rgba(255, 228, 174, 0.9);
+  background: linear-gradient(180deg, #fbe7ae, #cfa455);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 253, 240, 0.7);
 }
 .inv-blurb {
   display: -webkit-box;
@@ -504,26 +625,26 @@
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-top: 3px;
+  margin-top: 4px;
   font-size: 13.5px;
   line-height: 1.38;
-  color: #a7977a;
+  color: #a2927a;
 }
 
-/* weight + cost strip: glyph on the left, headline figure above the
-   per-item figure, so the two columns line up on their baselines */
+/* weight + cost: glyph on the left, headline figure over the per-item one */
 .inv-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px 12px;
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 9px;
+  padding-top: 9px;
   border-top: 1px solid rgba(215, 178, 108, 0.18);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
 }
 .inv-stat {
   display: grid;
-  grid-template-columns: 15px minmax(0, 1fr);
-  column-gap: 7px;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 8px;
   align-items: center;
   min-width: 0;
 }
@@ -533,16 +654,14 @@
   align-self: center;
 }
 .inv-stat svg {
-  width: 15px;
-  height: 15px;
-  color: rgba(226, 192, 126, 0.85);
+  width: 16px;
+  height: 16px;
+  color: rgba(228, 196, 134, 0.8);
 }
 .inv-stat .v {
   grid-column: 2;
   font-size: 14.5px;
-  color: #f3e5c7;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
+  color: #f5e8cc;
 }
 .inv-stat .ea {
   grid-column: 2;
@@ -555,63 +674,118 @@
 /* coins */
 .coin {
   display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
-  vertical-align: -1px;
-  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.4);
+  vertical-align: -2px;
+  box-shadow:
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.55),
+    0 0 0 1px rgba(0, 0, 0, 0.45),
+    0 1px 2px rgba(0, 0, 0, 0.4);
 }
 .coin.gold {
-  background: radial-gradient(70% 70% at 32% 28%, #ffeec2 0%, #e4bd6b 45%, #9c7628 100%);
+  background: radial-gradient(68% 68% at 33% 28%, #fff3cf 0%, #e8c272 44%, #9c7628 100%);
 }
 .coin.silver {
-  background: radial-gradient(70% 70% at 32% 28%, #ffffff 0%, #ced6de 45%, #7d858e 100%);
+  background: radial-gradient(68% 68% at 33% 28%, #ffffff 0%, #d2dae2 44%, #79828c 100%);
 }
 
 /* ---------------- footer ---------------- */
 
 .inv-foot {
+  position: relative;
+  padding: 12px 20px 6px;
+  border-top: 1px solid rgba(215, 178, 108, 0.24);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.55));
+  box-shadow: inset 0 1px 0 rgba(255, 226, 172, 0.06);
+}
+.inv-totals {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 18px 14px;
-  border-top: 1px solid rgba(215, 178, 108, 0.22);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.5));
+  align-items: flex-end;
+  gap: 14px;
 }
 .inv-total {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
+  min-width: 0;
+}
+.inv-total.load {
+  flex: 1;
 }
 .inv-total .k {
   font-family: 'Cinzel', Georgia, serif;
   font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.17em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 .inv-total .v {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 15px;
-  color: #f7e9c9;
-  letter-spacing: 0.01em;
+  gap: 6px;
+  font-size: 15.5px;
+  color: #f8ecd0;
+  white-space: nowrap;
+}
+.inv-total .of {
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--ink-faint);
 }
 .inv-foot .sep {
   width: 1px;
-  align-self: stretch;
-  margin: 2px 4px;
+  height: 34px;
   background: linear-gradient(180deg, transparent, rgba(215, 178, 108, 0.35), transparent);
 }
+
+/* load bar: how full the pack is against the point he slows down */
+.inv-bar {
+  position: relative;
+  height: 7px;
+  margin-top: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.38));
+  box-shadow:
+    inset 0 0 0 1px rgba(215, 178, 108, 0.28),
+    inset 0 1px 3px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+.inv-bar i {
+  position: absolute;
+  inset: 1px auto 1px 1px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ffe6b0 0%, #dfa94f 52%, #b57f2c 100%);
+  box-shadow: 0 0 10px rgba(224, 160, 70, 0.45);
+}
+/* tick marks every quarter */
+.inv-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 24.6%,
+    rgba(0, 0, 0, 0.55) 24.6% 25%
+  );
+  pointer-events: none;
+}
 .inv-hint {
-  margin-left: auto;
-  text-align: right;
+  display: block;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(215, 178, 108, 0.12);
+  text-align: center;
   font-size: 12px;
   font-style: italic;
-  line-height: 1.35;
-  color: #7f7159;
+  color: #80725b;
+}
+.inv-hint b {
+  font-style: normal;
+  font-weight: 600;
+  color: #b7a37e;
 }
 
 @media (max-width: 480px) {
@@ -623,8 +797,8 @@
     max-height: calc(100vh - 104px);
   }
   .inv-slot {
-    width: 86px;
-    height: 86px;
+    width: 100px;
+    height: 100px;
   }
   .inv-blurb {
     display: none;
@@ -636,11 +810,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .inv-panel,
-  .inv-panel.is-closing {
+  .inv-panel.is-closing,
+  .inv-list li {
     animation: none;
   }
   .inv-row,
-  .inv-btn {
+  .inv-btn,
+  .inv-glow {
     transition: none;
   }
 }

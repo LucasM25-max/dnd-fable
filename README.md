@@ -90,10 +90,17 @@ Run `node tools/iconPreview.mjs out/icons.png` to render the same framing
 headlessly — every item at four points in its spin, with the margin to the slot
 edge reported per cell — so the icons can be checked without a browser.
 
-The panel itself is plain HTML and CSS over the canvas: brass hairlines, corner
-flourishes and coin pips drawn as vectors and gradients, set in Cinzel and
-EB Garamond at normal UI sizes. Nothing is a bitmap and nothing is pixel-art, so
-the text stays sharp at any zoom or DPI.
+The panel itself is plain HTML and CSS over the canvas. Every surface is given a
+material rather than a flat fill — tooled leather with a tiling grain overlay,
+aged brass hairlines and corner flourishes, sunken stone slots with corner
+brackets — and all of it is lit from one direction so the bevels agree with each
+other. Each item carries an accent colour (cold steel, forge ember, seasoned
+ash) that tints the pool of light behind it in its slot, the rim light on the
+model itself and the lit edge of the card when it is equipped. Cards deal in and
+out with a short stagger; the footer shows what he is carrying against the 75 lb
+he can carry easily. Type is Cinzel Decorative over Cinzel over EB Garamond at
+normal UI sizes — nothing is a bitmap and nothing is pixel-art, so the text
+stays sharp at any zoom or DPI.
 
 ## Health bar
 

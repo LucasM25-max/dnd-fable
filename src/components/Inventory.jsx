@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import ItemIcon from './ItemIcon.jsx'
-import { ITEMS, splitCoin, totalValue, totalWeight, lb } from '../data/items.js'
+import { CARRY_LIMIT, ITEMS, splitCoin, totalValue, totalWeight, lb } from '../data/items.js'
 import { getHeld, subscribeHeld, toggleHeld } from '../ui/equipment.js'
 import '../ui/inventory.css'
 
@@ -41,13 +41,15 @@ const Satchel = (props) => (
   </svg>
 )
 
+// a shield with crossed blades behind it
 const Crest = (props) => (
-  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.4"
+  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.35"
     strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M16 3.2 27 7v8.6c0 6.2-4.3 11-11 13.2C9 26.6 5 21.8 5 15.6V7l11-3.8Z" />
-    <path d="M16 7.6v16.2" />
-    <path d="M10.4 11.4h11.2" />
-    <path d="M11.2 19.8c3-1.2 6.6-1.2 9.6 0" opacity=".75" />
+    <path d="M16 3.8 26.2 7.2v8c0 5.9-4 10.5-10.2 12.6C9.8 25.7 5.8 21.1 5.8 15.2v-8L16 3.8Z" />
+    <path d="M11.2 11.6 20.8 21.4" />
+    <path d="M20.8 11.6 11.2 21.4" />
+    <path d="M9.6 9.9l2.9 2.9M22.4 9.9l-2.9 2.9" opacity=".75" />
+    <circle cx="16" cy="16.5" r="1.45" opacity=".9" />
   </svg>
 )
 
@@ -71,20 +73,24 @@ const Anvil = (props) => (
 
 /* ---------------- panel ---------------- */
 
-function ItemRow({ item, equipped, onEquip }) {
+function ItemRow({ item, index, equipped, onEquip }) {
   const stackWeight = item.weightLb * item.qty
   const stackCost = item.costSilver * item.qty
   return (
-    <li>
+    <li style={{ '--i': index }}>
       <button
         type="button"
         className={`inv-row${equipped ? ' is-equipped' : ''}`}
+        style={{ '--accent': item.accent }}
         onClick={() => onEquip(item)}
         aria-pressed={equipped}
         title={equipped ? `Put the ${item.name.toLowerCase()} away` : `Draw the ${item.name.toLowerCase()}`}
       >
         <span className="inv-slot">
-          <ItemIcon item={item} />
+          {/* the pool of light it turns in, and the shadow it stands in */}
+          <span className="inv-glow" />
+          <span className="inv-floor" />
+          <ItemIcon item={item} size={104} />
           {item.qty > 1 && <span className="inv-qty">×{item.qty}</span>}
         </span>
 
@@ -185,6 +191,7 @@ export default function Inventory() {
   const weight = totalWeight(items)
   const value = totalValue(items)
   const count = items.reduce((n, it) => n + it.qty, 0)
+  const load = Math.max(0, Math.min(1, weight / CARRY_LIMIT))
 
   return (
     <div className="inv">
@@ -203,7 +210,7 @@ export default function Inventory() {
 
       {(open || closing) && (
         <aside
-          className={`inv-panel${closing ? ' is-closing' : ''}`}
+          className={`inv-panel grain${closing ? ' is-closing' : ''}`}
           role="dialog"
           aria-label="Pack"
         >
@@ -230,10 +237,11 @@ export default function Inventory() {
           </div>
 
           <ul className="inv-list">
-            {items.map((item) => (
+            {items.map((item, i) => (
               <ItemRow
                 key={item.id}
                 item={item}
+                index={i}
                 equipped={held === item.gear}
                 onEquip={(it) => toggleHeld(it.gear)}
               />
@@ -241,22 +249,27 @@ export default function Inventory() {
           </ul>
 
           <footer className="inv-foot">
-            <span className="inv-total">
-              <span className="k">Load</span>
-              <span className="v">{lb(weight)}</span>
-            </span>
-            <span className="sep" />
-            <span className="inv-total">
-              <span className="k">Worth</span>
-              <span className="v">
-                <Coin silver={value} />
-                {coinText(value)}
+            <div className="inv-totals">
+              <span className="inv-total load">
+                <span className="k">Load</span>
+                <span className="v">
+                  {lb(weight)} <span className="of">of {lb(CARRY_LIMIT)}</span>
+                </span>
+                <span className="inv-bar" title={`${Math.round(load * 100)}% of what he can carry easily`}>
+                  <i style={{ width: `${Math.round(load * 100)}%` }} />
+                </span>
               </span>
-            </span>
+              <span className="sep" />
+              <span className="inv-total">
+                <span className="k">Worth</span>
+                <span className="v">
+                  <Coin silver={value} />
+                  {coinText(value)}
+                </span>
+              </span>
+            </div>
             <span className="inv-hint">
-              Click an item to draw it
-              <br />
-              1 – 3 equip · 0 stows · I closes
+              <b>Click</b> an item to draw it · <b>1</b>–<b>3</b> equip · <b>0</b> stows · <b>I</b> closes
             </span>
           </footer>
         </aside>

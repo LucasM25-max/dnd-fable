@@ -6,6 +6,10 @@
 
 export const SILVER_PER_GOLD = 10
 
+// What he can carry before the weight starts to tell on him: 5 lb per point
+// of Strength, so a 15 Strength fighter walks easy up to 75 lb.
+export const CARRY_LIMIT = 75
+
 export const ITEMS = [
   {
     id: 'greatsword',
@@ -19,6 +23,7 @@ export const ITEMS = [
     costSilver: 500, // 50 gp
     weightLb: 6,
     blurb: 'Fullered steel, five feet of it. Takes both fists.',
+    accent: '#9fc4ef', // cold steel
     icon: { scale: 1.0, tilt: 0.52, lean: 0.12 },
   },
   {
@@ -33,6 +38,7 @@ export const ITEMS = [
     costSilver: 100, // 10 gp
     weightLb: 2,
     blurb: 'A spiked head on four loose links. Ignores shields.',
+    accent: '#e8954b', // forge ember
     icon: { scale: 0.92, tilt: 0.46, lean: 0.1 },
   },
   {
@@ -47,6 +53,7 @@ export const ITEMS = [
     costSilver: 5, // 5 sp each
     weightLb: 2,
     blurb: 'One in hand, seven in the sheaf on his back.',
+    accent: '#d7a45f', // seasoned ash
     icon: { scale: 0.98, tilt: 0.5, lean: 0.08, bundle: true },
   },
 ]

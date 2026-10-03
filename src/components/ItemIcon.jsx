@@ -65,6 +65,9 @@ export default function ItemIcon({ item, size = 116, spin = true }) {
   const lean = cfg.lean ?? 0.1
   const zoom = iconZoom(fit, size, cfg.scale ?? 1, tilt)
   const c = fit.center
+  // the rim light picks up the item's own accent, so the model and the pool
+  // of light behind it in the slot agree with each other
+  const rim = item.accent || '#ffbe7a'
 
   return (
     <Canvas
@@ -82,7 +85,7 @@ export default function ItemIcon({ item, size = 116, spin = true }) {
       <hemisphereLight args={['#fff2dc', '#241c15', 0.85]} />
       <directionalLight position={[-2.5, 3, 4]} intensity={1.9} color="#fff1d6" />
       <directionalLight position={[3, -1.5, 2]} intensity={0.6} color="#9fc0e8" />
-      <directionalLight position={[0.5, 1.5, -3]} intensity={0.8} color="#ffbe7a" />
+      <directionalLight position={[0.5, 1.5, -3]} intensity={0.95} color={rim} />
 
       <Turntable tilt={tilt} lean={lean} spin={spin}>
         {/* fit is measured as rotate -> offset, so build the icon the same
