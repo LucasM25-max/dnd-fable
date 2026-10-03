@@ -52,20 +52,20 @@ function skeleton(pose) {
   const root = trs([pose.rootX, pose.rootY, 0], [0, 0, 0])
   const hips = mul(root, trs([0, HIPS_Y, 0], pose.hips))
   const torso = mul(hips, trs([0, 0, 0], pose.torso))
-  const head = mul(torso, trs([0, v(27), 0], pose.head))
+  const head = mul(torso, trs([0, v(29.5), 0], pose.head))
   const segs = []
   const O = [0, 0, 0]
   const push = (a, b, c, w) => segs.push({ a, b, c, w })
 
-  push(apply(hips, O), apply(torso, [0, v(24), 0]), '#444', 11)
-  push(apply(torso, [0, v(24), 0]), apply(head, [0, v(12), 0]), '#884422', 9)
-  push(apply(torso, [v(9.5), v(24), 0]), apply(torso, [v(-9.5), v(24), 0]), '#666', 6)
+  push(apply(hips, O), apply(torso, [0, v(23.5), 0]), '#444', 11)
+  push(apply(torso, [0, v(23.5), 0]), apply(head, [0, v(12), 0]), '#884422', 9)
+  push(apply(torso, [v(10), v(23.5), 0]), apply(torso, [v(-10), v(23.5), 0]), '#666', 6)
   push(apply(hips, [HIP_X, HIP_Y, 0]), apply(hips, [-HIP_X, HIP_Y, 0]), '#666', 6)
 
   const arm = (side, a, col) => {
     const sx = side === 'L' ? 1 : -1
-    const sh = mul(torso, trs([v(9.5 * sx), v(24), 0], [a.shoulder, a.shoulder * -0.1 * sx, (0.2 + 0.05 * pose.runW) * sx]))
-    const el = mul(sh, trs([v(1.2 * sx), v(-13), 0], [a.elbow, 0, 0]))
+    const sh = mul(torso, trs([v(10 * sx), v(23.5), 0], [a.shoulder, a.shoulder * -0.1 * sx, (0.2 + 0.05 * pose.runW) * sx]))
+    const el = mul(sh, trs([v(1.0 * sx), v(-13), 0], [a.elbow, 0, 0]))
     push(apply(sh, O), apply(el, O), col, 7)
     push(apply(el, O), apply(el, [0, v(-13), 0]), col, 6)
   }

@@ -14,11 +14,11 @@ const { HIPS_Y, HIP_X, HIP_Y, THIGH, SHIN } = METRICS
 // Only the equipped weapon is drawn. The sheaf of the other seven javelins
 // comes along with the one in his hand, since that *is* the equipped item.
 const STOWED = {
-  javelins: { p: [-9, 14, -10], r: [-0.1, 0, 0.2] },
+  javelins: { p: [-8.5, 16, -8.5], r: [-0.1, 0, 0.2] },
 }
 
-const RIGHT_GRIP = [v(-0.5), v(-14), v(1.4)]
-const LEFT_GRIP = [v(0.5), v(-14), v(1.4)]
+const RIGHT_GRIP = [v(-0.6), v(-13.6), v(1.5)]
+const LEFT_GRIP = [v(0.6), v(-13.6), v(1.5)]
 
 // The forearm points forward when a weapon is carried, so each weapon is
 // rotated about a quarter turn to stand upright out of the fist.
@@ -166,10 +166,10 @@ export default function Human({ motion, held, hideHead = false }) {
     const armL = carryArm(pose.armL, busyL, t, 0)
     const armR = carryArm(pose.armR, busyR, t, 2.1)
 
-    const armOut = 0.12 + 0.04 * pose.runW
-    r.shoulderL.rotation.set(armL.shoulder, armL.shoulder * -0.1, armOut + 0.05 * busyL)
+    const armOut = 0.1 + 0.05 * pose.runW
+    r.shoulderL.rotation.set(armL.shoulder, armL.shoulder * -0.045, armOut + 0.05 * busyL)
     r.elbowL.rotation.set(armL.elbow, 0.12 * busyL, 0)
-    r.shoulderR.rotation.set(armR.shoulder, armR.shoulder * 0.1, -armOut - 0.05 * busyR)
+    r.shoulderR.rotation.set(armR.shoulder, armR.shoulder * 0.045, -armOut - 0.05 * busyR)
     r.elbowR.rotation.set(armR.elbow, -0.12 * busyR, 0)
 
     /* carried kit swings on its own */
@@ -214,23 +214,23 @@ export default function Human({ motion, held, hideHead = false }) {
             {stow('javelins', G.javelins7, held === 'javelin')}
 
             {/* head (the helm rides with it) */}
-            <group ref={set('head')} position={[0, v(27), 0]}>
+            <group ref={set('head')} position={[0, v(29.5), 0]}>
               <VoxelMesh data={model.parts.head} />
               <VoxelMesh data={model.parts.helmet} />
             </group>
 
             {/* left arm */}
-            <group ref={set('shoulderL')} position={[v(9.5), v(24), 0]}>
+            <group ref={set('shoulderL')} position={[v(10), v(23.5), 0]}>
               <VoxelMesh data={model.parts.upperArmL} />
-              <group ref={set('elbowL')} position={[v(1.2), v(-13), 0]}>
+              <group ref={set('elbowL')} position={[v(1.0), v(-13), 0]}>
                 <VoxelMesh data={model.parts.lowerArmL} />
               </group>
             </group>
 
             {/* right arm */}
-            <group ref={set('shoulderR')} position={[v(-9.5), v(24), 0]}>
+            <group ref={set('shoulderR')} position={[v(-10), v(23.5), 0]}>
               <VoxelMesh data={model.parts.upperArmR} />
-              <group ref={set('elbowR')} position={[v(-1.2), v(-13), 0]}>
+              <group ref={set('elbowR')} position={[v(-1.0), v(-13), 0]}>
                 <VoxelMesh data={model.parts.lowerArmR} />
                 {wield('greatsword', G.greatsword)}
                 {wield('flail', G.flail)}

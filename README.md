@@ -27,11 +27,17 @@ those are part of the same equipped weapon.
 
 ## The fighter
 
-A heroic-build human, about 1.85 m tall. Everything is built procedurally from
-voxels at build time — nothing is loaded from a model file. The grid runs at
-2 voxels per model unit (1 cm cubes, ~186 voxels tall), roughly 63,000 visible
-cubes after the hidden interior is stripped, with baked ambient occlusion and
-per-voxel colour jitter.
+A heroic-build human, about 1.85 m tall and eight heads high. Everything is built
+procedurally from voxels at build time — nothing is loaded from a model file. The
+grid runs at 2 voxels per model unit (1 cm cubes, ~190 voxels tall), roughly
+42,000 visible cubes after the hidden interior is stripped, with baked ambient
+occlusion.
+
+Surfaces are deliberately low-contrast and *structured* rather than random:
+chain mail is drawn as two-voxel ring rows with a seam every tenth row, wool has
+quiet vertical folds, leather has the occasional crease. Large jumps between
+neighbouring voxels read as dither noise at this density, so every pattern stays
+within a few percent of its base tone and lets the lighting do the work.
 
 * **Chain mail hauberk** — staggered 4-in-1 ring pattern, shoulder caps, mail skirt
   with a scalloped hem, leather pauldron straps and baldrics.
@@ -75,10 +81,12 @@ the arms always swing opposite their own leg.
 
 * **Idle** — a slow six-second weight shift from boot to boot, two-frequency
   breathing, soft knees, drifting head and beard.
-* **Walk** — a long human stride: feet about hip width with a few degrees of
-  toe-out, heel strike, stance absorb, toe-off and swing tuck, counter-rotating
-  pelvis and shoulders, and an upright spine. Each footfall compresses the spine
-  and nods the head; the body banks into turns.
+* **Walk** — a relaxed, natural stride, deliberately *not* a strut: feet about hip
+  width with a few degrees of toe-out, heel strike, stance absorb, toe-off and
+  swing tuck. The pelvis and shoulders counter-rotate by only a couple of degrees
+  and there is almost no lateral sway, so the walk reads as someone covering
+  ground rather than posing. Arms hang close to the body with relaxed, bent
+  elbows, swinging from the shoulder.
 * **Sprint** — longer reach, a deep heel-to-backside knee fold during recovery,
   a forward lean, pumping arms and a capped pelvis dip so the cycle gets a
   flight phase.

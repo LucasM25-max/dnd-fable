@@ -45,10 +45,10 @@ const HELD_ROT = {
   flail: { hand: 'R', r: [1.46, 0, 0.06] },
   javelin: { hand: 'R', r: [1.5, 0, 0] },
 }
-const RIGHT_GRIP = [v(-0.5), v(-14), v(1.4)]
-const LEFT_GRIP = [v(0.5), v(-14), v(1.4)]
+const RIGHT_GRIP = [v(-0.6), v(-13.6), v(1.5)]
+const LEFT_GRIP = [v(0.6), v(-13.6), v(1.5)]
 const STOWED = {
-  javelins: { p: [-9, 14, -10].map(v), r: [-0.1, 0, 0.2] },
+  javelins: { p: [-8.5, 16, -8.5].map(v), r: [-0.1, 0, 0.2] },
 }
 
 /* ---- pose the hierarchy (mirrors src/components/Human.jsx) ---- */
@@ -57,17 +57,17 @@ function placement(model, pose, held) {
   const root = trs([pose.rootX, pose.rootY, 0], [0, 0, 0])
   const hips = mul(root, trs([0, HIPS_Y, 0], pose.hips))
   const torso = mul(hips, trs([0, 0, 0], pose.torso))
-  const head = mul(torso, trs([0, v(27), 0], pose.head))
+  const head = mul(torso, trs([0, v(29.5), 0], pose.head))
   out.push([model.parts.hips, hips], [model.parts.torso, torso])
   out.push([model.parts.head, head], [model.parts.helmet, head])
 
-  const armOut = 0.12 + 0.04 * pose.runW
+  const armOut = 0.1 + 0.05 * pose.runW
   const arms = {}
   for (const side of ['L', 'R']) {
     const sx = side === 'L' ? 1 : -1
     const a = side === 'L' ? pose.armL : pose.armR
-    const sh = mul(torso, trs([v(9.5 * sx), v(24), 0], [a.shoulder, a.shoulder * -0.1 * sx, armOut * sx]))
-    const el = mul(sh, trs([v(1.2 * sx), v(-13), 0], [a.elbow, 0, 0]))
+    const sh = mul(torso, trs([v(10 * sx), v(23.5), 0], [a.shoulder, a.shoulder * -0.1 * sx, armOut * sx]))
+    const el = mul(sh, trs([v(1.0 * sx), v(-13), 0], [a.elbow, 0, 0]))
     out.push([model.parts['upperArm' + side], sh], [model.parts['lowerArm' + side], el])
     arms[side] = el
   }
