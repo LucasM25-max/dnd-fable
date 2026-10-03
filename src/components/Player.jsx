@@ -14,7 +14,7 @@ const PREP_TIME = 0.09 // crouch before he leaves the ground
 const LAND_TIME = 0.26 // crouch recovery after a landing
 
 const MAX_HP = 14
-const BAR_HEIGHT = 2.09 // metres above his feet — just clear of the helm
+const BAR_HEIGHT = 2.06 // metres above his feet — just clear of the helm
 
 const WEAPON_KEYS = {
   Digit1: 'greatsword',
@@ -199,13 +199,9 @@ export default function Player() {
       body.current.rotation.y = st.facing
     }
 
-    // the health bar is real geometry in the world: park it over his head and
-    // turn it to face the camera (billboard), rather than drawing any overlay
-    if (bar.current) {
-      bar.current.visible = !firstPerson
-      bar.current.position.set(st.pos.x, st.pos.y + BAR_HEIGHT, st.pos.z)
-      bar.current.quaternion.copy(camera.quaternion)
-    }
+    // anchor point for the health bar: it tracks a spot over his head, and the
+    // bar itself is drawn as flat UI at that screen position
+    if (bar.current) bar.current.position.set(st.pos.x, st.pos.y + BAR_HEIGHT, st.pos.z)
 
     // keep the shadow-casting sun centred on him
     if (sun.current && sunTarget.current) {
@@ -269,7 +265,7 @@ export default function Player() {
         <Human motion={motion} held={held} hideHead={firstPerson} />
       </group>
       <group ref={bar}>
-        <HealthBar hp={hp} max={MAX_HP} />
+        <HealthBar hp={hp} max={MAX_HP} show={!firstPerson} />
       </group>
     </>
   )

@@ -1,7 +1,7 @@
 # dnd-fable
 
 A 3D voxel D&D human fighter you can walk, sprint and jump around a blank white world.
-No UI, no HUD — just the character, his health bar and the void.
+Just the character, a health bar over his head, and the void.
 
 ```bash
 npm install
@@ -55,14 +55,14 @@ within a few percent of its base tone and lets the lighting do the work.
 
 ## Health bar
 
-14 hit points, shown as 14 blocks floating above his head. It is **real geometry
-in the 3D scene** — a framed bar of blocks that billboards towards the camera,
-sits in the world at 2.09 m, catches the scene light and is occluded like any
-other object. There is still no screen-space HUD or DOM overlay anywhere. It
-hides itself in first person, since he cannot see his own health bar.
+14 hit points, drawn as a smooth flat UI bar anchored over his head: rounded
+track, soft shadow, gradient fill and an animated width transition. It is a DOM
+overlay (via drei's `Html`) pinned to a world anchor 2.06 m above his feet, so
+it follows him around but keeps a constant size on screen instead of being a
+chunky 3D object. It hides itself in first person.
 
-`<HealthBar hp max />` is data-driven, so wiring it to damage later is a
-one-line change in `Player.jsx`.
+`<HealthBar hp max />` is data-driven — the fill and its hue follow `hp / max`,
+so wiring it to real damage later is a one-line change in `Player.jsx`.
 
 ## Code map
 
@@ -74,7 +74,7 @@ one-line change in `Player.jsx`.
   material (matte / leather / metal / wood).
 * `src/components/Human.jsx` — the skeleton (hips → torso → head/arms, hips → legs),
   how the equipped weapon is held, and the carried-kit spring simulation.
-* `src/components/HealthBar.jsx` — the floating 14-block health bar.
+* `src/components/HealthBar.jsx` — the floating 14 HP bar (flat UI, world-anchored).
 * `src/anim/poseRig.js` — the animation system: keyframe clips, spline sampling,
   speed blending, jump/land layers and the foot/ground solver.
 * `tools/posePreview.mjs`, `tools/voxelPreview.mjs` — headless previewers that run

@@ -1,67 +1,54 @@
-import { useMemo } from 'react'
-import * as THREE from 'three'
+import { Html } from '@react-three/drei'
 
 /* ------------------------------------------------------------------ *
- * A health bar that lives in the world, floating above his head —     *
- * actual geometry in the 3D scene, not a screen-space HUD overlay.    *
- * It is built from the same chunky blocks as the rest of the model:   *
- * one pip per hit point, so 14 HP reads as 14 blocks.                 *
+ * Health bar: a flat, smooth UI element anchored over his head.       *
+ * It is a DOM overlay (not voxels, not geometry), so the corners are  *
+ * properly round, the fill is a clean gradient, and it keeps the same *
+ * size on screen however far away the camera is.                      *
  * ------------------------------------------------------------------ */
 
-const PIP_W = 0.03 // metres
-const PIP_H = 0.072
-const GAP = 0.008
-const DEPTH = 0.018
-const PAD = 0.018
+const WIDTH = 132
+const HEIGHT = 9
 
-const FULL = '#c8352f'
-const FULL_DARK = '#8e211d'
-const EMPTY = '#39322c'
-const FRAME = '#1d1915'
-const BACK = '#2a2420'
-
-export default function HealthBar({ hp = 14, max = 14 }) {
-  const { pips, width, height } = useMemo(() => {
-    const w = max * PIP_W + (max - 1) * GAP
-    return { pips: Array.from({ length: max }, (_, i) => i), width: w, height: PIP_H }
-  }, [max])
-
-  const materials = useMemo(
-    () => ({
-      frame: new THREE.MeshStandardMaterial({ color: FRAME, roughness: 0.85, metalness: 0.1 }),
-      back: new THREE.MeshStandardMaterial({ color: BACK, roughness: 0.95 }),
-      full: new THREE.MeshStandardMaterial({
-        color: FULL,
-        roughness: 0.55,
-        emissive: new THREE.Color(FULL_DARK),
-        emissiveIntensity: 0.55,
-      }),
-      empty: new THREE.MeshStandardMaterial({ color: EMPTY, roughness: 0.95 }),
-    }),
-    []
-  )
-
-  const x0 = -width / 2 + PIP_W / 2
+export default function HealthBar({ hp = 14, max = 14, show = true }) {
+  if (!show) return null
+  const frac = Math.max(0, Math.min(1, hp / max))
+  const hue = 4 + frac * 10 // slips towards red as it empties
 
   return (
-    <group>
-      {/* frame and recessed backing */}
-      <mesh material={materials.frame} position={[0, 0, -DEPTH * 0.6]}>
-        <boxGeometry args={[width + PAD * 2, height + PAD * 2, DEPTH]} />
-      </mesh>
-      <mesh material={materials.back} position={[0, 0, -DEPTH * 0.1]}>
-        <boxGeometry args={[width + GAP, height + GAP, DEPTH]} />
-      </mesh>
-      {/* one block per hit point */}
-      {pips.map((i) => (
-        <mesh
-          key={i}
-          material={i < hp ? materials.full : materials.empty}
-          position={[x0 + i * (PIP_W + GAP), 0, DEPTH * 0.25]}
-        >
-          <boxGeometry args={[PIP_W, PIP_H, DEPTH]} />
-        </mesh>
-      ))}
-    </group>
+    <Html
+      center
+      zIndexRange={[10, 0]}
+      style={{ pointerEvents: 'none', userSelect: 'none' }}
+      transform={false}
+    >
+      <div
+        style={{
+          width: WIDTH,
+          height: HEIGHT,
+          borderRadius: HEIGHT / 2,
+          background: 'rgba(22, 20, 18, 0.55)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.22)',
+          padding: 1.5,
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          backdropFilter: 'blur(1px)',
+        }}
+      >
+        <div
+          style={{
+            width: `${frac * 100}%`,
+            height: '100%',
+            borderRadius: HEIGHT / 2,
+            background: `linear-gradient(180deg,
+              hsl(${hue + 6}, 78%, 62%) 0%,
+              hsl(${hue}, 76%, 50%) 46%,
+              hsl(${hue - 2}, 80%, 38%) 100%)`,
+            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.35)',
+            transition: 'width 220ms cubic-bezier(0.22, 0.61, 0.36, 1)',
+          }}
+        />
+      </div>
+    </Html>
   )
 }
