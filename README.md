@@ -55,11 +55,13 @@ within a few percent of its base tone and lets the lighting do the work.
 
 ## Health bar
 
-14 hit points, drawn as a smooth flat UI bar anchored over his head: rounded
-track, soft shadow, gradient fill and an animated width transition. It is a DOM
-overlay (via drei's `Html`) pinned to a world anchor 2.06 m above his feet, so
-it follows him around but keeps a constant size on screen instead of being a
-chunky 3D object. It hides itself in first person.
+14 hit points, drawn as a smooth flat UI bar: rounded track, soft shadow,
+gradient fill and an animated width transition. It is plain HTML sitting on top
+of the canvas — no geometry, no voxels. Each frame the renderer projects a point
+2.06 m above his feet to screen space and publishes the pixel coordinates in
+`src/ui/hud.js`; the bar reads them in its own animation frame and moves itself
+with a transform, so it rides over his head at a constant on-screen size without
+ever re-rendering React. It hides itself in first person.
 
 `<HealthBar hp max />` is data-driven — the fill and its hue follow `hp / max`,
 so wiring it to real damage later is a one-line change in `Player.jsx`.

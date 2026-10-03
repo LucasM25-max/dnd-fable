@@ -1,54 +1,83 @@
-import { Html } from '@react-three/drei'
+import { useEffect, useRef } from 'react'
+import { hud } from '../ui/hud.js'
 
 /* ------------------------------------------------------------------ *
- * Health bar: a flat, smooth UI element anchored over his head.       *
- * It is a DOM overlay (not voxels, not geometry), so the corners are  *
- * properly round, the fill is a clean gradient, and it keeps the same *
- * size on screen however far away the camera is.                      *
+ * The health bar is a flat UI element drawn in HTML on top of the     *
+ * canvas — rounded ends, a smooth gradient fill, no voxels and no     *
+ * geometry. It is positioned each frame from the screen-space anchor  *
+ * the renderer publishes in `hud`, so it rides over his head while    *
+ * keeping a constant size on screen.                                  *
  * ------------------------------------------------------------------ */
 
-const WIDTH = 132
-const HEIGHT = 9
+const WIDTH = 140
+const HEIGHT = 10
 
-export default function HealthBar({ hp = 14, max = 14, show = true }) {
-  if (!show) return null
-  const frac = Math.max(0, Math.min(1, hp / max))
-  const hue = 4 + frac * 10 // slips towards red as it empties
+export default function HealthBar() {
+  const wrap = useRef(null)
+  const fill = useRef(null)
+
+  useEffect(() => {
+    let raf = 0
+    let lastFrac = -1
+    const tick = () => {
+      raf = requestAnimationFrame(tick)
+      const el = wrap.current
+      if (!el) return
+      if (!hud.show) {
+        if (el.style.visibility !== 'hidden') el.style.visibility = 'hidden'
+        return
+      }
+      if (el.style.visibility !== 'visible') el.style.visibility = 'visible'
+      el.style.transform = `translate3d(${hud.x - WIDTH / 2}px, ${hud.y - HEIGHT}px, 0)`
+      const frac = Math.max(0, Math.min(1, hud.hp / hud.max))
+      if (frac !== lastFrac) {
+        lastFrac = frac
+        const hue = 2 + frac * 12
+        fill.current.style.width = `${frac * 100}%`
+        fill.current.style.background = `linear-gradient(180deg,
+          hsl(${hue + 8}, 80%, 64%) 0%,
+          hsl(${hue}, 78%, 51%) 45%,
+          hsl(${hue - 2}, 82%, 38%) 100%)`
+      }
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
 
   return (
-    <Html
-      center
-      zIndexRange={[10, 0]}
-      style={{ pointerEvents: 'none', userSelect: 'none' }}
-      transform={false}
+    <div
+      ref={wrap}
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width: WIDTH,
+        height: HEIGHT,
+        borderRadius: HEIGHT / 2,
+        background: 'rgba(24, 22, 20, 0.5)',
+        boxShadow:
+          '0 1px 4px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.28)',
+        padding: 1.5,
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        pointerEvents: 'none',
+        userSelect: 'none',
+        visibility: 'hidden',
+        willChange: 'transform',
+        zIndex: 5,
+      }}
     >
       <div
+        ref={fill}
         style={{
-          width: WIDTH,
-          height: HEIGHT,
+          width: '100%',
+          height: '100%',
           borderRadius: HEIGHT / 2,
-          background: 'rgba(22, 20, 18, 0.55)',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.22)',
-          padding: 1.5,
-          boxSizing: 'border-box',
-          overflow: 'hidden',
-          backdropFilter: 'blur(1px)',
+          background: 'linear-gradient(180deg, hsl(22,80%,64%) 0%, hsl(14,78%,51%) 45%, hsl(12,82%,38%) 100%)',
+          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+          transition: 'width 220ms cubic-bezier(0.22, 0.61, 0.36, 1)',
         }}
-      >
-        <div
-          style={{
-            width: `${frac * 100}%`,
-            height: '100%',
-            borderRadius: HEIGHT / 2,
-            background: `linear-gradient(180deg,
-              hsl(${hue + 6}, 78%, 62%) 0%,
-              hsl(${hue}, 76%, 50%) 46%,
-              hsl(${hue - 2}, 80%, 38%) 100%)`,
-            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.35)',
-            transition: 'width 220ms cubic-bezier(0.22, 0.61, 0.36, 1)',
-          }}
-        />
-      </div>
-    </Html>
+      />
+    </div>
   )
 }

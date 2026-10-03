@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import Human from './Human.jsx'
-import HealthBar from './HealthBar.jsx'
+import { hud } from '../ui/hud.js'
 
 const WALK = 1.7
 const SPRINT = 4.8
@@ -14,6 +14,7 @@ const PREP_TIME = 0.09 // crouch before he leaves the ground
 const LAND_TIME = 0.26 // crouch recovery after a landing
 
 const MAX_HP = 14
+const barAnchor = new THREE.Vector3()
 const BAR_HEIGHT = 2.06 // metres above his feet — just clear of the helm
 
 const WEAPON_KEYS = {
@@ -23,9 +24,8 @@ const WEAPON_KEYS = {
 }
 
 export default function Player() {
-  const { gl, camera } = useThree()
+  const { gl, camera, size } = useThree()
   const body = useRef()
-  const bar = useRef()
   const sun = useRef()
   const sunTarget = useRef()
   const motion = useRef({ speed: 0, grounded: true, vy: 0, y: 0, prep: 0, land: 0, turn: 0 })
@@ -199,9 +199,14 @@ export default function Player() {
       body.current.rotation.y = st.facing
     }
 
-    // anchor point for the health bar: it tracks a spot over his head, and the
-    // bar itself is drawn as flat UI at that screen position
-    if (bar.current) bar.current.position.set(st.pos.x, st.pos.y + BAR_HEIGHT, st.pos.z)
+    // project a point above his head to screen space; the HTML health bar
+    // follows it. No geometry, no billboard — just a pair of pixel coords.
+    barAnchor.set(st.pos.x, st.pos.y + BAR_HEIGHT, st.pos.z).project(camera)
+    hud.show = !firstPerson && barAnchor.z < 1
+    hud.x = (barAnchor.x * 0.5 + 0.5) * size.width
+    hud.y = (-barAnchor.y * 0.5 + 0.5) * size.height
+    hud.hp = hp
+    hud.max = MAX_HP
 
     // keep the shadow-casting sun centred on him
     if (sun.current && sunTarget.current) {
@@ -263,9 +268,6 @@ export default function Player() {
       <object3D ref={sunTarget} />
       <group ref={body}>
         <Human motion={motion} held={held} hideHead={firstPerson} />
-      </group>
-      <group ref={bar}>
-        <HealthBar hp={hp} max={MAX_HP} show={!firstPerson} />
       </group>
     </>
   )
