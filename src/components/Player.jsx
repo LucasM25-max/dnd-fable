@@ -23,7 +23,9 @@ const WEAPON_KEYS = {
   Digit3: 'javelin',
 }
 
-export default function Player() {
+// Which weapon is in hand lives in App (the inventory panel drives the same
+// state), so it arrives here as props rather than local useState.
+export default function Player({ held, setHeld, invOpen, setInvOpen }) {
   const { gl, camera, size } = useThree()
   const body = useRef()
   const sun = useRef()
@@ -41,7 +43,6 @@ export default function Player() {
     jumpQueued: false,
     wasGrounded: true,
   })
-  const [held, setHeld] = useState(null)
   const [hp] = useState(MAX_HP)
   const [firstPerson, setFirstPerson] = useState(false)
 
@@ -72,7 +73,11 @@ export default function Player() {
       )
     }
     const onClick = () => {
-      if (document.pointerLockElement !== canvas) canvas.requestPointerLock()
+      if (document.pointerLockElement === canvas) return
+      // clicking the world while browsing the inventory puts it away first
+      if (invOpen) setInvOpen(false)
+      const p = canvas.requestPointerLock()
+      if (p && typeof p.catch === 'function') p.catch(() => {})
     }
     const onWheel = (e) => {
       state.current.camDist = THREE.MathUtils.clamp(
@@ -98,7 +103,7 @@ export default function Player() {
       canvas.removeEventListener('click', onClick)
       canvas.removeEventListener('wheel', onWheel)
     }
-  }, [gl])
+  }, [gl, invOpen, setInvOpen])
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 1 / 20)

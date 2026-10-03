@@ -20,6 +20,7 @@ npm run dev
 | `V` | Toggle third-person / first-person |
 | `1` – `3` | Equip greatsword / flail / javelin (purely cosmetic) |
 | `0` | Put the weapon away (empty handed) |
+| `I` | Toggle the inventory panel (releases the mouse) |
 
 Only the equipped weapon is drawn — nothing is slung on his back otherwise.
 Taking a javelin in hand brings the sheaf of the other seven with it, since
