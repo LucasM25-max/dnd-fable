@@ -1,9 +1,16 @@
+import { useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import * as THREE from 'three'
 import Player from './components/Player.jsx'
 import HealthBar from './components/HealthBar.jsx'
+import Inventory from './components/Inventory.jsx'
 
 export default function App() {
+  // which weapon is in hand, shared between the hotkeys in Player and the
+  // inventory panel (null = empty handed)
+  const [held, setHeld] = useState(null)
+  const [invOpen, setInvOpen] = useState(false)
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas
@@ -25,11 +32,19 @@ export default function App() {
           <meshStandardMaterial color="#ffffff" roughness={1} metalness={0} />
         </mesh>
 
-        <Player />
+        <Player
+          held={held}
+          setHeld={setHeld}
+          invOpen={invOpen}
+          setInvOpen={setInvOpen}
+        />
       </Canvas>
 
       {/* flat UI, drawn over the canvas and tracked to a point above his head */}
       <HealthBar />
+
+      {/* the satchel button and the parchment panel it folds out */}
+      <Inventory held={held} setHeld={setHeld} open={invOpen} setOpen={setInvOpen} />
     </div>
   )
 }
