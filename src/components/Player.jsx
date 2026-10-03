@@ -16,8 +16,6 @@ const WEAPON_KEYS = {
   Digit1: 'greatsword',
   Digit2: 'flail',
   Digit3: 'javelin',
-  Digit4: 'spear',
-  Digit5: 'shortbow',
 }
 
 export default function Player() {

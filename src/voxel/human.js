@@ -153,7 +153,7 @@ function buildTorso() {
   b.taper(78, 81, [0, 1], [4.6, 3.9], [0, 1], [4.2, 3.6], weave(C.tunicDark, C.tunic), MAT.MATTE, { square: 0.4 })
   // baldric for the greatsword (right shoulder to left hip)
   b.capsule([-8.6, 79, -2], [8, 56, 3.6], [2.4, 2.4, 1.9], grain(C.leatherLight, C.leatherDark), MAT.LEATHER)
-  // bow baldric (left shoulder to right hip)
+  // second harness strap, left shoulder to right hip, carrying the javelin sheaf
   b.capsule([8.6, 79, -1], [-7, 57, 3.2], [2.0, 2.0, 1.7], grain(C.leather, C.leatherDark), MAT.LEATHER)
   // back harness plate everything hangs from
   b.taper(58, 76, [0, -6.0], [7.0, 1.5], [0, -7.2], [8.0, 1.5], grain(C.leatherDark, C.leather), MAT.LEATHER, { square: 1 })
@@ -301,7 +301,7 @@ function buildFoot() {
 }
 
 /* ------------------------------------------------------------------ */
-/* weapons & kit — each built around its own grip origin                */
+/* weapons — each built around its own grip origin                      */
 /* ------------------------------------------------------------------ */
 
 function buildGreatsword() {
@@ -375,80 +375,6 @@ function buildJavelin() {
   return b
 }
 
-function buildSpear() {
-  const b = new VoxelBuilder(S)
-  b.capsule([0, -32, 0], [0, 38, 0], [1.0, 1.0, 1.0], grain(C.wood, C.woodDark), MAT.WOOD)
-  b.capsule([0, -34.5, 0], [0, -31.5, 0], [1.3, 1.3, 1.3], C.steelDark, MAT.METAL) // butt spike
-  b.capsule([0, -6, 0], [0, 4, 0], [1.3, 1.3, 1.3], (x, y, z) =>
-    (y + x) % 5 < 2 ? C.leatherDark : C.leather, MAT.LEATHER)
-  // socket and leaf blade
-  b.capsule([0, 38, 0], [0, 43, 0], [1.35, 1.35, 1.35], C.steelDark, MAT.METAL)
-  b.region([-5, 5], [43, 61], [-2, 2], (x, y, z) => {
-    const t = (y - 43) / 18
-    const w = Math.sin(Math.min(1, t * 1.05) * Math.PI) * 2.2 + 0.5
-    const th = 0.75 - t * 0.25
-    const nx = Math.abs(x) / w
-    const nz = Math.abs(z) / th
-    if (nx > 1 || nz > 1 - nx * 0.6) return null
-    return nx > 0.7 ? C.steel : C.steelDark
-  }, MAT.METAL, 0.04)
-  // pennant tie
-  b.capsule([0, 36.2, 0], [0, 35.4, 0], [1.6, 0.6, 1.6], C.rope, MAT.MATTE)
-  return b
-}
-
-function buildShortbow() {
-  const b = new VoxelBuilder(S)
-  // recurved limbs in the x/y plane, belly facing +z
-  for (let i = -1; i <= 1; i += 2) {
-    for (let s = 0; s <= 30; s++) {
-      const t = s / 30
-      const y = i * s
-      const z = -Math.sin(t * Math.PI * 0.75) * 5 + (t > 0.82 ? (t - 0.82) * 34 : 0)
-      const r = 1.15 - t * 0.55
-      b.capsule([0, y, z], [0, y + i * 0.6, z], [r, r, r], (x, yy, zz) =>
-        hash3(x, yy * 2, zz) > 0.7 ? C.woodLight : C.wood, MAT.WOOD)
-    }
-  }
-  // riser / grip
-  b.capsule([0, -5, 0], [0, 5, 0], [1.45, 1.45, 1.6], grain(C.woodDark, C.wood), MAT.WOOD)
-  b.capsule([0, -3, 0], [0, 3, 0], [1.7, 1.7, 1.8], (x, y, z) =>
-    (y + z) % 3 === 0 ? C.leatherDark : C.leather, MAT.LEATHER)
-  // horn nocks + string
-  b.capsule([0, -30.5, 1.6], [0, 30.5, 1.6], [0.35, 0.35, 0.35], C.string, MAT.MATTE)
-  return b
-}
-
-function buildArrowQuiver(n = 20) {
-  const b = new VoxelBuilder(S)
-  // leather quiver body
-  b.taper(-16, 10, [0, 0], [3.0, 3.0], [0, 0], [3.6, 3.6], grain(C.leather, C.leatherDark), MAT.LEATHER)
-  b.taper(-17, -16, [0, 0], [3.0, 3.0], [0, 0], [3.0, 3.0], C.leatherDark, MAT.LEATHER)
-  b.taper(8, 10, [0, 0], [3.9, 3.9], [0, 0], [3.9, 3.9], grain(C.leatherLight, C.leatherDark), MAT.LEATHER)
-  b.taper(-10, -8, [0, 0], [3.7, 3.7], [0, 0], [3.7, 3.7], C.leatherDark, MAT.LEATHER)
-  // 20 arrows, nocks and fletchings standing proud of the mouth
-  const slots = []
-  for (let r = 0; r < 3 && slots.length < n; r++) {
-    const ring = r === 0 ? 1 : r === 1 ? 6 : 13
-    const rad = r === 0 ? 0 : r === 1 ? 1.35 : 2.6
-    for (let i = 0; i < ring && slots.length < n; i++) {
-      const a = (i / ring) * Math.PI * 2 + r * 0.4
-      slots.push([Math.cos(a) * rad, Math.sin(a) * rad, i])
-    }
-  }
-  slots.forEach(([ax, az], i) => {
-    const h = 20 + (i % 3) * 1.5
-    b.capsule([ax, 8, az], [ax, h, az], [0.42, 0.42, 0.42], grain(C.woodLight, C.woodDark), MAT.WOOD)
-    // fletching: three vanes
-    const fc = i % 3 === 0 ? C.feather : i % 3 === 1 ? C.featherDark : C.rope
-    b.capsule([ax + 0.7, h - 4, az], [ax + 0.85, h - 1, az], [0.35, 0.3, 0.22], fc, MAT.MATTE)
-    b.capsule([ax - 0.7, h - 4, az], [ax - 0.85, h - 1, az], [0.35, 0.3, 0.22], fc, MAT.MATTE)
-    b.capsule([ax, h - 4, az + 0.7], [ax, h - 1, az + 0.85], [0.22, 0.3, 0.35], fc, MAT.MATTE)
-    b.capsule([ax, h - 0.3, az], [ax, h + 0.3, az], [0.45, 0.3, 0.45], C.leatherDark, MAT.MATTE)
-  })
-  return b
-}
-
 function buildJavelinBundle(n) {
   // a leather sheaf holding n javelins across the back
   const b = new VoxelBuilder(S)
@@ -509,11 +435,8 @@ export function buildHuman() {
   const gear = {
     greatsword: { b: buildGreatsword() },
     flail: { b: buildFlail() },
-    spear: { b: buildSpear() },
     javelin: { b: buildJavelin() },
     javelins7: { b: buildJavelinBundle(7) },
-    shortbow: { b: buildShortbow() },
-    quiver: { b: buildArrowQuiver(20) },
   }
 
   const out = { parts: {}, gear: {}, stats: {} }

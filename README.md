@@ -18,12 +18,12 @@ npm run dev
 | Mouse (click to lock pointer) | Look / orbit |
 | Mouse wheel | Third-person camera distance |
 | `V` | Toggle third-person / first-person |
-| `1` – `5` | Equip greatsword / flail / javelin / spear / shortbow (purely cosmetic) |
+| `1` – `3` | Equip greatsword / flail / javelin (purely cosmetic) |
 | `0` | Put the weapon away (empty handed) |
 
-Only the equipped weapon is drawn — nothing is slung on his back otherwise. The
-javelin brings its sheaf of the other 7 with it, and the shortbow brings its
-quiver of 20 arrows, since those are part of the same equipped weapon.
+Only the equipped weapon is drawn — nothing is slung on his back otherwise.
+Taking a javelin in hand brings the sheaf of the other seven with it, since
+those are part of the same equipped weapon.
 
 ## The fighter
 
@@ -38,9 +38,9 @@ per-voxel colour jitter.
 * **Traveller's clothes underneath** — woven wool tunic at the collar, sleeves and
   under the mail, trousers, wide leather belt with a brass buckle, belt pouch, rope coil,
   laced hobnailed boots, knee pads and bracers.
-* **Gear (all cosmetic, no effects)** — greatsword, flail, 8 javelins in a leather
-  sheaf, a spear, a shortbow, and a quiver of exactly 20 fletched arrows. Only
-  what is equipped is rendered.
+* **Gear (all cosmetic, no effects)** — a greatsword, a spiked flail, and
+  8 javelins (one in hand, the other seven in a leather sheaf across his back).
+  Only what is equipped is rendered.
 * **Open-faced helm** — riveted skull cap with reinforcing ribs, a brow band, a
   nasal bar, hinged cheek plates and a short mail aventail at the neck. It rides
   with the head, so it moves with every head turn and nod.
@@ -86,7 +86,7 @@ the arms always swing opposite their own leg.
   up, legs reaching on the way down, and a weighted crouch-and-recover on landing.
 * **Stride matching** — the cycle rate is derived from the stride length and the
   actual ground speed, so the boots never skate.
-* **Carried kit has physics** — every held weapon (and the sheaf or quiver that
+* **Carried kit has physics** — every held weapon (and the javelin sheaf that
   comes with it) hangs off a damped angular spring driven by the real
   acceleration of the hand, measured in world space each frame and resolved into
   the hand's own frame. Start, stop, turn, jump or land and the greatsword lags

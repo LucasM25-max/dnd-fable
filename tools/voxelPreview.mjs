@@ -44,14 +44,11 @@ const HELD_ROT = {
   greatsword: { hand: 'R', r: [1.52, 0, 0.06] },
   flail: { hand: 'R', r: [1.46, 0, 0.06] },
   javelin: { hand: 'R', r: [1.5, 0, 0] },
-  spear: { hand: 'R', r: [1.44, 0, 0] },
-  shortbow: { hand: 'L', r: [1.5, 0, 0] },
 }
 const RIGHT_GRIP = [v(-0.5), v(-14), v(1.4)]
 const LEFT_GRIP = [v(0.5), v(-14), v(1.4)]
 const STOWED = {
   javelins: { p: [-9, 14, -10].map(v), r: [-0.1, 0, 0.2] },
-  quiver: { p: [8.5, 14, -10].map(v), r: [-0.1, 0, -0.24] },
 }
 
 /* ---- pose the hierarchy (mirrors src/components/Human.jsx) ---- */
@@ -87,7 +84,6 @@ function placement(model, pose, held) {
     const grip = info.hand === 'R' ? RIGHT_GRIP : LEFT_GRIP
     out.push([model.gear[held], mul(arms[info.hand], trs(grip, info.r))])
     if (held === 'javelin') out.push([model.gear.javelins7, mul(torso, trs(STOWED.javelins.p, STOWED.javelins.r))])
-    if (held === 'shortbow') out.push([model.gear.quiver, mul(torso, trs(STOWED.quiver.p, STOWED.quiver.r))])
   }
   return out
 }

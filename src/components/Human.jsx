@@ -11,11 +11,10 @@ const { HIPS_Y, HIP_X, HIP_Y, THIGH, SHIN } = METRICS
 /* ------------------------------------------------------------------ */
 /* where kit rides                                                      */
 /* ------------------------------------------------------------------ */
-// Only the equipped weapon is drawn. The javelin sheaf and the arrow quiver
-// come along with their weapon, since those *are* the equipped item.
+// Only the equipped weapon is drawn. The sheaf of the other seven javelins
+// comes along with the one in his hand, since that *is* the equipped item.
 const STOWED = {
   javelins: { p: [-9, 14, -10], r: [-0.1, 0, 0.2] },
-  quiver: { p: [8.5, 14, -10], r: [-0.1, 0, -0.24] },
 }
 
 const RIGHT_GRIP = [v(-0.5), v(-14), v(1.4)]
@@ -27,8 +26,6 @@ const HELD = {
   greatsword: { hand: 'R', r: [1.52, 0, 0.06] },
   flail: { hand: 'R', r: [1.46, 0, 0.06] },
   javelin: { hand: 'R', r: [1.5, 0, 0.0] },
-  spear: { hand: 'R', r: [1.44, 0, 0.0] },
-  shortbow: { hand: 'L', r: [1.5, 0, 0.0] },
 }
 
 /* ------------------------------------------------------------------ *
@@ -40,10 +37,7 @@ const PHYS = {
   greatsword: { len: 0.55, k: 62, d: 10.0, sens: 0.015, limit: 0.3, idle: 0.016, rate: 1.35 },
   flail: { len: 0.4, k: 30, d: 5.2, sens: 0.03, limit: 0.45, idle: 0.03, rate: 0.95 },
   javelin: { len: 0.4, k: 90, d: 12.5, sens: 0.011, limit: 0.22, idle: 0.013, rate: 1.75 },
-  spear: { len: 0.5, k: 72, d: 11.0, sens: 0.013, limit: 0.26, idle: 0.015, rate: 1.5 },
-  shortbow: { len: 0.3, k: 105, d: 13.5, sens: 0.009, limit: 0.18, idle: 0.011, rate: 2.0 },
   javelins: { len: 0.3, k: 85, d: 11.5, sens: 0.007, limit: 0.14, idle: 0.008, rate: 1.45 },
-  quiver: { len: 0.25, k: 95, d: 12.5, sens: 0.006, limit: 0.13, idle: 0.007, rate: 1.65 },
 }
 
 const tmpPos = new THREE.Vector3()
@@ -181,7 +175,6 @@ export default function Human({ motion, held, hideHead = false }) {
     /* carried kit swings on its own */
     if (held) simulateKit(held, HELD[held].r, dt, t)
     if (held === 'javelin') simulateKit('javelins', STOWED.javelins.r, dt, t)
-    if (held === 'shortbow') simulateKit('quiver', STOWED.quiver.r, dt, t)
   })
 
   const G = model.gear
@@ -219,7 +212,6 @@ export default function Human({ motion, held, hideHead = false }) {
 
             {/* the only kit on his back is whatever the equipped weapon needs */}
             {stow('javelins', G.javelins7, held === 'javelin')}
-            {stow('quiver', G.quiver, held === 'shortbow')}
 
             {/* head (the helm rides with it) */}
             <group ref={set('head')} position={[0, v(27), 0]}>
@@ -232,7 +224,6 @@ export default function Human({ motion, held, hideHead = false }) {
               <VoxelMesh data={model.parts.upperArmL} />
               <group ref={set('elbowL')} position={[v(1.2), v(-13), 0]}>
                 <VoxelMesh data={model.parts.lowerArmL} />
-                {wield('shortbow', G.shortbow)}
               </group>
             </group>
 
@@ -244,7 +235,6 @@ export default function Human({ motion, held, hideHead = false }) {
                 {wield('greatsword', G.greatsword)}
                 {wield('flail', G.flail)}
                 {wield('javelin', G.javelin)}
-                {wield('spear', G.spear)}
               </group>
             </group>
           </group>
