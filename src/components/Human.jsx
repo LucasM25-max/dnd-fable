@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import VoxelMesh from './VoxelMesh.jsx'
-import { buildDwarf, UNIT } from '../voxel/dwarf.js'
+import { buildHuman, UNIT } from '../voxel/human.js'
 import { METRICS, createAnimState, updatePose, carryArm } from '../anim/poseRig.js'
 
 const v = (n) => n * UNIT
@@ -14,12 +14,12 @@ const { HIPS_Y, HIP_X, HIP_Y, THIGH, SHIN } = METRICS
 // Only the equipped weapon is drawn. The javelin sheaf and the arrow quiver
 // come along with their weapon, since those *are* the equipped item.
 const STOWED = {
-  javelins: { p: [-10, 4, -11], r: [-0.1, 0, 0.2] },
-  quiver: { p: [9.5, 4, -11], r: [-0.1, 0, -0.24] },
+  javelins: { p: [-9, 14, -10], r: [-0.1, 0, 0.2] },
+  quiver: { p: [8.5, 14, -10], r: [-0.1, 0, -0.24] },
 }
 
-const RIGHT_GRIP = [v(-0.6), v(-12), v(1.6)]
-const LEFT_GRIP = [v(0.6), v(-12), v(1.6)]
+const RIGHT_GRIP = [v(-0.5), v(-14), v(1.4)]
+const LEFT_GRIP = [v(0.5), v(-14), v(1.4)]
 
 // The forearm points forward when a weapon is carried, so each weapon is
 // rotated about a quarter turn to stand upright out of the fist.
@@ -52,8 +52,8 @@ const tmpAcc = new THREE.Vector3()
 const tmpQuat = new THREE.Quaternion()
 const tmpEuler = new THREE.Euler()
 
-export default function Dwarf({ motion, held, hideHead = false }) {
-  const model = useMemo(() => buildDwarf(), [])
+export default function Human({ motion, held, hideHead = false }) {
+  const model = useMemo(() => buildHuman(), [])
   const rig = useRef({})
   const kit = useRef({})
   const sim = useRef({})
@@ -155,7 +155,6 @@ export default function Dwarf({ motion, held, hideHead = false }) {
     r.torso.rotation.set(pose.torso[0], pose.torso[1], pose.torso[2])
     r.head.rotation.set(pose.head[0], pose.head[1], pose.head[2])
     r.head.visible = !hideHead
-    r.beard.rotation.set(pose.beard[0], pose.beard[1], pose.beard[2])
 
     const splay = pose.splay
     // +z roll on his left leg / -z on his right tips both boots outward
@@ -173,7 +172,7 @@ export default function Dwarf({ motion, held, hideHead = false }) {
     const armL = carryArm(pose.armL, busyL, t, 0)
     const armR = carryArm(pose.armR, busyR, t, 2.1)
 
-    const armOut = 0.2 + 0.05 * pose.runW
+    const armOut = 0.12 + 0.04 * pose.runW
     r.shoulderL.rotation.set(armL.shoulder, armL.shoulder * -0.1, armOut + 0.05 * busyL)
     r.elbowL.rotation.set(armL.elbow, 0.12 * busyL, 0)
     r.shoulderR.rotation.set(armR.shoulder, armR.shoulder * 0.1, -armOut - 0.05 * busyR)
@@ -222,27 +221,25 @@ export default function Dwarf({ motion, held, hideHead = false }) {
             {stow('javelins', G.javelins7, held === 'javelin')}
             {stow('quiver', G.quiver, held === 'shortbow')}
 
-            {/* head + beard */}
-            <group ref={set('head')} position={[0, v(19), 0]}>
+            {/* head (the helm rides with it) */}
+            <group ref={set('head')} position={[0, v(27), 0]}>
               <VoxelMesh data={model.parts.head} />
-              <group ref={set('beard')} position={[0, v(1), v(3)]}>
-                <VoxelMesh data={model.parts.beard} />
-              </group>
+              <VoxelMesh data={model.parts.helmet} />
             </group>
 
             {/* left arm */}
-            <group ref={set('shoulderL')} position={[v(12.5), v(16.5), 0]}>
+            <group ref={set('shoulderL')} position={[v(9.5), v(24), 0]}>
               <VoxelMesh data={model.parts.upperArmL} />
-              <group ref={set('elbowL')} position={[v(1.5), v(-9.5), 0]}>
+              <group ref={set('elbowL')} position={[v(1.2), v(-13), 0]}>
                 <VoxelMesh data={model.parts.lowerArmL} />
                 {wield('shortbow', G.shortbow)}
               </group>
             </group>
 
             {/* right arm */}
-            <group ref={set('shoulderR')} position={[v(-12.5), v(16.5), 0]}>
+            <group ref={set('shoulderR')} position={[v(-9.5), v(24), 0]}>
               <VoxelMesh data={model.parts.upperArmR} />
-              <group ref={set('elbowR')} position={[v(-1.5), v(-9.5), 0]}>
+              <group ref={set('elbowR')} position={[v(-1.2), v(-13), 0]}>
                 <VoxelMesh data={model.parts.lowerArmR} />
                 {wield('greatsword', G.greatsword)}
                 {wield('flail', G.flail)}

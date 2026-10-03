@@ -64,7 +64,7 @@ function sample(keys, t) {
 const IDLE = {
   leg: {
     hip: [[0, 0.015], [0.5, -0.01]],
-    knee: [[0, 0.15], [0.25, 0.11], [0.5, 0.06], [0.75, 0.11]],
+    knee: [[0, 0.1], [0.25, 0.07], [0.5, 0.03], [0.75, 0.07]],
     ankle: [[0, 0.01], [0.5, -0.01]],
   },
   arm: {
@@ -72,13 +72,13 @@ const IDLE = {
     elbow: [[0, -0.24], [0.5, -0.3]],
   },
   body: {
-    hipsX: [[0, 0.03]],
-    hipsY: [[0, 0.02], [0.5, -0.02]],
-    hipsZ: [[0, 0.014], [0.5, -0.014]],
-    torsoX: [[0, 0.05]],
-    torsoY: [[0, -0.015], [0.5, 0.015]],
-    torsoZ: [[0, 0.022], [0.5, -0.022]],
-    rootX: [[0, -0.014], [0.5, 0.014]],
+    hipsX: [[0, 0.012]],
+    hipsY: [[0, 0.018], [0.5, -0.018]],
+    hipsZ: [[0, 0.016], [0.5, -0.016]],
+    torsoX: [[0, 0.02]],
+    torsoY: [[0, -0.014], [0.5, 0.014]],
+    torsoZ: [[0, 0.02], [0.5, -0.02]],
+    rootX: [[0, -0.012], [0.5, 0.012]],
   },
 }
 
@@ -86,31 +86,31 @@ const IDLE = {
 const WALK = {
   leg: {
     hip: [
-      [0, -0.36], [0.12, -0.24], [0.3, 0.0], [0.45, 0.2],
-      [0.53, 0.3], [0.63, 0.14], [0.76, -0.16], [0.89, -0.34],
+      [0, -0.44], [0.12, -0.3], [0.3, -0.02], [0.45, 0.24],
+      [0.55, 0.36], [0.65, 0.16], [0.78, -0.2], [0.9, -0.42],
     ],
     knee: [
-      [0, 0.07], [0.1, 0.27], [0.26, 0.13], [0.45, 0.07],
-      [0.56, 0.32], [0.66, 0.74], [0.77, 0.78], [0.89, 0.33],
+      [0, 0.06], [0.1, 0.3], [0.28, 0.1], [0.46, 0.05],
+      [0.57, 0.38], [0.67, 0.92], [0.78, 0.86], [0.9, 0.3],
     ],
     ankle: [
-      [0, -0.16], [0.08, 0.05], [0.3, 0.07], [0.45, 0.18],
-      [0.53, 0.3], [0.6, 0.0], [0.72, -0.13], [0.89, -0.18],
+      [0, -0.24], [0.08, 0.06], [0.3, 0.06], [0.45, 0.2],
+      [0.55, 0.36], [0.62, -0.02], [0.74, -0.18], [0.9, -0.24],
     ],
   },
   arm: {
-    shoulder: [[0, -0.3], [0.25, -0.08], [0.5, 0.28], [0.75, 0.04]],
-    elbow: [[0, -0.52], [0.25, -0.3], [0.5, -0.22], [0.75, -0.36]],
+    shoulder: [[0, -0.42], [0.25, -0.1], [0.5, 0.36], [0.75, 0.04]],
+    elbow: [[0, -0.5], [0.25, -0.26], [0.5, -0.16], [0.75, -0.34]],
   },
   body: {
-    hipsX: [[0, 0.08]],
-    hipsY: [[0, -0.04], [0.25, 0], [0.5, 0.04], [0.75, 0]],
-    hipsZ: [[0, 0], [0.25, -0.022], [0.5, 0], [0.75, 0.022]],
-    // the spine compresses a little as each boot lands
-    torsoX: [[0, 0.17], [0.14, 0.1], [0.4, 0.1], [0.5, 0.17], [0.64, 0.1], [0.9, 0.1]],
-    torsoY: [[0, 0.06], [0.25, 0], [0.5, -0.06], [0.75, 0]],
-    torsoZ: [[0, 0], [0.25, -0.038], [0.5, 0], [0.75, 0.038]],
-    rootX: [[0, 0], [0.25, 0.018], [0.5, 0], [0.75, -0.018]],
+    hipsX: [[0, 0.035]],
+    hipsY: [[0, -0.075], [0.25, 0], [0.5, 0.075], [0.75, 0]],
+    hipsZ: [[0, 0], [0.25, -0.03], [0.5, 0], [0.75, 0.03]],
+    // the spine compresses a little as each heel lands
+    torsoX: [[0, 0.09], [0.14, 0.04], [0.4, 0.04], [0.5, 0.09], [0.64, 0.04], [0.9, 0.04]],
+    torsoY: [[0, 0.1], [0.25, 0], [0.5, -0.1], [0.75, 0]],
+    torsoZ: [[0, 0], [0.25, -0.03], [0.5, 0], [0.75, 0.03]],
+    rootX: [[0, 0], [0.25, 0.014], [0.5, 0], [0.75, -0.014]],
   },
 }
 
@@ -131,15 +131,15 @@ const RUN = {
     ],
   },
   arm: {
-    shoulder: [[0, -0.5], [0.25, -0.14], [0.5, 0.5], [0.75, 0.02]],
-    elbow: [[0, -1.2], [0.25, -1.0], [0.5, -0.92], [0.75, -1.08]],
+    shoulder: [[0, -0.72], [0.25, -0.2], [0.5, 0.72], [0.75, 0.04]],
+    elbow: [[0, -1.5], [0.25, -1.25], [0.5, -1.1], [0.75, -1.34]],
   },
   body: {
-    hipsX: [[0, 0.1]],
-    hipsY: [[0, -0.09], [0.25, 0], [0.5, 0.09], [0.75, 0]],
+    hipsX: [[0, 0.055]],
+    hipsY: [[0, -0.14], [0.25, 0], [0.5, 0.14], [0.75, 0]],
     hipsZ: [[0, 0], [0.25, -0.03], [0.5, 0], [0.75, 0.03]],
-    torsoX: [[0, 0.3], [0.12, 0.24], [0.5, 0.3], [0.62, 0.24]],
-    torsoY: [[0, 0.13], [0.25, 0], [0.5, -0.13], [0.75, 0]],
+    torsoX: [[0, 0.26], [0.12, 0.2], [0.5, 0.26], [0.62, 0.2]],
+    torsoY: [[0, 0.18], [0.25, 0], [0.5, -0.18], [0.75, 0]],
     torsoZ: [[0, 0], [0.25, -0.03], [0.5, 0], [0.75, 0.03]],
     rootX: [[0, 0], [0.25, 0.011], [0.5, 0], [0.75, -0.011]],
   },
@@ -172,18 +172,18 @@ const BODY_CHANNELS = ['hipsX', 'hipsY', 'hipsZ', 'torsoX', 'torsoY', 'torsoZ', 
 const U = 0.02
 const v = (n) => n * U
 export const METRICS = {
-  HIPS_Y: v(30),
-  HIP_X: v(5.5),
+  HIPS_Y: v(52),
+  HIP_X: v(4.5),
   HIP_Y: v(-3),
-  THIGH: v(12),
-  SHIN: v(10),
-  SOLE: v(5.2),
-  HEEL_Z: v(-3.8),
-  TOE_Z: v(7.6),
+  THIGH: v(23),
+  SHIN: v(19),
+  SOLE: v(7),
+  HEEL_Z: v(-5),
+  TOE_Z: v(10),
 }
 
 export const WALK_SPEED = 1.7
-export const RUN_SPEED = 3.6
+export const RUN_SPEED = 4.8
 
 export function createAnimState() {
   return {
@@ -219,7 +219,7 @@ export function updatePose(S, input, dt, time) {
   const wIdle = 1 - walkW
 
   // stride length grows with speed so the boots never skate
-  const stride = lerp(0.58, 1.1, runW)
+  const stride = lerp(0.8, 1.55, runW)
   const cycleHz = sp > 0.05 ? sp / (2 * stride) : 0
   S.phase = (S.phase + dt * cycleHz) % 1
   S.idlePhase = (S.idlePhase + dt / 6.4) % 1
@@ -316,9 +316,9 @@ export function updatePose(S, input, dt, time) {
   body.hipsZ += bank * 0.5
   body.torsoZ += bank * 0.5
 
-  // wide, planted dwarf stance; a touch wider at speed and in a crouch
-  const splay = 0.1 + 0.025 * walkW + 0.03 * crouchW
-  const toeOut = 0.09
+  // feet about hip width, turned out a few degrees; wider in a crouch
+  const splay = 0.035 + 0.012 * walkW + 0.03 * crouchW
+  const toeOut = 0.055
 
   /* ---------------- ground solver ---------------- */
   const { HIPS_Y, HIP_Y, THIGH, SHIN, SOLE, HEEL_Z, TOE_Z } = METRICS
@@ -346,17 +346,10 @@ export function updatePose(S, input, dt, time) {
   S.rootX = S.started ? damp(S.rootX, body.rootX * (1 - S.air), 18, dt) : body.rootX
   S.started = true
 
-  /* ---------------- head, beard, shoulders ---------------- */
+  /* ---------------- head ---------------- */
   const headX = -(body.hipsX + body.torsoX) * 0.8 + 0.07 * S.air * vyN
   const headY = -body.torsoY * 0.7 + clamp(S.turn * 0.1, -0.28, 0.28)
   const headZ = -body.torsoZ * 0.5
-
-  const beardX = clamp(
-    -0.05 - body.torsoX * 0.25 - S.air * 0.28 * vyN - S.crouch * 0.1 + breathe * 2,
-    -0.4,
-    0.02
-  )
-  const beardZ = clamp(-body.torsoZ * 0.8 + bank * 0.6, -0.18, 0.18)
 
   return {
     rootX: S.rootX,
@@ -364,7 +357,6 @@ export function updatePose(S, input, dt, time) {
     hips: [body.hipsX, body.hipsY, body.hipsZ],
     torso: [body.torsoX, body.torsoY, body.torsoZ],
     head: [headX, headY, headZ],
-    beard: [beardX, 0, beardZ],
     legL,
     legR,
     armL,

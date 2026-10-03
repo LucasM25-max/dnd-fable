@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import Dwarf from './Dwarf.jsx'
+import Human from './Human.jsx'
 
 const WALK = 1.7
-const SPRINT = 3.6
+const SPRINT = 4.8
 const ACCEL = 13
 const DECEL = 18
-const JUMP_V = 4.1
+const JUMP_V = 4.4
 const GRAVITY = 14
-const PREP_TIME = 0.085 // crouch before the dwarf leaves the ground
+const PREP_TIME = 0.09 // crouch before he leaves the ground
 const LAND_TIME = 0.26 // crouch recovery after a landing
 
 const WEAPON_KEYS = {
@@ -32,7 +32,7 @@ export default function Player() {
     pos: new THREE.Vector3(0, 0, 0),
     vel: new THREE.Vector3(),
     facing: Math.PI,
-    camDist: 3.1,
+    camDist: 3.8,
     prepT: 0,
     landT: 0,
     jumpQueued: false,
@@ -73,8 +73,8 @@ export default function Player() {
     const onWheel = (e) => {
       state.current.camDist = THREE.MathUtils.clamp(
         state.current.camDist + e.deltaY * 0.002,
-        1.6,
-        9
+        2.0,
+        11
       )
     }
     const onBlur = () => {
@@ -195,9 +195,9 @@ export default function Player() {
       body.current.rotation.y = st.facing
     }
 
-    // keep the shadow-casting sun centred on the dwarf
+    // keep the shadow-casting sun centred on him
     if (sun.current && sunTarget.current) {
-      sun.current.position.set(st.pos.x + 3.5, 7, st.pos.z + 4)
+      sun.current.position.set(st.pos.x + 4.5, 9, st.pos.z + 5)
       sunTarget.current.position.set(st.pos.x, st.pos.y, st.pos.z)
       sunTarget.current.updateMatrixWorld()
       sun.current.target = sunTarget.current
@@ -208,7 +208,7 @@ export default function Player() {
     if (firstPerson) {
       camera.position.set(
         st.pos.x + Math.sin(st.facing) * 0.12,
-        st.pos.y + 1.13,
+        st.pos.y + 1.63,
         st.pos.z + Math.cos(st.facing) * 0.12
       )
       camera.rotation.set(0, 0, 0)
@@ -216,9 +216,9 @@ export default function Player() {
       camera.rotateX(pitch)
     } else {
       const cp = Math.cos(pitch)
-      const target = new THREE.Vector3(st.pos.x, st.pos.y + 0.95, st.pos.z)
-      // never let the camera dip below the floor or push into the dwarf
-      const dist = Math.max(st.camDist, 1.6)
+      const target = new THREE.Vector3(st.pos.x, st.pos.y + 1.3, st.pos.z)
+      // never let the camera dip below the floor or push into him
+      const dist = Math.max(st.camDist, 2.0)
       const desired = new THREE.Vector3(
         target.x + Math.sin(yaw) * cp * dist,
         target.y + Math.sin(pitch) * dist,
@@ -245,16 +245,16 @@ export default function Player() {
         shadow-mapSize={[2048, 2048]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.012}
-        shadow-camera-left={-2.4}
-        shadow-camera-right={2.4}
-        shadow-camera-top={2.4}
-        shadow-camera-bottom={-2.4}
+        shadow-camera-left={-3.2}
+        shadow-camera-right={3.2}
+        shadow-camera-top={3.2}
+        shadow-camera-bottom={-3.2}
         shadow-camera-near={0.5}
         shadow-camera-far={22}
       />
       <object3D ref={sunTarget} />
       <group ref={body}>
-        <Dwarf motion={motion} held={held} hideHead={firstPerson} />
+        <Human motion={motion} held={held} hideHead={firstPerson} />
       </group>
     </>
   )

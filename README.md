@@ -1,6 +1,6 @@
 # dnd-fable
 
-A 3D voxel D&D dwarf fighter you can walk, sprint and jump around a blank white world.
+A 3D voxel D&D human fighter you can walk, sprint and jump around a blank white world.
 No UI, no HUD — just the character and the void.
 
 ```bash
@@ -25,12 +25,13 @@ Only the equipped weapon is drawn — nothing is slung on his back otherwise. Th
 javelin brings its sheaf of the other 7 with it, and the shortbow brings its
 quiver of 20 arrows, since those are part of the same equipped weapon.
 
-## The dwarf
+## The fighter
 
-Everything is built procedurally from voxels at build time — nothing is loaded from
-a model file. The grid runs at 2 voxels per model unit (1 cm cubes, ~134 voxels tall),
-roughly 60,000 visible cubes after the hidden interior is stripped, with baked
-ambient occlusion and per-voxel colour jitter.
+A heroic-build human, about 1.85 m tall. Everything is built procedurally from
+voxels at build time — nothing is loaded from a model file. The grid runs at
+2 voxels per model unit (1 cm cubes, ~186 voxels tall), roughly 63,000 visible
+cubes after the hidden interior is stripped, with baked ambient occlusion and
+per-voxel colour jitter.
 
 * **Chain mail hauberk** — staggered 4-in-1 ring pattern, shoulder caps, mail skirt
   with a scalloped hem, leather pauldron straps and baldrics.
@@ -40,20 +41,27 @@ ambient occlusion and per-voxel colour jitter.
 * **Gear (all cosmetic, no effects)** — greatsword, flail, 8 javelins in a leather
   sheaf, a spear, a shortbow, and a quiver of exactly 20 fletched arrows. Only
   what is equipped is rendered.
-* Braided beard with gold rings, bushy brows, big nose — the usual.
+* **Open-faced helm** — riveted skull cap with reinforcing ribs, a brow band, a
+  nasal bar, hinged cheek plates and a short mail aventail at the neck. It rides
+  with the head, so it moves with every head turn and nod.
+* **Clean-shaven face** — long jaw, strong brow, visible eyes and mouth, short
+  cropped hair under the helm.
 
 ## Code map
 
 * `src/voxel/VoxelBuilder.js` — voxel modelling kit (boxes, ellipsoids, tapers,
   capsules, mirroring, interior stripping, AO baking, instance arrays).
-* `src/voxel/dwarf.js` — the dwarf himself: palette, surface patterns (mail, weave,
-  leather grain), every body part and every piece of kit.
+* `src/voxel/human.js` — the fighter himself: palette, surface patterns (mail, weave,
+  leather grain), every body part, the helm and every piece of kit.
 * `src/components/VoxelMesh.jsx` — renders a baked part as `InstancedMesh`es, one per
   material (matte / leather / metal / wood).
-* `src/components/Dwarf.jsx` — the skeleton (hips → torso → head/arms, hips → legs),
+* `src/components/Human.jsx` — the skeleton (hips → torso → head/arms, hips → legs),
   how the equipped weapon is held, and the carried-kit spring simulation.
 * `src/anim/poseRig.js` — the animation system: keyframe clips, spline sampling,
   speed blending, jump/land layers and the foot/ground solver.
+* `tools/posePreview.mjs`, `tools/voxelPreview.mjs` — headless previewers that run
+  the real model and the real rig and write PNG contact sheets, for tuning the
+  clips and checking the model without a browser.
 
 ## Animation
 
@@ -67,8 +75,9 @@ the arms always swing opposite their own leg.
 
 * **Idle** — a slow six-second weight shift from boot to boot, two-frequency
   breathing, soft knees, drifting head and beard.
-* **Walk** — a heavy dwarf trudge: wide planted stance, toes turned out, heel
-  strike, stance absorb, toe-off, swing tuck. Each footfall compresses the spine
+* **Walk** — a long human stride: feet about hip width with a few degrees of
+  toe-out, heel strike, stance absorb, toe-off and swing tuck, counter-rotating
+  pelvis and shoulders, and an upright spine. Each footfall compresses the spine
   and nods the head; the body banks into turns.
 * **Sprint** — longer reach, a deep heel-to-backside knee fold during recovery,
   a forward lean, pumping arms and a capped pelvis dip so the cycle gets a

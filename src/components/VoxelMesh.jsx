@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { VOX } from '../voxel/dwarf.js'
+import { VOX } from '../voxel/human.js'
 
 const MATERIAL_PROPS = {
   matte: { roughness: 0.92, metalness: 0.0 },
