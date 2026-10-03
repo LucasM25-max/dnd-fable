@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import Human from './Human.jsx'
 import { hud } from '../ui/hud.js'
+import { getHeld, setHeld, subscribeHeld, toggleHeld } from '../ui/equipment.js'
 
 const WALK = 1.7
 const SPRINT = 4.8
@@ -41,7 +42,9 @@ export default function Player() {
     jumpQueued: false,
     wasGrounded: true,
   })
-  const [held, setHeld] = useState(null)
+  // what is in his hands lives outside React so the inventory panel and the
+  // number keys drive the same state — see src/ui/equipment.js
+  const held = useSyncExternalStore(subscribeHeld, getHeld, getHeld)
   const [hp] = useState(MAX_HP)
   const [firstPerson, setFirstPerson] = useState(false)
 
@@ -56,7 +59,7 @@ export default function Player() {
       if (e.code === 'KeyV') setFirstPerson((f) => !f)
       if (e.code === 'Digit0' || e.code === 'Backquote') setHeld(null)
       const w = WEAPON_KEYS[e.code]
-      if (w) setHeld((h) => (h === w ? null : w))
+      if (w) toggleHeld(w)
       if (e.code === 'Space') e.preventDefault()
     }
     const onKeyUp = (e) => {

@@ -20,6 +20,8 @@ npm run dev
 | `V` | Toggle third-person / first-person |
 | `1` – `3` | Equip greatsword / flail / javelin (purely cosmetic) |
 | `0` | Put the weapon away (empty handed) |
+| `I` (or the satchel button, top right) | Open / close the pack |
+| `Esc` | Close the pack |
 
 Only the equipped weapon is drawn — nothing is slung on his back otherwise.
 Taking a javelin in hand brings the sheaf of the other seven with it, since
@@ -54,6 +56,45 @@ within a few percent of its base tone and lets the lighting do the work.
 * **Clean-shaven face** — long jaw, strong brow, visible eyes and mouth, short
   cropped hair under the helm.
 
+## The pack
+
+A satchel button sits in the top right corner; pressing it — or `I` — opens a
+brass-and-leather panel listing everything he carries. Clicking a row puts that
+weapon in his hands, so the panel and the `1`/`2`/`3` keys drive the same state
+(`src/ui/equipment.js`, a small external store both read through
+`useSyncExternalStore`).
+
+| Item | Count | Cost | Weight |
+| --- | --- | --- | --- |
+| Greatsword | 1 | 50 gp | 6 lb. |
+| Flail | 1 | 10 gp | 2 lb. |
+| Javelin | 8 | 5 sp each — 4 gp the sheaf | 2 lb. each — 16 lb. |
+| **Carried** | | **64 gp** | **24 lb.** |
+
+Prices live in silver (`src/data/items.js`) and are split into gold and silver
+on the way out at 10 sp = 1 gp, so a stack of eight javelins at 5 sp comes to
+exactly 4 gp with no floating-point gold.
+
+**The icons are the models.** Each slot is a live orthographic viewport
+rendering the same baked voxels the fighter holds — no sprites, no screenshots,
+nothing to re-export when a weapon changes. The item is tilted onto the slot's
+diagonal and turns slowly about its own long axis, and the javelin slot shows
+the sheaf of seven with the eighth laid across it. The camera is fitted from the
+model's real bounds (`src/voxel/iconFit.js`): the widest face it can ever present
+while spinning is the diagonal of its X/Z footprint, so the fit is solved against
+that and the model cannot clip the edge of the slot at any point in the turn.
+Polished steel has no diffuse colour of its own, so each icon gets a PMREM of
+three's room scene to reflect plus a warm key / cool fill / amber rim.
+
+Run `node tools/iconPreview.mjs out/icons.png` to render the same framing
+headlessly — every item at four points in its spin, with the margin to the slot
+edge reported per cell — so the icons can be checked without a browser.
+
+The panel itself is plain HTML and CSS over the canvas: brass hairlines, corner
+flourishes and coin pips drawn as vectors and gradients, set in Cinzel and
+EB Garamond at normal UI sizes. Nothing is a bitmap and nothing is pixel-art, so
+the text stays sharp at any zoom or DPI.
+
 ## Health bar
 
 14 hit points, drawn as a smooth flat UI bar: rounded track, soft shadow,
@@ -80,6 +121,13 @@ so wiring it to real damage later is a one-line change in `Player.jsx`.
   how the equipped weapon is held (one hand, or both for the greatsword), and the
   carried-kit spring simulation.
 * `src/components/HealthBar.jsx` — the floating 14 HP bar (flat UI, world-anchored).
+* `src/components/Inventory.jsx` — the pack: satchel button, panel, item cards.
+* `src/components/ItemIcon.jsx` — one item's live turntable render.
+* `src/voxel/iconFit.js` — icon framing maths (bounds fit, spin-safe zoom), shared
+  with the offline icon previewer.
+* `src/data/items.js` — what he carries: counts, costs in silver, weights, traits.
+* `src/ui/equipment.js` — the shared "what is in his hands" store.
+* `src/ui/inventory.css` — the pack's brass-and-leather styling.
 * `src/anim/poseRig.js` — the animation system: keyframe clips, spline sampling,
   speed blending, jump/land layers, the foot/ground solver, and the shared joint
   offsets (`METRICS`) that the app and the offline tools both build from.
@@ -93,6 +141,8 @@ so wiring it to real damage later is a one-line change in `Player.jsx`.
 * `tools/clipCheck.mjs` — pushes every voxel through the rig in 56 poses and
   reports which parts share space, so interpenetration is measured rather than
   guessed at.
+* `tools/iconPreview.mjs` — renders the inventory icons headlessly with the same
+  fit and turntable the browser uses, and reports their margins in the slot.
 * `tools/solveGrip.mjs` — solves the two-handed stance: give it a target point
   for each fist and it fits the arm chains (with joint limits and body-clearance
   penalties) and derives the sword's frame from the fists it actually reached.

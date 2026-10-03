@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import * as THREE from 'three'
 import Player from './components/Player.jsx'
 import HealthBar from './components/HealthBar.jsx'
+import Inventory from './components/Inventory.jsx'
 
 export default function App() {
   return (
@@ -30,6 +31,9 @@ export default function App() {
 
       {/* flat UI, drawn over the canvas and tracked to a point above his head */}
       <HealthBar />
+
+      {/* the pack: satchel button, top right */}
+      <Inventory />
     </div>
   )
 }
