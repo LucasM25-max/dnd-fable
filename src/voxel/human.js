@@ -201,8 +201,6 @@ function buildTorso() {
   b.capsule([-7.6, 77.0, -1.6], [7.0, 58.5, 3.2], [1.6, 1.6, 1.3], grain(C.leather, C.leatherDark), MAT.LEATHER)
   // second strap, carrying the javelin sheaf
   b.capsule([7.6, 77.0, -1.2], [-6.4, 59.5, 2.8], [1.4, 1.4, 1.2], grain(C.strap, C.leatherDark), MAT.LEATHER)
-  // harness plate on the back
-  b.taper(60, 76, [0, -5.2], [6.0, 1.3], [0, -6.1], [6.8, 1.3], grain(C.leatherDark, C.leather), MAT.LEATHER, { square: 1 })
   return b
 }
 

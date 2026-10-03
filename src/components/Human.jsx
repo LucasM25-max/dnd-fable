@@ -3,10 +3,11 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import VoxelMesh from './VoxelMesh.jsx'
 import { buildHuman, UNIT } from '../voxel/human.js'
-import { METRICS, createAnimState, updatePose, carryArm } from '../anim/poseRig.js'
+import { METRICS, createAnimState, updatePose, carryArm, lerp, damp } from '../anim/poseRig.js'
+import { TWO_HAND } from '../anim/grip.js'
 
 const v = (n) => n * UNIT
-const { HIPS_Y, HIP_X, HIP_Y, THIGH, SHIN } = METRICS
+const { HIPS_Y, HIP_X, HIP_Y, THIGH, SHIN, SHOULDER_X, SHOULDER_Y, ELBOW_X, ELBOW_Y, ARM_OUT } = METRICS
 
 /* ------------------------------------------------------------------ */
 /* where kit rides                                                      */
@@ -14,7 +15,7 @@ const { HIPS_Y, HIP_X, HIP_Y, THIGH, SHIN } = METRICS
 // Only the equipped weapon is drawn. The sheaf of the other seven javelins
 // comes along with the one in his hand, since that *is* the equipped item.
 const STOWED = {
-  javelins: { p: [-8.5, 16, -8.5], r: [-0.1, 0, 0.2] },
+  javelins: { p: [-5, 22, -9], r: [-0.28, 0, -0.34] },
 }
 
 const RIGHT_GRIP = [v(-0.6), v(-13.6), v(1.5)]
@@ -23,7 +24,9 @@ const LEFT_GRIP = [v(0.6), v(-13.6), v(1.5)]
 // The forearm points forward when a weapon is carried, so each weapon is
 // rotated about a quarter turn to stand upright out of the fist.
 const HELD = {
-  greatsword: { hand: 'R', r: [1.52, 0, 0.06] },
+  // the greatsword is carried in both hands, so it rides on the torso rather
+  // than out of a fist — see src/anim/grip.js
+  greatsword: { hand: 'two', r: TWO_HAND.sword.r },
   flail: { hand: 'R', r: [1.46, 0, 0.06] },
   javelin: { hand: 'R', r: [1.5, 0, 0.0] },
 }
@@ -166,14 +169,30 @@ export default function Human({ motion, held, hideHead = false }) {
     const armL = carryArm(pose.armL, busyL, t, 0)
     const armR = carryArm(pose.armR, busyR, t, 2.1)
 
-    const armOut = 0.1 + 0.05 * pose.runW
-    r.shoulderL.rotation.set(armL.shoulder, armL.shoulder * -0.045, armOut + 0.05 * busyL)
-    r.elbowL.rotation.set(armL.elbow, 0.12 * busyL, 0)
-    r.shoulderR.rotation.set(armR.shoulder, armR.shoulder * 0.045, -armOut - 0.05 * busyR)
-    r.elbowR.rotation.set(armR.elbow, -0.12 * busyR, 0)
+    const armOut = ARM_OUT + 0.05 * pose.runW
+    let sL = [armL.shoulder, armL.shoulder * -0.045, armOut + 0.05 * busyL]
+    let eL = [armL.elbow, 0.12 * busyL, 0]
+    let sR = [armR.shoulder, armR.shoulder * 0.045, -armOut - 0.05 * busyR]
+    let eR = [armR.elbow, -0.12 * busyR, 0]
 
-    /* carried kit swings on its own */
-    if (held) simulateKit(held, HELD[held].r, dt, t)
+    // both hands go to the greatsword, and stay locked to it
+    const twoTarget = info && info.hand === 'two' ? 1 : 0
+    anim.current.twoW = damp(anim.current.twoW || 0, twoTarget, 14, dt)
+    const w = anim.current.twoW
+    if (w > 0.001) {
+      const T = TWO_HAND
+      sL = sL.map((n, i) => lerp(n, T.armL.shoulder[i], w))
+      eL = [lerp(eL[0], T.armL.elbow[0], w), lerp(eL[1], T.armL.elbow[1], w), eL[2]]
+      sR = sR.map((n, i) => lerp(n, T.armR.shoulder[i], w))
+      eR = [lerp(eR[0], T.armR.elbow[0], w), lerp(eR[1], T.armR.elbow[1], w), eR[2]]
+    }
+    r.shoulderL.rotation.set(sL[0], sL[1], sL[2])
+    r.elbowL.rotation.set(eL[0], eL[1], eL[2])
+    r.shoulderR.rotation.set(sR[0], sR[1], sR[2])
+    r.elbowR.rotation.set(eR[0], eR[1], eR[2])
+
+    /* carried kit swings on its own (not the greatsword: two hands hold it rigid) */
+    if (held && HELD[held].hand !== 'two') simulateKit(held, HELD[held].r, dt, t)
     if (held === 'javelin') simulateKit('javelins', STOWED.javelins.r, dt, t)
   })
 
@@ -187,6 +206,18 @@ export default function Human({ motion, held, hideHead = false }) {
 
   const wield = (key, data) => {
     const info = HELD[key]
+    if (info.hand === 'two') {
+      return (
+        <group
+          ref={setKit(key)}
+          visible={held === key}
+          position={TWO_HAND.sword.p}
+          rotation={TWO_HAND.sword.r}
+        >
+          <VoxelMesh data={data} />
+        </group>
+      )
+    }
     return (
       <group
         ref={setKit(key)}
@@ -213,6 +244,9 @@ export default function Human({ motion, held, hideHead = false }) {
             {/* the only kit on his back is whatever the equipped weapon needs */}
             {stow('javelins', G.javelins7, held === 'javelin')}
 
+            {/* the greatsword is held in both hands, off the torso */}
+            {wield('greatsword', G.greatsword)}
+
             {/* head (the helm rides with it) */}
             <group ref={set('head')} position={[0, v(29.5), 0]}>
               <VoxelMesh data={model.parts.head} />
@@ -220,19 +254,18 @@ export default function Human({ motion, held, hideHead = false }) {
             </group>
 
             {/* left arm */}
-            <group ref={set('shoulderL')} position={[v(10), v(23.5), 0]}>
+            <group ref={set('shoulderL')} position={[SHOULDER_X, SHOULDER_Y, 0]}>
               <VoxelMesh data={model.parts.upperArmL} />
-              <group ref={set('elbowL')} position={[v(1.0), v(-13), 0]}>
+              <group ref={set('elbowL')} position={[ELBOW_X, ELBOW_Y, 0]}>
                 <VoxelMesh data={model.parts.lowerArmL} />
               </group>
             </group>
 
             {/* right arm */}
-            <group ref={set('shoulderR')} position={[v(-10), v(23.5), 0]}>
+            <group ref={set('shoulderR')} position={[-SHOULDER_X, SHOULDER_Y, 0]}>
               <VoxelMesh data={model.parts.upperArmR} />
-              <group ref={set('elbowR')} position={[v(-1.0), v(-13), 0]}>
+              <group ref={set('elbowR')} position={[-ELBOW_X, ELBOW_Y, 0]}>
                 <VoxelMesh data={model.parts.lowerArmR} />
-                {wield('greatsword', G.greatsword)}
                 {wield('flail', G.flail)}
                 {wield('javelin', G.javelin)}
               </group>

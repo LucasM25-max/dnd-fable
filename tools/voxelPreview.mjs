@@ -10,83 +10,9 @@
 import zlib from 'node:zlib'
 import fs from 'node:fs'
 import path from 'node:path'
-import { buildHuman, UNIT, VOX } from '../src/voxel/human.js'
-import { createAnimState, updatePose, METRICS } from '../src/anim/poseRig.js'
-
-const { HIPS_Y, HIP_X, HIP_Y, THIGH, SHIN } = METRICS
-const v = (n) => n * UNIT
-
-/* ---- matrices (column-major, three.js Euler XYZ) ---- */
-function mul(a, b) {
-  const o = new Array(16).fill(0)
-  for (let c = 0; c < 4; c++)
-    for (let r = 0; r < 4; r++) {
-      let s = 0
-      for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]
-      o[c * 4 + r] = s
-    }
-  return o
-}
-function trs(p, e) {
-  const [x, y, z] = e
-  const cx = Math.cos(x), sx = Math.sin(x)
-  const cy = Math.cos(y), sy = Math.sin(y)
-  const cz = Math.cos(z), sz = Math.sin(z)
-  const Rx = [1, 0, 0, 0, 0, cx, sx, 0, 0, -sx, cx, 0, 0, 0, 0, 1]
-  const Ry = [cy, 0, -sy, 0, 0, 1, 0, 0, sy, 0, cy, 0, 0, 0, 0, 1]
-  const Rz = [cz, sz, 0, 0, -sz, cz, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
-  const R = mul(mul(Rx, Ry), Rz)
-  R[12] = p[0]; R[13] = p[1]; R[14] = p[2]
-  return R
-}
-
-const HELD_ROT = {
-  greatsword: { hand: 'R', r: [1.52, 0, 0.06] },
-  flail: { hand: 'R', r: [1.46, 0, 0.06] },
-  javelin: { hand: 'R', r: [1.5, 0, 0] },
-}
-const RIGHT_GRIP = [v(-0.6), v(-13.6), v(1.5)]
-const LEFT_GRIP = [v(0.6), v(-13.6), v(1.5)]
-const STOWED = {
-  javelins: { p: [-8.5, 16, -8.5].map(v), r: [-0.1, 0, 0.2] },
-}
-
-/* ---- pose the hierarchy (mirrors src/components/Human.jsx) ---- */
-function placement(model, pose, held) {
-  const out = []
-  const root = trs([pose.rootX, pose.rootY, 0], [0, 0, 0])
-  const hips = mul(root, trs([0, HIPS_Y, 0], pose.hips))
-  const torso = mul(hips, trs([0, 0, 0], pose.torso))
-  const head = mul(torso, trs([0, v(29.5), 0], pose.head))
-  out.push([model.parts.hips, hips], [model.parts.torso, torso])
-  out.push([model.parts.head, head], [model.parts.helmet, head])
-
-  const armOut = 0.1 + 0.05 * pose.runW
-  const arms = {}
-  for (const side of ['L', 'R']) {
-    const sx = side === 'L' ? 1 : -1
-    const a = side === 'L' ? pose.armL : pose.armR
-    const sh = mul(torso, trs([v(10 * sx), v(23.5), 0], [a.shoulder, a.shoulder * -0.1 * sx, armOut * sx]))
-    const el = mul(sh, trs([v(1.0 * sx), v(-13), 0], [a.elbow, 0, 0]))
-    out.push([model.parts['upperArm' + side], sh], [model.parts['lowerArm' + side], el])
-    arms[side] = el
-  }
-  for (const side of ['L', 'R']) {
-    const sx = side === 'L' ? 1 : -1
-    const l = side === 'L' ? pose.legL : pose.legR
-    const hip = mul(hips, trs([HIP_X * sx, HIP_Y, 0], [l.hip, pose.toeOut * sx, pose.splay * sx]))
-    const knee = mul(hip, trs([0, -THIGH, 0], [l.knee, 0, 0]))
-    const ank = mul(knee, trs([0, -SHIN, 0], [l.ankle, 0, -pose.splay * sx]))
-    out.push([model.parts['thigh' + side], hip], [model.parts['shin' + side], knee], [model.parts['foot' + side], ank])
-  }
-  if (held && HELD_ROT[held]) {
-    const info = HELD_ROT[held]
-    const grip = info.hand === 'R' ? RIGHT_GRIP : LEFT_GRIP
-    out.push([model.gear[held], mul(arms[info.hand], trs(grip, info.r))])
-    if (held === 'javelin') out.push([model.gear.javelins7, mul(torso, trs(STOWED.javelins.p, STOWED.javelins.r))])
-  }
-  return out
-}
+import { buildHuman, VOX } from '../src/voxel/human.js'
+import { createAnimState, updatePose } from '../src/anim/poseRig.js'
+import { placement } from './rig.mjs'
 
 /* ---- render ---- */
 const OUT = process.argv[2] || 'voxel.png'
@@ -121,7 +47,7 @@ const cx = W / 2 - Number(process.env.CX || 0) * ZOOM
 const groundY = H - 46 + Number(process.env.CY || 0) * ZOOM
 const half = Math.max(1, Math.round((VOX * ZOOM) / 2 + 0.35))
 
-for (const [groups, m] of placement(model, pose, HELD)) {
+for (const [, groups, m] of placement(model, pose, HELD)) {
   if (!groups) continue
   for (const g of groups) {
     const p = g.positions

@@ -44,9 +44,10 @@ within a few percent of its base tone and lets the lighting do the work.
 * **Traveller's clothes underneath** — woven wool tunic at the collar, sleeves and
   under the mail, trousers, wide leather belt with a brass buckle, belt pouch, rope coil,
   laced hobnailed boots, knee pads and bracers.
-* **Gear (all cosmetic, no effects)** — a greatsword, a spiked flail, and
-  8 javelins (one in hand, the other seven in a leather sheaf across his back).
-  Only what is equipped is rendered.
+* **Gear (all cosmetic, no effects)** — a greatsword carried in both hands, a
+  spiked flail, and 8 javelins (one in hand, the other seven in a leather sheaf
+  slung diagonally across his back). Only what is equipped is rendered, so
+  nothing rides on his back that he is not currently using.
 * **Open-faced helm** — riveted skull cap with reinforcing ribs, a brow band, a
   nasal bar, hinged cheek plates and a short mail aventail at the neck. It rides
   with the head, so it moves with every head turn and nod.
@@ -76,13 +77,25 @@ so wiring it to real damage later is a one-line change in `Player.jsx`.
 * `src/components/VoxelMesh.jsx` — renders a baked part as `InstancedMesh`es, one per
   material (matte / leather / metal / wood).
 * `src/components/Human.jsx` — the skeleton (hips → torso → head/arms, hips → legs),
-  how the equipped weapon is held, and the carried-kit spring simulation.
+  how the equipped weapon is held (one hand, or both for the greatsword), and the
+  carried-kit spring simulation.
 * `src/components/HealthBar.jsx` — the floating 14 HP bar (flat UI, world-anchored).
 * `src/anim/poseRig.js` — the animation system: keyframe clips, spline sampling,
-  speed blending, jump/land layers and the foot/ground solver.
+  speed blending, jump/land layers, the foot/ground solver, and the shared joint
+  offsets (`METRICS`) that the app and the offline tools both build from.
+* `src/anim/grip.js` — the two-handed greatsword stance: solved arm angles plus
+  the sword's own transform, so the grip runs exactly through both fists.
+* `tools/rig.mjs` — the posed hierarchy, shared by the offline tools; mirrors
+  `Human.jsx` exactly.
 * `tools/posePreview.mjs`, `tools/voxelPreview.mjs` — headless previewers that run
   the real model and the real rig and write PNG contact sheets, for tuning the
   clips and checking the model without a browser.
+* `tools/clipCheck.mjs` — pushes every voxel through the rig in 56 poses and
+  reports which parts share space, so interpenetration is measured rather than
+  guessed at.
+* `tools/solveGrip.mjs` — solves the two-handed stance: give it a target point
+  for each fist and it fits the arm chains (with joint limits and body-clearance
+  penalties) and derives the sword's frame from the fists it actually reached.
 
 ## Animation
 
@@ -109,23 +122,34 @@ the arms always swing opposite their own leg.
   up, legs reaching on the way down, and a weighted crouch-and-recover on landing.
 * **Stride matching** — the cycle rate is derived from the stride length and the
   actual ground speed, so the boots never skate.
-* **Carried kit has physics** — every held weapon (and the javelin sheaf that
-  comes with it) hangs off a damped angular spring driven by the real
+* **Carried kit has physics** — every one-handed weapon (and the javelin sheaf
+  that comes with it) hangs off a damped angular spring driven by the real
   acceleration of the hand, measured in world space each frame and resolved into
   the hand's own frame. Start, stop, turn, jump or land and the greatsword lags
   and overshoots; the flail — light spring, loose damping — swings a lot more
   than the javelin, which is stiff and quick. Nothing is ever rigid: a slow
-  two-frequency drift keeps it breathing even when he is standing still.
+  two-frequency drift keeps it breathing even when he is standing still. The
+  greatsword is the exception: both fists are locked to it, so it is carried
+  rigid and moves with the whole upper body instead of swinging.
 * **Foot/ground solver** — the pelvis height is solved from the leg chain each
   frame so the planted boot sits exactly on the floor (this is what produces the
   bob) and nothing ever sinks through the ground.
 
 ## No clipping
 
-The mail skirt is wide enough to contain the thighs at full stride, every joint has
-a ball at its pivot so bends never open a seam, the beard is built against the
-surface of the chest instead of through it, the hair stops above the shoulders, the
-arms are held slightly out from the mail, the equipped weapon is rotated to stand
-clear of the body, and the third-person camera is kept above the floor.
+Measured, not assumed: `node tools/clipCheck.mjs` runs idle, walk, sprint, turn,
+jump and landing poses against all four weapon states, snaps every voxel in the
+body to a 1 cm grid and reports any two parts sharing a cell. Joints and fists
+closed around a grip are expected to overlap; everything else is held under
+about 20 voxels of contact, which is a graze rather than a part passing through
+another.
+
+What keeps it that way: the shoulders sit wide enough (and the arms hang abducted
+enough) that the sleeves clear the chest mail entirely, the mail skirt is wide
+enough to contain the thighs at full stride, every joint has a ball at its pivot
+so bends never open a seam, the hair stops above the shoulders, the javelin sheaf
+is slung so its butt swings clear of the hip instead of through it, the two-handed
+stance is solved with explicit body-clearance penalties, and the third-person
+camera is kept above the floor.
 * `src/components/Player.jsx` — movement, jumping, pointer-lock camera, weapon keys.
 * `src/App.jsx` — the blank white world and lighting.

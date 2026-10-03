@@ -178,6 +178,11 @@ export const METRICS = {
   HIP_Y: v(-3),
   THIGH: v(23),
   SHIN: v(19),
+  SHOULDER_X: v(11.4), // wide enough that the sleeve clears the chest mail
+  SHOULDER_Y: v(23.5),
+  ELBOW_X: v(1.0),
+  ELBOW_Y: v(-13),
+  ARM_OUT: 0.17, // resting abduction, so the arms hang clear of the ribs
   SOLE: v(7),
   HEEL_Z: v(-5),
   TOE_Z: v(10),

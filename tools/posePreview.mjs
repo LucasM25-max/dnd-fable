@@ -64,7 +64,7 @@ function skeleton(pose) {
 
   const arm = (side, a, col) => {
     const sx = side === 'L' ? 1 : -1
-    const sh = mul(torso, trs([v(10 * sx), v(23.5), 0], [a.shoulder, a.shoulder * -0.1 * sx, (0.2 + 0.05 * pose.runW) * sx]))
+    const sh = mul(torso, trs([v(11.4 * sx), v(23.5), 0], [a.shoulder, a.shoulder * -0.045 * sx, (0.17 + 0.05 * pose.runW) * sx]))
     const el = mul(sh, trs([v(1.0 * sx), v(-13), 0], [a.elbow, 0, 0]))
     push(apply(sh, O), apply(el, O), col, 7)
     push(apply(el, O), apply(el, [0, v(-13), 0]), col, 6)
