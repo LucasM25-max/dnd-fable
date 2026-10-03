@@ -15,13 +15,16 @@ npm run dev
 | `W` `A` `S` `D` / arrows | Move (relative to the camera) |
 | `Shift` | Sprint |
 | `Space` | Jump |
-| Mouse (click to lock pointer) | Look / orbit |
+| Mouse drag (left or right button) | Look / orbit |
 | Mouse wheel | Third-person camera distance |
 | `V` | Toggle third-person / first-person |
 | `1` – `3` | Equip greatsword / flail / javelin (purely cosmetic) |
 | `0` | Put the weapon away (empty handed) |
 | `I` (or the satchel button, top right) | Open / close the pack |
 | `Esc` | Close the pack |
+
+The mouse is never captured: the camera is dragged rather than pointer-locked,
+so the cursor stays visible and the pack can be clicked at any time.
 
 Only the equipped weapon is drawn — nothing is slung on his back otherwise.
 Taking a javelin in hand brings the sheaf of the other seven with it, since
@@ -58,8 +61,8 @@ within a few percent of its base tone and lets the lighting do the work.
 
 ## The pack
 
-A satchel button sits in the top right corner; pressing it — or `I` — opens a
-brass-and-leather panel listing everything he carries. Clicking a row puts that
+A paper tab sits in the top right corner; pressing it — or `I` — unfolds the
+sheet his kit is written out on. Clicking a row puts that
 weapon in his hands, so the panel and the `1`/`2`/`3` keys drive the same state
 (`src/ui/equipment.js`, a small external store both read through
 `useSyncExternalStore`).
@@ -90,17 +93,16 @@ Run `node tools/iconPreview.mjs out/icons.png` to render the same framing
 headlessly — every item at four points in its spin, with the margin to the slot
 edge reported per cell — so the icons can be checked without a browser.
 
-The panel itself is plain HTML and CSS over the canvas. Every surface is given a
-material rather than a flat fill — tooled leather with a tiling grain overlay,
-aged brass hairlines and corner flourishes, sunken stone slots with corner
-brackets — and all of it is lit from one direction so the bevels agree with each
-other. Each item carries an accent colour (cold steel, forge ember, seasoned
-ash) that tints the pool of light behind it in its slot, the rim light on the
-model itself and the lit edge of the card when it is equipped. Cards deal in and
-out with a short stagger; the footer shows what he is carrying against the 75 lb
-he can carry easily. Type is Cinzel Decorative over Cinzel over EB Garamond at
-normal UI sizes — nothing is a bitmap and nothing is pixel-art, so the text
-stays sharp at any zoom or DPI.
+The sheet itself is plain HTML and CSS over the canvas, and deliberately plain
+at that: one ink colour on one paper colour, hand-ruled lines (the inner rule
+is not inset the same on all four sides), tea stains set off-centre, and
+line-art glyphs all drawn at the same pen weight. Entries are separated by a
+ruled line rather than each sitting in its own card, properties run on as text
+instead of sitting in chips, and the one in his hands is marked with a stroke
+ruled down the margin in scribe's red. No glows, no bevels, no gradient type;
+the only shadow is the one lifting the sheet off the white world. Type is Cinzel
+for names over EB Garamond for everything else, at normal UI sizes — nothing is
+a bitmap and nothing is pixel-art, so the text stays sharp at any zoom or DPI.
 
 ## Health bar
 
@@ -208,5 +210,5 @@ so bends never open a seam, the hair stops above the shoulders, the javelin shea
 is slung so its butt swings clear of the hip instead of through it, the two-handed
 stance is solved with explicit body-clearance penalties, and the third-person
 camera is kept above the floor.
-* `src/components/Player.jsx` — movement, jumping, pointer-lock camera, weapon keys.
+* `src/components/Player.jsx` — movement, jumping, drag-to-look camera, weapon keys.
 * `src/App.jsx` — the blank white world and lighting.

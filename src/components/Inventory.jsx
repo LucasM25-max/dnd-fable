@@ -7,14 +7,14 @@ import '../ui/inventory.css'
 /* ------------------------------------------------------------------ *
  * The pack.                                                           *
  *                                                                     *
- * A satchel button sits in the top right corner; pressing it (or `I`) *
- * opens a brass-and-leather panel listing what the fighter carries.   *
- * Every row shows the item's real voxel model turning in its slot,    *
- * what it weighs and what it costs, and clicking a row puts it in his *
- * hands — the same state the 1/2/3 keys drive.                        *
+ * A paper tab in the top right corner; pressing it (or `I`) unfolds   *
+ * the sheet his kit is written out on. Each entry is drawn from the   *
+ * real voxel model, says what it weighs and what it cost, and         *
+ * clicking it puts the thing in his hands — the same state the 1/2/3  *
+ * keys drive.                                                         *
  * ------------------------------------------------------------------ */
 
-/* ---------------- coin formatting (10 sp = 1 gp) ---------------- */
+/* ---------------- coin (10 sp = 1 gp) ---------------- */
 
 function coinText(silver) {
   const { gold, silver: sp } = splitCoin(silver)
@@ -23,106 +23,94 @@ function coinText(silver) {
   return `${sp} sp`
 }
 
-function Coin({ silver }) {
-  const { gold } = splitCoin(silver)
-  return <span className={`coin ${gold ? 'gold' : 'silver'}`} aria-hidden="true" />
+/* ---------------- line art, all one pen weight ---------------- */
+
+const PEN = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.3,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
 }
 
-/* ---------------- line art ---------------- */
-
 const Satchel = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
-    strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M5 9.5h14a1.5 1.5 0 0 1 1.5 1.5v7A2.5 2.5 0 0 1 18 20.5H6A2.5 2.5 0 0 1 3.5 18v-7A1.5 1.5 0 0 1 5 9.5Z" />
-    <path d="M8 9.5V7a4 4 0 0 1 8 0v2.5" />
-    <path d="M3.7 13.2h16.6" />
-    <path d="M12 12.6v3.1" />
-    <path d="M9.6 20.4v-4.2M14.4 20.4v-4.2" />
+  <svg viewBox="0 0 24 24" {...PEN} {...props}>
+    <path d="M5.2 9.6h13.6c.8 0 1.4.6 1.4 1.4v6.8c0 1.4-1.1 2.5-2.5 2.5H6.3a2.5 2.5 0 0 1-2.5-2.5V11c0-.8.6-1.4 1.4-1.4Z" />
+    <path d="M8.2 9.6V7.3a3.8 3.8 0 0 1 7.6 0v2.3" />
+    <path d="M4 13.3h16" />
+    <path d="M12 12.7v3" />
   </svg>
 )
 
-// a shield with crossed blades behind it
 const Crest = (props) => (
-  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.35"
-    strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M16 3.8 26.2 7.2v8c0 5.9-4 10.5-10.2 12.6C9.8 25.7 5.8 21.1 5.8 15.2v-8L16 3.8Z" />
-    <path d="M11.2 11.6 20.8 21.4" />
-    <path d="M20.8 11.6 11.2 21.4" />
-    <path d="M9.6 9.9l2.9 2.9M22.4 9.9l-2.9 2.9" opacity=".75" />
-    <circle cx="16" cy="16.5" r="1.45" opacity=".9" />
-  </svg>
-)
-
-const Corner = ({ className }) => (
-  <svg className={`inv-corner ${className}`} viewBox="0 0 26 26" fill="none"
-    stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
-    <path d="M1 9V3.4A2.4 2.4 0 0 1 3.4 1H9" />
-    <path d="M4.6 12.4V6.2A1.6 1.6 0 0 1 6.2 4.6h6.2" opacity=".6" />
-    <path d="M1.4 15.6c3.4-.6 5.8-3.1 6.3-6.4" opacity=".45" />
+  <svg viewBox="0 0 32 32" {...PEN} {...props}>
+    <path d="M16 4 26 7.3v7.9c0 5.8-3.9 10.3-10 12.4-6.1-2.1-10-6.6-10-12.4V7.3L16 4Z" />
+    <path d="M11.4 11.8 20.6 21.2" />
+    <path d="M20.6 11.8 11.4 21.2" />
   </svg>
 )
 
 const Anvil = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
-    strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M3 8.5h9.5l3.2 3.1H21c0 2.6-2.1 4.4-4.7 4.4H9.4C5.9 16 3 13 3 8.5Z" />
-    <path d="M10.5 16v2.2" />
-    <path d="M6.6 21h8.2l-1.3-2.8H7.9L6.6 21Z" />
+  <svg viewBox="0 0 24 24" {...PEN} {...props}>
+    <path d="M3.2 8.6h9.3l3.2 3h5.1c0 2.5-2.1 4.3-4.6 4.3H9.5c-3.4 0-6.3-2.9-6.3-7.3Z" />
+    <path d="M10.6 15.9v2.2" />
+    <path d="M6.7 21h8.1l-1.3-2.9H8L6.7 21Z" />
   </svg>
 )
 
-/* ---------------- panel ---------------- */
+const CoinGlyph = (props) => (
+  <svg viewBox="0 0 24 24" {...PEN} {...props}>
+    <circle cx="12" cy="12" r="8" />
+    <circle cx="12" cy="12" r="4.2" />
+  </svg>
+)
 
-function ItemRow({ item, index, equipped, onEquip }) {
+/* ---------------- one entry ---------------- */
+
+function ItemRow({ item, equipped, onEquip }) {
   const stackWeight = item.weightLb * item.qty
   const stackCost = item.costSilver * item.qty
+  const verb = equipped ? 'Put away the' : 'Take up the'
   return (
-    <li style={{ '--i': index }}>
+    <li>
       <button
         type="button"
         className={`inv-row${equipped ? ' is-equipped' : ''}`}
-        style={{ '--accent': item.accent }}
         onClick={() => onEquip(item)}
         aria-pressed={equipped}
-        title={equipped ? `Put the ${item.name.toLowerCase()} away` : `Draw the ${item.name.toLowerCase()}`}
+        title={`${verb} ${item.name.toLowerCase()}`}
       >
         <span className="inv-slot">
-          {/* the pool of light it turns in, and the shadow it stands in */}
-          <span className="inv-glow" />
           <span className="inv-floor" />
-          <ItemIcon item={item} size={104} />
+          <ItemIcon item={item} size={96} />
           {item.qty > 1 && <span className="inv-qty">×{item.qty}</span>}
         </span>
 
         <span className="inv-info">
           <span className="inv-name">
             <span className="n">{item.name}</span>
-            <span className="inv-kbd">{item.hotkey}</span>
+            {equipped && <span className="held">in hand</span>}
+            <span className="key">{item.hotkey}</span>
           </span>
 
           <span className="inv-type">
             {item.type} · {item.damage}
           </span>
 
-          <span className="inv-traits">
-            {item.traits.map((t) => (
-              <span key={t}>{t}</span>
-            ))}
-            {equipped && <span className="is-on">In hand</span>}
-          </span>
+          <span className="inv-traits">{item.traits.join(' · ')}</span>
 
           <span className="inv-blurb">{item.blurb}</span>
 
           <span className="inv-stats">
             <span className="inv-stat">
               <Anvil />
-              <span className="v">{lb(stackWeight)}</span>
-              <span className="ea">{item.qty > 1 ? `${lb(item.weightLb)} each` : 'weight'}</span>
+              {lb(stackWeight)}
+              {item.qty > 1 && <span className="ea">{lb(item.weightLb)} each</span>}
             </span>
             <span className="inv-stat">
-              <Coin silver={stackCost} />
-              <span className="v">{coinText(stackCost)}</span>
-              <span className="ea">{item.qty > 1 ? `${coinText(item.costSilver)} each` : 'cost'}</span>
+              <CoinGlyph />
+              {coinText(stackCost)}
+              {item.qty > 1 && <span className="ea">{coinText(item.costSilver)} each</span>}
             </span>
           </span>
         </span>
@@ -131,6 +119,8 @@ function ItemRow({ item, index, equipped, onEquip }) {
   )
 }
 
+/* ---------------- the sheet ---------------- */
+
 export default function Inventory() {
   const held = useSyncExternalStore(subscribeHeld, getHeld, getHeld)
   const [open, setOpen] = useState(false)
@@ -138,14 +128,14 @@ export default function Inventory() {
   const isOpen = useRef(false) // read by the handlers without re-binding them
   const timer = useRef(0)
 
-  // closing plays a short animation, so the panel outlives `open` briefly
+  // closing plays a short fade, so the sheet outlives `open` briefly
   const close = useCallback(() => {
     if (!isOpen.current) return
     isOpen.current = false
     setOpen(false)
     setClosing(true)
     clearTimeout(timer.current)
-    timer.current = setTimeout(() => setClosing(false), 130)
+    timer.current = setTimeout(() => setClosing(false), 90)
   }, [])
 
   const show = useCallback(() => {
@@ -154,8 +144,6 @@ export default function Inventory() {
     clearTimeout(timer.current)
     setClosing(false)
     setOpen(true)
-    // the game holds the pointer; hand it back so the pack can be clicked
-    if (document.pointerLockElement) document.exitPointerLock()
   }, [])
 
   const toggle = useCallback(() => {
@@ -173,16 +161,8 @@ export default function Inventory() {
         close()
       }
     }
-    // clicking back into the world to look around puts the pack away
-    const onLock = () => {
-      if (document.pointerLockElement) close()
-    }
     window.addEventListener('keydown', onKey)
-    document.addEventListener('pointerlockchange', onLock)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      document.removeEventListener('pointerlockchange', onLock)
-    }
+    return () => window.removeEventListener('keydown', onKey)
   }, [toggle, close])
 
   useEffect(() => () => clearTimeout(timer.current), [])
@@ -190,8 +170,6 @@ export default function Inventory() {
   const items = ITEMS
   const weight = totalWeight(items)
   const value = totalValue(items)
-  const count = items.reduce((n, it) => n + it.qty, 0)
-  const load = Math.max(0, Math.min(1, weight / CARRY_LIMIT))
 
   return (
     <div className="inv">
@@ -204,44 +182,35 @@ export default function Inventory() {
         title="Pack (I)"
       >
         <Satchel />
-        <span className="inv-tally">{count}</span>
-        <span className="inv-kbd">I</span>
+        <em>I</em>
       </button>
 
       {(open || closing) && (
         <aside
-          className={`inv-panel grain${closing ? ' is-closing' : ''}`}
+          className={`inv-panel${closing ? ' is-closing' : ''}`}
           role="dialog"
           aria-label="Pack"
         >
-          <Corner className="tl" />
-          <Corner className="tr" />
-          <Corner className="bl" />
-          <Corner className="br" />
-
           <header className="inv-head">
             <span className="inv-crest">
               <Crest width="30" height="30" />
             </span>
             <div className="inv-title">
               <h2>Pack</h2>
-              <p>Carried arms &amp; equipment</p>
+              <p>what he is carrying</p>
             </div>
             <button type="button" className="inv-close" onClick={close} aria-label="Close pack">
               ✕
             </button>
           </header>
 
-          <div className="inv-rule" aria-hidden="true">
-            <i />
-          </div>
+          <div className="inv-rule" aria-hidden="true" />
 
           <ul className="inv-list">
-            {items.map((item, i) => (
+            {items.map((item) => (
               <ItemRow
                 key={item.id}
                 item={item}
-                index={i}
                 equipped={held === item.gear}
                 onEquip={(it) => toggleHeld(it.gear)}
               />
@@ -250,26 +219,15 @@ export default function Inventory() {
 
           <footer className="inv-foot">
             <div className="inv-totals">
-              <span className="inv-total load">
-                <span className="k">Load</span>
-                <span className="v">
-                  {lb(weight)} <span className="of">of {lb(CARRY_LIMIT)}</span>
-                </span>
-                <span className="inv-bar" title={`${Math.round(load * 100)}% of what he can carry easily`}>
-                  <i style={{ width: `${Math.round(load * 100)}%` }} />
-                </span>
-              </span>
-              <span className="sep" />
-              <span className="inv-total">
-                <span className="k">Worth</span>
-                <span className="v">
-                  <Coin silver={value} />
-                  {coinText(value)}
-                </span>
-              </span>
+              <span className="k">Load</span>
+              <span>{lb(weight)}</span>
+              <span className="dot">·</span>
+              <span className="k">Worth</span>
+              <span>{coinText(value)}</span>
+              <span className="ea">carries {lb(CARRY_LIMIT)} easily</span>
             </div>
             <span className="inv-hint">
-              <b>Click</b> an item to draw it · <b>1</b>–<b>3</b> equip · <b>0</b> stows · <b>I</b> closes
+              click an entry to take it up · 1–3 equip · 0 stows · I closes
             </span>
           </footer>
         </aside>

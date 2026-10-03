@@ -25,11 +25,11 @@ const W = PAD + ITEMS.length * (CELL + PAD)
 const H = PAD + SPINS.length * (CELL + PAD)
 
 const px = new Uint8Array(W * H * 3)
-// page background: roughly the panel's leather
+// page background: roughly the sheet the pack is written on
 for (let i = 0; i < W * H; i++) {
-  px[i * 3] = 26
-  px[i * 3 + 1] = 20
-  px[i * 3 + 2] = 14
+  px[i * 3] = 231
+  px[i * 3 + 1] = 220
+  px[i * 3 + 2] = 192
 }
 
 const rotY = (p, a) => [p[0] * Math.cos(a) + p[2] * Math.sin(a), p[1], -p[0] * Math.sin(a) + p[2] * Math.cos(a)]
@@ -45,18 +45,14 @@ function drawCell(item, spin, ox, oy) {
   const lean = cfg.lean ?? 0.1
   const zoom = iconZoom(fit, CELL, cfg.scale ?? 1, tilt)
 
-  // slot background + brass brackets, so clipping at the edge is obvious
+  // the ruled box the drawing sits in, so clipping at the edge is obvious
   for (let y = 0; y < CELL; y++)
     for (let x = 0; x < CELL; x++) {
       const k = ((oy + y) * W + ox + x) * 3
       const edge = x < 1 || y < 1 || x > CELL - 2 || y > CELL - 2
-      const bracket =
-        (x < 24 && y < 2) || (y < 24 && x < 2) ||
-        (x > CELL - 25 && y > CELL - 3) || (y > CELL - 25 && x > CELL - 3)
-      const t = y / CELL
-      px[k] = bracket ? 226 : edge ? 90 : 42 - t * 18
-      px[k + 1] = bracket ? 192 : edge ? 74 : 33 - t * 14
-      px[k + 2] = bracket ? 126 : edge ? 48 : 25 - t * 11
+      px[k] = edge ? 43 : 241
+      px[k + 1] = edge ? 35 : 234
+      px[k + 2] = edge ? 24 : 213
     }
 
   const depth = new Float32Array(CELL * CELL).fill(Infinity)
@@ -93,7 +89,7 @@ function drawCell(item, spin, ox, oy) {
     }
   }
 
-  const L = [0.45, 0.72, -0.53]
+  const L = [0.42, 0.74, -0.52]
   for (let y = 1; y < CELL - 1; y++)
     for (let x = 1; x < CELL - 1; x++) {
       const k = y * CELL + x
