@@ -121,6 +121,39 @@ const cx = W / 2 - Number(process.env.CX || 0) * ZOOM
 const groundY = H - 46 + Number(process.env.CY || 0) * ZOOM
 const half = Math.max(1, Math.round((VOX * ZOOM) / 2 + 0.35))
 
+// optional: the floating health bar, so its size and height can be checked
+const extra = []
+if (process.env.BAR) {
+  const hp = Number(process.env.BAR)
+  const PIP_W = 0.03, PIP_H = 0.072, GAP = 0.008, PAD = 0.018, D = 0.018
+  const n = 14
+  const w = n * PIP_W + (n - 1) * GAP
+  const y0 = 2.09
+  const box = (cxm, cym, sx, sy, c) => {
+    for (let x = -sx / 2; x <= sx / 2; x += 0.01)
+      for (let y = -sy / 2; y <= sy / 2; y += 0.01)
+        extra.push([cxm + x, cym + y, -0.02, c])
+  }
+  box(0, y0, w + PAD * 2, PIP_H + PAD * 2, [0.02, 0.016, 0.012])
+  for (let i = 0; i < n; i++)
+    box(-w / 2 + PIP_W / 2 + i * (PIP_W + GAP), y0, PIP_W, PIP_H, i < hp ? [0.52, 0.03, 0.02] : [0.04, 0.035, 0.03])
+}
+for (const [wx, wy, wz, c] of extra) {
+  const rx = wx * cy + wz * sy
+  const rz = -wx * sy + wz * cy
+  const pxc = Math.round(cx + rx * ZOOM)
+  const pyc = Math.round(groundY - wy * ZOOM)
+  for (let dy = -half; dy <= half; dy++)
+    for (let dx = -half; dx <= half; dx++) {
+      const ix = pxc + dx, iy = pyc + dy
+      if (ix < 0 || iy < 0 || ix >= W || iy >= H) continue
+      const k = iy * W + ix
+      if (rz >= depth[k]) continue
+      depth[k] = rz
+      col[k * 3] = c[0]; col[k * 3 + 1] = c[1]; col[k * 3 + 2] = c[2]
+    }
+}
+
 for (const [groups, m] of placement(model, pose, HELD)) {
   if (!groups) continue
   for (const g of groups) {

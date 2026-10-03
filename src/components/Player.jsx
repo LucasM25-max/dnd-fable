@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import Human from './Human.jsx'
+import HealthBar from './HealthBar.jsx'
 
 const WALK = 1.7
 const SPRINT = 4.8
@@ -12,6 +13,9 @@ const GRAVITY = 14
 const PREP_TIME = 0.09 // crouch before he leaves the ground
 const LAND_TIME = 0.26 // crouch recovery after a landing
 
+const MAX_HP = 14
+const BAR_HEIGHT = 2.09 // metres above his feet — just clear of the helm
+
 const WEAPON_KEYS = {
   Digit1: 'greatsword',
   Digit2: 'flail',
@@ -21,6 +25,7 @@ const WEAPON_KEYS = {
 export default function Player() {
   const { gl, camera } = useThree()
   const body = useRef()
+  const bar = useRef()
   const sun = useRef()
   const sunTarget = useRef()
   const motion = useRef({ speed: 0, grounded: true, vy: 0, y: 0, prep: 0, land: 0, turn: 0 })
@@ -37,6 +42,7 @@ export default function Player() {
     wasGrounded: true,
   })
   const [held, setHeld] = useState(null)
+  const [hp] = useState(MAX_HP)
   const [firstPerson, setFirstPerson] = useState(false)
 
   useEffect(() => {
@@ -193,6 +199,14 @@ export default function Player() {
       body.current.rotation.y = st.facing
     }
 
+    // the health bar is real geometry in the world: park it over his head and
+    // turn it to face the camera (billboard), rather than drawing any overlay
+    if (bar.current) {
+      bar.current.visible = !firstPerson
+      bar.current.position.set(st.pos.x, st.pos.y + BAR_HEIGHT, st.pos.z)
+      bar.current.quaternion.copy(camera.quaternion)
+    }
+
     // keep the shadow-casting sun centred on him
     if (sun.current && sunTarget.current) {
       sun.current.position.set(st.pos.x + 4.5, 9, st.pos.z + 5)
@@ -253,6 +267,9 @@ export default function Player() {
       <object3D ref={sunTarget} />
       <group ref={body}>
         <Human motion={motion} held={held} hideHead={firstPerson} />
+      </group>
+      <group ref={bar}>
+        <HealthBar hp={hp} max={MAX_HP} />
       </group>
     </>
   )
