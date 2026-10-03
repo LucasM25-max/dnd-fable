@@ -61,7 +61,8 @@ of the canvas — no geometry, no voxels. Each frame the renderer projects a poi
 2.06 m above his feet to screen space and publishes the pixel coordinates in
 `src/ui/hud.js`; the bar reads them in its own animation frame and moves itself
 with a transform, so it rides over his head at a constant on-screen size without
-ever re-rendering React. It hides itself in first person.
+ever re-rendering React. It clamps itself to the viewport, hides in first person,
+and parks near the top of the screen if the renderer isn't feeding it a position.
 
 `<HealthBar hp max />` is data-driven — the fill and its hue follow `hp / max`,
 so wiring it to real damage later is a one-line change in `Player.jsx`.

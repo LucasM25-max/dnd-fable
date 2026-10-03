@@ -207,6 +207,7 @@ export default function Player() {
     hud.y = (-barAnchor.y * 0.5 + 0.5) * size.height
     hud.hp = hp
     hud.max = MAX_HP
+    hud.t = performance.now()
 
     // keep the shadow-casting sun centred on him
     if (sun.current && sunTarget.current) {
