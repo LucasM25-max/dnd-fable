@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import Human from './Human.jsx'
 import { hud } from '../ui/hud.js'
+import { getHeld, setHeld, subscribeHeld, toggleHeld } from '../ui/equipment.js'
 
 const WALK = 1.7
 const SPRINT = 4.8
@@ -30,6 +31,7 @@ export default function Player() {
   const sunTarget = useRef()
   const motion = useRef({ speed: 0, grounded: true, vy: 0, y: 0, prep: 0, land: 0, turn: 0 })
   const keys = useRef({})
+  const drag = useRef({ on: false, id: null })
   const look = useRef({ yaw: 0, pitch: -0.08 })
   const state = useRef({
     pos: new THREE.Vector3(0, 0, 0),
@@ -41,7 +43,9 @@ export default function Player() {
     jumpQueued: false,
     wasGrounded: true,
   })
-  const [held, setHeld] = useState(null)
+  // what is in his hands lives outside React so the inventory panel and the
+  // number keys drive the same state — see src/ui/equipment.js
+  const held = useSyncExternalStore(subscribeHeld, getHeld, getHeld)
   const [hp] = useState(MAX_HP)
   const [firstPerson, setFirstPerson] = useState(false)
 
@@ -56,24 +60,39 @@ export default function Player() {
       if (e.code === 'KeyV') setFirstPerson((f) => !f)
       if (e.code === 'Digit0' || e.code === 'Backquote') setHeld(null)
       const w = WEAPON_KEYS[e.code]
-      if (w) setHeld((h) => (h === w ? null : w))
+      if (w) toggleHeld(w)
       if (e.code === 'Space') e.preventDefault()
     }
     const onKeyUp = (e) => {
       keys.current[e.code] = false
     }
-    const onMouseMove = (e) => {
-      if (document.pointerLockElement !== canvas) return
-      look.current.yaw -= e.movementX * 0.0024
+    /* The camera is dragged, not locked: the cursor stays visible and
+     * usable the whole time, so the pack (and anything else drawn over the
+     * canvas) can be clicked without ever handing the mouse to the game. */
+    const onPointerDown = (e) => {
+      if (e.button !== 0 && e.button !== 2) return
+      drag.current.on = true
+      drag.current.id = e.pointerId
+      canvas.setPointerCapture?.(e.pointerId)
+      canvas.style.cursor = 'grabbing'
+    }
+    const endDrag = (e) => {
+      if (!drag.current.on) return
+      drag.current.on = false
+      if (e && e.pointerId != null) canvas.releasePointerCapture?.(e.pointerId)
+      canvas.style.cursor = 'grab'
+    }
+    const onPointerMove = (e) => {
+      if (!drag.current.on) return
+      // movementX/Y are still reported under pointer capture
+      look.current.yaw -= (e.movementX || 0) * 0.0032
       look.current.pitch = THREE.MathUtils.clamp(
-        look.current.pitch - e.movementY * 0.0022,
+        look.current.pitch - (e.movementY || 0) * 0.003,
         -1.0,
         1.0
       )
     }
-    const onClick = () => {
-      if (document.pointerLockElement !== canvas) canvas.requestPointerLock()
-    }
+    const onContextMenu = (e) => e.preventDefault()
     const onWheel = (e) => {
       state.current.camDist = THREE.MathUtils.clamp(
         state.current.camDist + e.deltaY * 0.002,
@@ -83,19 +102,28 @@ export default function Player() {
     }
     const onBlur = () => {
       keys.current = {}
+      endDrag()
     }
+    canvas.style.cursor = 'grab'
+    canvas.style.touchAction = 'none'
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
-    window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('blur', onBlur)
-    canvas.addEventListener('click', onClick)
+    canvas.addEventListener('pointerdown', onPointerDown)
+    canvas.addEventListener('pointermove', onPointerMove)
+    canvas.addEventListener('pointerup', endDrag)
+    canvas.addEventListener('pointercancel', endDrag)
+    canvas.addEventListener('contextmenu', onContextMenu)
     canvas.addEventListener('wheel', onWheel, { passive: true })
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
-      window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('blur', onBlur)
-      canvas.removeEventListener('click', onClick)
+      canvas.removeEventListener('pointerdown', onPointerDown)
+      canvas.removeEventListener('pointermove', onPointerMove)
+      canvas.removeEventListener('pointerup', endDrag)
+      canvas.removeEventListener('pointercancel', endDrag)
+      canvas.removeEventListener('contextmenu', onContextMenu)
       canvas.removeEventListener('wheel', onWheel)
     }
   }, [gl])
