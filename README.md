@@ -130,8 +130,11 @@ at any zoom or DPI.
 ## Health bar
 
 13 hit points, drawn as a smooth flat UI bar: rounded track, soft shadow,
-gradient fill and an animated width transition. It is plain HTML sitting on top
-of the canvas — no geometry, no voxels. Each frame the renderer projects a point
+gradient fill and an animated width transition, with the current and maximum
+(`13/13`) written across it. At its side hangs his Armour Class in a small blue
+shield — 16 while the chain mail is on him, 11 in his shirtsleeves — reading the
+same armour store the inventory's Equip button drives. Both are plain HTML
+sitting on top of the canvas — no geometry, no voxels. Each frame the renderer projects a point
 2.06 m above his feet to screen space and publishes the pixel coordinates in
 `src/ui/hud.js`; the bar reads them in its own animation frame and moves itself
 with a transform, so it rides over his head at a constant on-screen size without
@@ -152,7 +155,8 @@ so wiring it to real damage later is a one-line change in `Player.jsx`.
 * `src/components/Human.jsx` — the skeleton (hips → torso → head/arms, hips → legs),
   how the equipped weapon is held (one hand, or both for the greatsword), and the
   carried-kit spring simulation.
-* `src/components/HealthBar.jsx` — the floating 13 HP bar (flat UI, world-anchored).
+* `src/components/HealthBar.jsx` — the floating 13 HP bar with its AC shield
+  (flat UI, world-anchored, armour-aware).
 * `src/components/Inventory.jsx` — the inventory: handle, drawer, inspector, slot grid.
 * `src/components/ItemIcon.jsx` — one item's live turntable render.
 * `src/voxel/iconFit.js` — icon framing maths (bounds fit, spin-safe zoom), shared

@@ -9,6 +9,11 @@ export const SILVER_PER_GOLD = 10
 // What he can carry before the weight starts to tell on him.
 export const CARRY_LIMIT = 240
 
+// His Armour Class in his shirtsleeves: 10 + a +1 Dexterity bonus. The
+// chain mail brings him to 16 (its `ac` below), and the health bar's
+// shield reads whichever applies.
+export const UNARMOURED_AC = 11
+
 export const ITEMS = [
   {
     id: 'greatsword',
@@ -64,6 +69,7 @@ export const ITEMS = [
     qty: 1,
     type: 'Heavy armour',
     damage: 'AC 16',
+    ac: 16, // the health bar's shield shows this while he wears it
     traits: ['Heavy', 'Stealth disadvantage'],
     costSilver: 750, // 75 gp
     weightLb: 55,
