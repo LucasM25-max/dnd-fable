@@ -165,12 +165,16 @@ olive to a scum-lined trickle, the reeds die, the toadstools thicken, and
 the trees go bare. At the confluence a fan of scum drifts downstream with
 the damning evidence floating in it — three fish, belly-up.
 
-Everything is deterministic from one seed, built in half a second at load
-(~410k voxel instances, 14 draw-call batches), and the same seed drives the
-offline preview: `node tools/worldPreview.mjs` renders the
-top-down map and audits the adventure geometry — spawn dry, path walkable
-end to end, the river swimmable and its banks steep, the stream wadeable,
-the grove's water clean and the upstream fouled.
+Everything is deterministic from one seed, built in about half a minute at
+load (~16.5M voxel instances, 11 draw-call batches — the foliage is built
+to the fighter's own 1 cm standard, so it does not come cheap), and the
+same seed drives the offline preview: `node tools/worldPreview.mjs` renders
+the top-down map and audits the adventure geometry — spawn dry, path
+walkable end to end, the river swimmable and its banks steep, the stream
+wadeable, the grove's water clean and the upstream fouled.
+`node tools/detailAudit.mjs` audits the plants against the fighter himself
+— voxel size, voxels per metre as a share of his 30k/m, and colour counts —
+so nothing slips above his detail or below the bar.
 
 ## Code map
 
@@ -273,15 +277,23 @@ camera is kept above the floor.
 * `src/voxel/terrain.js` — the heightfield the whole world stands on: the river,
   the stream and their confluence pool, the grove, the path, the blight's
   severity field, and `heightAt` for anyone who needs the true ground.
-* `src/voxel/flora.js` — the wood: six tree species in two voxel scales (fine
-  trunks, coarse canopies), reeds, bracken, bramble, the fungal mats, logs,
-  rocks.
+* `src/voxel/flora.js` — the wood, built to the fighter's standard: six tree
+  species with 1 cm trunks, bark and boughs (his exact voxel grid) and 2 cm
+  leaf masses, each species carrying its own bark — oak's deep fissures with
+  moss and lichen, ash's diamond ridges, birch's pale bark with dark
+  lenticels, alder's riverside speckle, the dead ones' silvered grain — and
+  its own leaf palette as a per-voxel hue field (sun tones on the crown's
+  top and rind, shade inside, the odd bright fleck). Understory too: reeds
+  with seed heads, bracken fronds with pinnae, bramble with thorns, flowers
+  and berries, toadstools with gills and rings, logs with growth rings and
+  bracket fungi, granite with quartz flecks and moss.
 * `src/voxel/props.js` — the dressing: the waystone with its copper bowl and
   ribbons, the boundary stone, the jetty, the upturned boat, the creel, the
   wading heron, the belly-up fish.
-* `src/voxel/world.js` — assembles it all into ~410k voxels in 14 instanced
-  batches (terrain mosaic, water and scum tiles, ~205 trees, the dressing),
-  deterministic from one seed.
+* `src/voxel/world.js` — assembles it all into ~16.5M voxels in 11 instanced
+  batches (terrain mosaic, water and scum tiles, 150 trees, the dressing),
+  deterministic from one seed; tree trunks alone carry about a fighter's
+  worth of voxels each (~60k at 1 cm), canopies ride above them at 2 cm.
 * `src/components/World.jsx` — the batches as instanced meshes; the water
   (and its scum) rides a slow bob.
 * `tools/worldPreview.mjs` — offline audit: renders the world top-down and

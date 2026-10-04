@@ -24,7 +24,7 @@ const wz = (z) => Math.round((z + S / 2) * PPM)
 const t0 = Date.now()
 const world = getWorld()
 console.log(`built in ${Date.now() - t0} ms`)
-console.log(`instances: ${world.stats.instances} (budget ~450k), batches: ${world.stats.batches.length}`)
+console.log(`instances: ${world.stats.instances.toLocaleString()}, batches: ${world.stats.batches.length}`)
 for (const b of world.stats.batches) console.log('  ' + b)
 
 // ---- paint: keep the highest voxel per column ------------------------------

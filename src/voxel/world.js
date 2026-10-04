@@ -67,12 +67,22 @@ function mulberry32(a) {
 /* ------------------------------------------------------------------ */
 
 function makeBatches() {
+  // millions of instances go through here, so batches grow as typed
+  // arrays (a plain-array accumulator would briefly double the world's
+  // memory before the Float32Array copy)
   const map = new Map()
   const get = (mat, vox, extra = {}) => {
     const key = `${mat}@${vox}`
     let b = map.get(key)
     if (!b) {
-      b = { key, mat, vox, pos: [], col: [], ...extra }
+      b = {
+        key, mat, vox,
+        n: 0, cap: 4096,
+        pos: new Float32Array(4096 * 3),
+        col: new Float32Array(4096 * 3),
+        cast: extra.cast ?? true,
+        receive: extra.receive ?? true,
+      }
       map.set(key, b)
     }
     return b
@@ -81,22 +91,32 @@ function makeBatches() {
     get,
     add(mat, vox, x, y, z, c, extra) {
       const b = get(mat, vox, extra)
-      b.pos.push(x, y, z)
-      b.col.push(c[0], c[1], c[2])
+      if (b.n >= b.cap) {
+        const cap = b.cap * 2
+        const pos = new Float32Array(cap * 3)
+        pos.set(b.pos)
+        const col = new Float32Array(cap * 3)
+        col.set(b.col)
+        b.cap = cap; b.pos = pos; b.col = col
+      }
+      const i = b.n * 3
+      b.pos[i] = x; b.pos[i + 1] = y; b.pos[i + 2] = z
+      b.col[i] = c[0]; b.col[i + 1] = c[1]; b.col[i + 2] = c[2]
+      b.n++
     },
     finish() {
       const out = []
       for (const b of map.values()) {
-        if (!b.pos.length) continue
+        if (!b.n) continue
         out.push({
           key: b.key,
           mat: b.mat,
           vox: b.vox,
-          count: b.pos.length / 3,
-          positions: new Float32Array(b.pos),
-          colors: new Float32Array(b.col),
-          cast: b.cast ?? true,
-          receive: b.receive ?? true,
+          count: b.n,
+          positions: b.pos.slice(0, b.n * 3),
+          colors: b.col.slice(0, b.n * 3),
+          cast: b.cast,
+          receive: b.receive,
         })
       }
       return out
@@ -281,21 +301,20 @@ function plantWood(B, H, seed) {
     const a = (i / 5) * Math.PI * 2 + 0.4
     const x = GROVE.x + Math.cos(a) * 6.9
     const z = GROVE.z + Math.sin(a) * 6.9
-    placeArchetype(B, arch('oakOld', () => flora.SPECIES.oakOld(0)), x, at(x, z) - 0.1, z, rng() * 6.28, 1.15 + rng() * 0.2)
+    placeArchetype(B, arch('oakOld', () => flora.SPECIES.oakOld(0)), x, at(x, z) - 0.05, z, rng() * 6.28, 1.0 + rng() * 0.12)
     trees++
   }
 
   const speciesRoll = (sev) => {
     if (sev > 0.5 && rng() < (sev - 0.5) * 0.9) return 'dead'
     const r = rng()
-    if (r < 0.4) return 'oak'
-    if (r < 0.56) return 'oakOld'
-    if (r < 0.71) return 'ash'
-    if (r < 0.89) return 'birch'
+    if (r < 0.55) return 'oak'
+    if (r < 0.7) return 'ash'
+    if (r < 0.87) return 'birch'
     return 'alder'
   }
 
-  for (let attempt = 0; attempt < 2600 && trees < 205; attempt++) {
+  for (let attempt = 0; attempt < 2600 && trees < 150; attempt++) {
     const x = (rng() * 2 - 1) * 45
     const z = 6 + rng() * 38
     if (!inWood(x, z)) continue
@@ -309,13 +328,14 @@ function plantWood(B, H, seed) {
     if (dS < 3.0) {
       // alders only, right at the water
       if (dS > 2.1 && rng() < 0.5) {
-        placeArchetype(B, arch('alder', () => flora.SPECIES.alder(0)), x, at(x, z) - 0.05, z, rng() * 6.28, 0.8 + rng() * 0.35)
+        placeArchetype(B, arch(`alder${attempt % 3}`, () => flora.SPECIES.alder(attempt % 3)), x, at(x, z) - 0.04, z, rng() * 6.28, 1.0 + rng() * 0.25)
         trees++
       }
       continue
     }
     const sp = speciesRoll(sev)
-    placeArchetype(B, arch(sp, () => flora.SPECIES[sp](0)), x, at(x, z) - 0.08, z, rng() * 6.28, 0.8 + rng() * 0.45)
+    // three shape variants per species, so the wood is not a cloned army
+    placeArchetype(B, arch(`${sp}${attempt % 3}`, () => flora.SPECIES[sp](attempt % 3)), x, at(x, z) - 0.05, z, rng() * 6.28, 1.0 + rng() * 0.3)
     trees++
   }
 
@@ -330,19 +350,19 @@ function plantWood(B, H, seed) {
     if (y < WATER_Y + 0.15) continue
 
     if (inWood(x, z) && dP > 1.4 && dS > 2.4 && rng() < 0.35) {
-      placeArchetype(B, arch(`bracken${attempt % 2}`, () => flora.buildBracken(0.05, attempt % 2)), x, y - 0.03, z, rng() * 6.28, 0.8 + rng() * 0.5)
+      placeArchetype(B, arch(`bracken${attempt % 3}`, () => flora.buildBracken(attempt % 3)), x, y - 0.03, z, rng() * 6.28, 1.0 + rng() * 0.5)
     } else if (inWood(x, z) && dP > 1.7 && rng() < 0.06) {
-      placeArchetype(B, arch('bramble', () => flora.buildBramble(0.06, 0)), x, y - 0.03, z, rng() * 6.28, 0.8 + rng() * 0.4)
+      placeArchetype(B, arch(`bramble${attempt % 2}`, () => flora.buildBramble(attempt % 2)), x, y - 0.03, z, rng() * 6.28, 1.0 + rng() * 0.4)
     } else if (dS < 4.6 && sev > 0.16 && vnoise(x / 2, z / 2, seed + 23) > 0.45) {
       // fungal mats crust the fouled banks
-      placeArchetype(B, arch(`mat${attempt % 2}`, () => flora.buildFungalMat(0.06, attempt % 2)), x, y - 0.02, z, rng() * 6.28, 0.6 + sev * 0.7)
+      placeArchetype(B, arch(`mat${attempt % 2}`, () => flora.buildFungalMat(attempt % 2)), x, y - 0.02, z, rng() * 6.28, 0.8 + sev * 0.7)
     } else if (sev > 0.38 && dP > 1.5 && rng() < 0.1) {
-      placeArchetype(B, arch(`toad${attempt % 2}`, () => flora.buildToadstools(0.04, attempt % 2)), x, y - 0.02, z, rng() * 6.28, 0.7 + rng() * 0.6)
+      placeArchetype(B, arch(`toad${attempt % 3}`, () => flora.buildToadstools(attempt % 3)), x, y - 0.02, z, rng() * 6.28, 1.0 + rng() * 0.5)
     } else if (rng() < 0.03) {
       const kind = rng() < 0.5
-        ? [`log${attempt % 2}`, () => flora.buildLog(0.08, attempt % 2)]
-        : [`rock${attempt % 3}`, () => flora.buildRock(0.08, attempt % 3)]
-      placeArchetype(B, arch(kind[0], kind[1]), x, y - 0.06, z, rng() * 6.28, 0.7 + rng() * 0.6)
+        ? [`log${attempt % 2}`, () => flora.buildLog(attempt % 2)]
+        : [`rock${attempt % 3}`, () => flora.buildRock(attempt % 3)]
+      placeArchetype(B, arch(kind[0], kind[1]), x, y - 0.06, z, rng() * 6.28, 1.0 + rng() * 0.6)
     }
   }
 
@@ -360,7 +380,7 @@ function plantWood(B, H, seed) {
     const y = at(x, z)
     if (y > WATER_Y + 0.12 || y < WATER_Y - 0.3) continue
     const dead = severity(x, z) > 0.5
-    placeArchetype(B, arch(`reed${dead ? 'D' : 'L'}${attempt % 2}`, () => flora.buildReeds(0.03, dead, attempt % 2)), x, y - 0.02, z, rng() * 6.28, 0.8 + rng() * 0.5)
+    placeArchetype(B, arch(`reed${dead ? 'D' : 'L'}${attempt % 3}`, () => flora.buildReeds(dead, attempt % 3)), x, y - 0.02, z, rng() * 6.28, 1.0 + rng() * 0.4)
   }
   for (let attempt = 0; attempt < 60; attempt++) {
     const x = (rng() * 2 - 1) * 46
@@ -368,7 +388,7 @@ function plantWood(B, H, seed) {
     const y = at(x, z)
     if (y > WATER_Y + 0.12 || y < WATER_Y - 0.25) continue
     if (Math.hypot(x - POOL.x, z - POOL.z) < 7) continue
-    placeArchetype(B, arch(`reedL${attempt % 2}`, () => flora.buildReeds(0.03, false, attempt % 2 + 7)), x, y - 0.02, z, rng() * 6.28, 0.7 + rng() * 0.5)
+    placeArchetype(B, arch(`reedL${attempt % 3}`, () => flora.buildReeds(false, attempt % 3 + 5)), x, y - 0.02, z, rng() * 6.28, 1.0 + rng() * 0.4)
   }
 
   return trees
