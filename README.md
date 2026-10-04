@@ -18,6 +18,7 @@ npm run dev
 | Mouse move | Look / steer — no click, no drag; the cursor stays free |
 | Mouse wheel | Third-person camera distance |
 | `V` | Toggle third-person / first-person |
+| (water) | Wade the shallows — slowed; deep water swims at a steady breaststroke |
 | `1` – `3` | Equip greatsword / flail / javelin (purely cosmetic) |
 | `0` | Put the weapon away (empty handed) |
 | `I` (or the satchel button, top right) | Open / close the inventory |
@@ -29,6 +30,12 @@ Steering simply stops where the cursor cannot travel — at the screen edges,
 over the inventory, or outside the window — so anything on screen stays
 clickable at any moment. A click on the world while the inventory is open puts
 it away.
+
+Water has rules: shallows past his ankles slow him to a wade, and where it
+gets deeper than a metre he tips into a swim — prone, head up, moving at a
+steady breaststroke with no jump. Buoyancy holds him at the surface, and
+walking out stands him up again. The health bar rides lower over his prone
+back so it stays readable in the water.
 
 Only the equipped weapon is drawn — nothing is slung on his back otherwise.
 Taking a javelin in hand brings the sheaf of the other seven with it, since
@@ -144,6 +151,27 @@ and parks near the top of the screen if the renderer isn't feeding it a position
 `<HealthBar hp max />` is data-driven — the fill and its hue follow `hp / max`,
 so wiring it to real damage later is a one-line change in `Player.jsx`.
 
+## The Eryshaw
+
+The fighter wakes on the south bank of the First Fork — where a stream comes
+down from the southern thicket to join the cold river. The land is a
+100 × 100 m voxel mosaic: the river along the north with its jetty and
+upturned boat, the stream meandering south past the waystone (Follow the
+water, keep the stone on your sword hand), the path climbing to the old
+grove where five great oaks still stand and the water runs clean, and the
+thicket in the foul south where things are dying. The blight is legible in
+the world itself: walk the stream south and the water goes from clear to
+olive to a scum-lined trickle, the reeds die, the toadstools thicken, and
+the trees go bare. At the confluence a fan of scum drifts downstream with
+the damning evidence floating in it — three fish, belly-up.
+
+Everything is deterministic from one seed, built in half a second at load
+(~410k voxel instances, 14 draw-call batches), and the same seed drives the
+offline preview: `node tools/worldPreview.mjs` renders the
+top-down map and audits the adventure geometry — spawn dry, path walkable
+end to end, the river swimmable and its banks steep, the stream wadeable,
+the grove's water clean and the upstream fouled.
+
 ## Code map
 
 * `src/voxel/VoxelBuilder.js` — voxel modelling kit (boxes, ellipsoids, tapers,
@@ -240,4 +268,22 @@ stance is solved with explicit body-clearance penalties, and the third-person
 camera is kept above the floor.
 * `src/components/Player.jsx` — movement, jumping, mouse-look camera (free
   cursor), weapon keys.
-* `src/App.jsx` — the blank white world and lighting.
+* `src/App.jsx` — the Eryshaw at first light: pale Flanaess sky, mist fog,
+  hemisphere sun and a cool fill.
+* `src/voxel/terrain.js` — the heightfield the whole world stands on: the river,
+  the stream and their confluence pool, the grove, the path, the blight's
+  severity field, and `heightAt` for anyone who needs the true ground.
+* `src/voxel/flora.js` — the wood: six tree species in two voxel scales (fine
+  trunks, coarse canopies), reeds, bracken, bramble, the fungal mats, logs,
+  rocks.
+* `src/voxel/props.js` — the dressing: the waystone with its copper bowl and
+  ribbons, the boundary stone, the jetty, the upturned boat, the creel, the
+  wading heron, the belly-up fish.
+* `src/voxel/world.js` — assembles it all into ~410k voxels in 14 instanced
+  batches (terrain mosaic, water and scum tiles, ~205 trees, the dressing),
+  deterministic from one seed.
+* `src/components/World.jsx` — the batches as instanced meshes; the water
+  (and its scum) rides a slow bob.
+* `tools/worldPreview.mjs` — offline audit: renders the world top-down and
+  checks the adventure geometry (spawn dry, path walkable, river swimmable,
+  the scum fan where the mystery needs it).

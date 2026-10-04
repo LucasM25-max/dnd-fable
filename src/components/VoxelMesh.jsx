@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { VOX } from '../voxel/human.js'
 
-const MATERIAL_PROPS = {
+export const MATERIAL_PROPS = {
   matte: { roughness: 0.92, metalness: 0.0 },
   leather: { roughness: 0.68, metalness: 0.06 },
   metal: { roughness: 0.34, metalness: 0.88 },

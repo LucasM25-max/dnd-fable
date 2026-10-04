@@ -149,11 +149,15 @@ export default function Human({ motion, held, armour = 'mail', hideHead = false 
 
     // one call does the whole body: clips, blending, ground solve
     const pose = updatePose(anim.current, motion.current, dt, t)
+    // swimming lays him prone: the whole rig pitches forward at the pelvis,
+    // and his head lifts to keep his face out of the water
+    const swim = motion.current.swim || 0
 
     r.root.position.set(pose.rootX, pose.rootY, 0)
+    r.root.rotation.x = swim * 1.22
     r.hips.rotation.set(pose.hips[0], pose.hips[1], pose.hips[2])
     r.torso.rotation.set(pose.torso[0], pose.torso[1], pose.torso[2])
-    r.head.rotation.set(pose.head[0], pose.head[1], pose.head[2])
+    r.head.rotation.set(pose.head[0] - swim * 0.85, pose.head[1], pose.head[2])
     r.head.visible = !hideHead
 
     const splay = pose.splay
@@ -165,10 +169,12 @@ export default function Human({ motion, held, armour = 'mail', hideHead = false 
     r.kneeR.rotation.x = pose.legR.knee
     r.ankleR.rotation.set(pose.legR.ankle, 0, splay)
 
-    // arms: blend to the carry pose for whichever hand is holding something
+    // arms: blend to the carry pose for whichever hand is holding
+    // something — unless he is swimming, when both arms stroke
     const info = held ? HELD[held] : null
-    const busyL = info && info.hand === 'L' ? 1 : 0
-    const busyR = info && info.hand === 'R' ? 1 : 0
+    const dry = 1 - swim
+    const busyL = (info && info.hand === 'L' ? 1 : 0) * dry
+    const busyR = (info && info.hand === 'R' ? 1 : 0) * dry
     const armL = carryArm(pose.armL, busyL, t, 0)
     const armR = carryArm(pose.armR, busyR, t, 2.1)
 
@@ -179,7 +185,7 @@ export default function Human({ motion, held, armour = 'mail', hideHead = false 
     let eR = [armR.elbow, -0.12 * busyR, 0]
 
     // both hands go to the greatsword, and stay locked to it
-    const twoTarget = info && info.hand === 'two' ? 1 : 0
+    const twoTarget = (info && info.hand === 'two' ? 1 : 0) * dry
     anim.current.twoW = damp(anim.current.twoW || 0, twoTarget, 14, dt)
     const w = anim.current.twoW
     if (w > 0.001) {

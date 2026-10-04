@@ -3,6 +3,11 @@ import * as THREE from 'three'
 import Player from './components/Player.jsx'
 import HealthBar from './components/HealthBar.jsx'
 import Inventory from './components/Inventory.jsx'
+import World from './components/World.jsx'
+
+/* A pale Flanaess morning: soft sky, matched fog dissolving the map's
+ * edges, the fighter's warm sun for key light and shadows. */
+const SKY = '#e9eef2'
 
 export default function App() {
   return (
@@ -13,18 +18,16 @@ export default function App() {
         gl={{ antialias: true, toneMapping: THREE.NoToneMapping }}
         camera={{ fov: 55, near: 0.05, far: 400, position: [0, 1.6, 3.2] }}
         onCreated={({ scene }) => {
-          scene.background = new THREE.Color('#ffffff')
+          scene.background = new THREE.Color(SKY)
+          scene.fog = new THREE.Fog(SKY, 42, 92)
         }}
       >
-        {/* a blank white world */}
-        <hemisphereLight args={['#ffffff', '#e9e9e9', 1.15]} />
-        <directionalLight position={[-5, 3.5, -5]} intensity={0.6} />
-        <directionalLight position={[0, 2, -6]} intensity={0.35} />
+        <hemisphereLight args={['#f6f9fb', '#b9c2b4', 1.05]} />
+        {/* a cool fill off the river, so shadows stay open */}
+        <directionalLight position={[6, 4, 8]} intensity={0.5} color="#cfe0ea" />
 
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
-          <planeGeometry args={[400, 400]} />
-          <meshStandardMaterial color="#ffffff" roughness={1} metalness={0} />
-        </mesh>
+        {/* the Eryshaw: river, fouled stream, the wood and its dressing */}
+        <World />
 
         <Player />
       </Canvas>

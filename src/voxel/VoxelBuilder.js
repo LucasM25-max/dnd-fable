@@ -20,7 +20,7 @@ export function hash3(x, y, z) {
   return (h >>> 0) / 4294967296
 }
 
-function hexToRgb(hex) {
+export function hexToRgb(hex) {
   if (typeof hex !== 'string') return hex
   const h = hex.replace('#', '')
   return [
@@ -31,7 +31,7 @@ function hexToRgb(hex) {
 }
 
 // sRGB -> linear, because three.js works in linear space
-function toLinear(c) {
+export function toLinear(c) {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
 }
 
