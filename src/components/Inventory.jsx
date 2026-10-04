@@ -1,19 +1,21 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import ItemIcon from './ItemIcon.jsx'
 import { CARRY_LIMIT, ITEMS, splitCoin, totalValue, totalWeight, lb } from '../data/items.js'
-import { getHeld, subscribeHeld, toggleHeld } from '../ui/equipment.js'
+import { getArmour, getHeld, subscribeArmour, subscribeHeld, toggleArmour, toggleHeld } from '../ui/equipment.js'
+import { isInventoryOpen, setInventoryOpen, subscribeInventory, toggleInventory } from '../ui/inventory.js'
 import '../ui/inventory.css'
 
 /* ------------------------------------------------------------------ *
- * The pack.                                                           *
+ * The inventory.                                                      *
  *                                                                     *
  * A drawer welded to the right edge of the screen. The handle is part *
  * of the drawer, so pressing it (or `I`) slides the whole assembly     *
- * out from the side. Inside: an inspector across the top, and the kit  *
- * below it as a grid of slots — icons, counts and hotkeys only, the    *
- * way BG3 or WoW lay a bag out. Clicking a slot loads the item into    *
- * the inspector; equipping is an explicit action in there, and drives  *
- * the same state the 1/2/3 keys do.                                    *
+ * out from the side. Inside, top to bottom: a title band, an           *
+ * inspector, and the kit as a grid of slots — icons, counts and        *
+ * hotkeys only, the way BG3 or WoW lay a bag out. Clicking a slot      *
+ * loads the item into the inspector; equipping is an explicit action   *
+ * in there. Weapons drive the same state the 1/2/3 keys do; armour     *
+ * rebuilds his body with or without the hauberk.                       *
  * ------------------------------------------------------------------ */
 
 const GRID_SLOTS = 20 // the bag always looks like a bag, full or not
@@ -77,7 +79,13 @@ function ItemCell({ item, equipped, selected, onSelect }) {
         selected ? ' is-selected' : ''
       }`}
       onClick={() => onSelect(item.id)}
-      onDoubleClick={() => toggleHeld(item.gear)}
+      onDoubleClick={
+        item.worn
+          ? () => toggleArmour(item.worn)
+          : item.gear
+            ? () => toggleHeld(item.gear)
+            : undefined
+      }
       aria-pressed={selected}
       aria-label={item.name}
       title={item.name}
@@ -97,25 +105,35 @@ function Detail({ item, equipped }) {
   if (!item) {
     return (
       <section className="inv-detail is-empty" aria-live="polite">
-        <span className="inv-detail-empty">Select an item</span>
+        <span className="inv-detail-empty">
+          <Satchel />
+          Select an item
+        </span>
       </section>
     )
   }
 
   const stackWeight = item.weightLb * item.qty
   const stackCost = item.costSilver * item.qty
+  const rarity = item.rarity || 'common'
 
   return (
-    <section className={`inv-detail r-${item.rarity || 'common'}`} aria-live="polite">
-      <div className={`inv-detail-art r-${item.rarity || 'common'}`}>
+    <section className={`inv-detail r-${rarity}`} aria-live="polite">
+      <div className={`inv-detail-art r-${rarity}`}>
         <ItemIcon item={item} size={104} />
+        {/* keyed by item: remounting replays the sheen on a new selection */}
+        <i key={item.id} className="inv-detail-sweep" aria-hidden="true" />
       </div>
 
       <div className="inv-detail-body">
         <h2 className="inv-detail-name">{item.name}</h2>
         <p className="inv-detail-sub">
-          {item.type} · {item.damage}
+          <span>{item.type}</span>
+          <span className="inv-detail-sub-sep">·</span>
+          <span className="inv-detail-sub-dmg">{item.damage}</span>
         </p>
+
+        {item.blurb && <p className="inv-detail-flavor">{item.blurb}</p>}
 
         <ul className="inv-detail-traits">
           {item.traits.map((t) => (
@@ -139,10 +157,12 @@ function Detail({ item, equipped }) {
           <button
             type="button"
             className={`inv-act is-primary${equipped ? ' is-on' : ''}`}
-            onClick={() => toggleHeld(item.gear)}
+            onClick={() =>
+              item.worn ? toggleArmour(item.worn) : toggleHeld(item.gear)
+            }
           >
             {equipped ? 'Unequip' : 'Equip'}
-            <em>{item.hotkey}</em>
+            {item.hotkey && <em>{item.hotkey}</em>}
           </button>
           <button type="button" className="inv-act" disabled>
             Drop
@@ -157,19 +177,17 @@ function Detail({ item, equipped }) {
 
 export default function Inventory() {
   const held = useSyncExternalStore(subscribeHeld, getHeld, getHeld)
-  const [open, setOpen] = useState(false)
+  const armour = useSyncExternalStore(subscribeArmour, getArmour)
+  // the drawer's open state lives in the store so the world canvas can put
+  // the inventory away with a click (src/ui/inventory.js)
+  const open = useSyncExternalStore(subscribeInventory, isInventoryOpen)
   const [selectedId, setSelectedId] = useState(ITEMS[0]?.id ?? null)
-  const isOpen = useRef(false) // read by the handlers without re-binding them
 
-  const close = useCallback(() => {
-    isOpen.current = false
-    setOpen(false)
-  }, [])
+  const close = useCallback(() => setInventoryOpen(false), [])
+  const toggle = useCallback(() => toggleInventory(), [])
 
-  const toggle = useCallback(() => {
-    isOpen.current = !isOpen.current
-    setOpen(isOpen.current)
-  }, [])
+  // a weapon is equipped when it is in his hands; armour, when it is on him
+  const isEquipped = (item) => (item.worn ? armour === item.worn : held === item.gear)
 
   useEffect(() => {
     const onKey = (e) => {
@@ -200,17 +218,26 @@ export default function Inventory() {
           className="inv-tab"
           onClick={toggle}
           aria-expanded={open}
-          aria-label={open ? 'Close pack' : 'Open pack'}
-          title="Pack (I)"
+          aria-label={open ? 'Close inventory' : 'Open inventory'}
+          title="Inventory (I)"
         >
           <span className="inv-tab-face">
             <Satchel />
+            <span className="inv-tab-label">Inventory</span>
             <Chevron className="inv-tab-chev" />
           </span>
         </button>
 
-        <aside className="inv-panel" role="dialog" aria-label="Pack" aria-hidden={!open}>
-          <Detail item={selected} equipped={selected ? held === selected.gear : false} />
+        <aside className="inv-panel" role="dialog" aria-label="Inventory" aria-hidden={!open}>
+          <header className="inv-head">
+            <span className="inv-head-title">Inventory</span>
+            <span className="inv-head-slots">
+              {items.length}
+              <i>/{GRID_SLOTS}</i>
+            </span>
+          </header>
+
+          <Detail item={selected} equipped={selected ? isEquipped(selected) : false} />
 
           <div className="inv-grid-wrap">
             <div className="inv-grid">
@@ -218,7 +245,7 @@ export default function Inventory() {
                 <ItemCell
                   key={item.id}
                   item={item}
-                  equipped={held === item.gear}
+                  equipped={isEquipped(item)}
                   selected={item.id === selectedId}
                   onSelect={setSelectedId}
                 />
@@ -235,7 +262,8 @@ export default function Inventory() {
                 <span style={{ transform: `scaleX(${load})` }} />
               </div>
               <span className="inv-load-num">
-                {Math.round(weight)}/{CARRY_LIMIT}
+                <b>{Math.round(weight)}</b>
+                <i>/{CARRY_LIMIT}</i>
               </span>
             </div>
             <span className="inv-coin">

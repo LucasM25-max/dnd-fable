@@ -3,7 +3,8 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import Human from './Human.jsx'
 import { hud } from '../ui/hud.js'
-import { getHeld, setHeld, subscribeHeld, toggleHeld } from '../ui/equipment.js'
+import { isInventoryOpen, setInventoryOpen, subscribeInventory } from '../ui/inventory.js'
+import { getArmour, getHeld, setHeld, subscribeArmour, subscribeHeld, toggleHeld } from '../ui/equipment.js'
 
 const WALK = 1.7
 const SPRINT = 4.8
@@ -14,7 +15,7 @@ const GRAVITY = 14
 const PREP_TIME = 0.09 // crouch before he leaves the ground
 const LAND_TIME = 0.26 // crouch recovery after a landing
 
-const MAX_HP = 14
+const MAX_HP = 13
 const barAnchor = new THREE.Vector3()
 const BAR_HEIGHT = 2.06 // metres above his feet — just clear of the helm
 
@@ -31,7 +32,6 @@ export default function Player() {
   const sunTarget = useRef()
   const motion = useRef({ speed: 0, grounded: true, vy: 0, y: 0, prep: 0, land: 0, turn: 0 })
   const keys = useRef({})
-  const drag = useRef({ on: false, id: null })
   const look = useRef({ yaw: 0, pitch: -0.08 })
   const state = useRef({
     pos: new THREE.Vector3(0, 0, 0),
@@ -46,11 +46,23 @@ export default function Player() {
   // what is in his hands lives outside React so the inventory panel and the
   // number keys drive the same state — see src/ui/equipment.js
   const held = useSyncExternalStore(subscribeHeld, getHeld, getHeld)
+  // and whether the inventory is up: while it is, the camera holds still so
+  // the cursor can travel to the handle and the slots without the world
+  // turning underneath it (see src/ui/inventory.js)
+  const invOpen = useSyncExternalStore(subscribeInventory, isInventoryOpen)
+  // what he is wearing — the hauberk is built onto his body, so it drives
+  // which body model <Human> draws (see src/voxel/human.js)
+  const armour = useSyncExternalStore(subscribeArmour, getArmour)
   const [hp] = useState(MAX_HP)
   const [firstPerson, setFirstPerson] = useState(false)
 
+  // the handlers below read this without being re-bound on every toggle
+  const invOpenRef = useRef(invOpen)
+  invOpenRef.current = invOpen
+
   useEffect(() => {
     const canvas = gl.domElement
+
     const onKeyDown = (e) => {
       if (e.repeat) {
         if (e.code === 'Space') e.preventDefault()
@@ -66,31 +78,36 @@ export default function Player() {
     const onKeyUp = (e) => {
       keys.current[e.code] = false
     }
-    /* The camera is dragged, not locked: the cursor stays visible and
-     * usable the whole time, so the pack (and anything else drawn over the
-     * canvas) can be clicked without ever handing the mouse to the game. */
+
+    /* The camera is mouse-look with the cursor left completely free. Moving
+     * the mouse over the world turns the camera — no click, no drag, no
+     * capture and no pointer lock, so the cursor stays visible and can reach
+     * anything drawn over the canvas (the inventory, its handle) at any
+     * moment. Steering is measured as the cursor's own travel (clientX/Y
+     * deltas): it simply stops wherever the cursor cannot go — at the edges
+     * of the screen, over the inventory, or outside the window. */
+    let lastX = null
+    let lastY = null
+    const onPointerMove = (e) => {
+      if (invOpenRef.current) {
+        lastX = lastY = null // rummaging: the world holds still
+        return
+      }
+      if (lastX != null) {
+        look.current.yaw -= (e.clientX - lastX) * 0.0032
+        look.current.pitch = THREE.MathUtils.clamp(
+          look.current.pitch - (e.clientY - lastY) * 0.003,
+          -1.0,
+          1.0
+        )
+      }
+      lastX = e.clientX
+      lastY = e.clientY
+    }
     const onPointerDown = (e) => {
       if (e.button !== 0 && e.button !== 2) return
-      drag.current.on = true
-      drag.current.id = e.pointerId
-      canvas.setPointerCapture?.(e.pointerId)
-      canvas.style.cursor = 'grabbing'
-    }
-    const endDrag = (e) => {
-      if (!drag.current.on) return
-      drag.current.on = false
-      if (e && e.pointerId != null) canvas.releasePointerCapture?.(e.pointerId)
-      canvas.style.cursor = 'grab'
-    }
-    const onPointerMove = (e) => {
-      if (!drag.current.on) return
-      // movementX/Y are still reported under pointer capture
-      look.current.yaw -= (e.movementX || 0) * 0.0032
-      look.current.pitch = THREE.MathUtils.clamp(
-        look.current.pitch - (e.movementY || 0) * 0.003,
-        -1.0,
-        1.0
-      )
+      // a click on the world while rummaging puts the inventory away
+      if (invOpenRef.current) setInventoryOpen(false)
     }
     const onContextMenu = (e) => e.preventDefault()
     const onWheel = (e) => {
@@ -102,17 +119,15 @@ export default function Player() {
     }
     const onBlur = () => {
       keys.current = {}
-      endDrag()
+      lastX = lastY = null
     }
-    canvas.style.cursor = 'grab'
+
     canvas.style.touchAction = 'none'
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('blur', onBlur)
     canvas.addEventListener('pointerdown', onPointerDown)
     canvas.addEventListener('pointermove', onPointerMove)
-    canvas.addEventListener('pointerup', endDrag)
-    canvas.addEventListener('pointercancel', endDrag)
     canvas.addEventListener('contextmenu', onContextMenu)
     canvas.addEventListener('wheel', onWheel, { passive: true })
     return () => {
@@ -121,8 +136,6 @@ export default function Player() {
       window.removeEventListener('blur', onBlur)
       canvas.removeEventListener('pointerdown', onPointerDown)
       canvas.removeEventListener('pointermove', onPointerMove)
-      canvas.removeEventListener('pointerup', endDrag)
-      canvas.removeEventListener('pointercancel', endDrag)
       canvas.removeEventListener('contextmenu', onContextMenu)
       canvas.removeEventListener('wheel', onWheel)
     }
@@ -296,7 +309,7 @@ export default function Player() {
       />
       <object3D ref={sunTarget} />
       <group ref={body}>
-        <Human motion={motion} held={held} hideHead={firstPerson} />
+        <Human motion={motion} held={held} armour={armour} hideHead={firstPerson} />
       </group>
     </>
   )

@@ -5,7 +5,7 @@ export const hud = {
   x: 0, // screen position of the anchor over his head, in CSS pixels
   y: 0,
   show: false,
-  hp: 14,
-  max: 14,
+  hp: 13,
+  max: 13,
   t: 0, // timestamp of the last update, so the bar can tell if it is being fed
 }

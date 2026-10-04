@@ -49,8 +49,11 @@ const tmpAcc = new THREE.Vector3()
 const tmpQuat = new THREE.Quaternion()
 const tmpEuler = new THREE.Euler()
 
-export default function Human({ motion, held, hideHead = false }) {
-  const model = useMemo(() => buildHuman(), [])
+export default function Human({ motion, held, armour = 'mail', hideHead = false }) {
+  // the hauberk is built onto his body, so wearing it or not is a different
+  // body model — buildHuman caches both, and VoxelMesh rebuilds the parts
+  // whose voxel counts change when the armour state flips
+  const model = useMemo(() => buildHuman(armour === 'mail'), [armour])
   const rig = useRef({})
   const kit = useRef({})
   const sim = useRef({})

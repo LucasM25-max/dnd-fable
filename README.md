@@ -15,16 +15,20 @@ npm run dev
 | `W` `A` `S` `D` / arrows | Move (relative to the camera) |
 | `Shift` | Sprint |
 | `Space` | Jump |
-| Mouse drag (left or right button) | Look / orbit |
+| Mouse move | Look / steer — no click, no drag; the cursor stays free |
 | Mouse wheel | Third-person camera distance |
 | `V` | Toggle third-person / first-person |
 | `1` – `3` | Equip greatsword / flail / javelin (purely cosmetic) |
 | `0` | Put the weapon away (empty handed) |
-| `I` (or the satchel button, top right) | Open / close the pack |
-| `Esc` | Close the pack |
+| `I` (or the satchel button, top right) | Open / close the inventory |
+| `Esc` | Close the inventory |
 
-The mouse is never captured: the camera is dragged rather than pointer-locked,
-so the cursor stays visible and the pack can be clicked at any time.
+The mouse is never captured or locked: the cursor stays visible and free the
+whole time, and moving it over the world steers the camera with no button held.
+Steering simply stops where the cursor cannot travel — at the screen edges,
+over the inventory, or outside the window — so anything on screen stays
+clickable at any moment. A click on the world while the inventory is open puts
+it away.
 
 Only the equipped weapon is drawn — nothing is slung on his back otherwise.
 Taking a javelin in hand brings the sheaf of the other seven with it, since
@@ -59,20 +63,38 @@ within a few percent of its base tone and lets the lighting do the work.
 * **Clean-shaven face** — long jaw, strong brow, visible eyes and mouth, short
   cropped hair under the helm.
 
-## The pack
+## The inventory
 
-A paper tab sits in the top right corner; pressing it — or `I` — unfolds the
-sheet his kit is written out on. Clicking a row puts that
-weapon in his hands, so the panel and the `1`/`2`/`3` keys drive the same state
-(`src/ui/equipment.js`, a small external store both read through
-`useSyncExternalStore`).
+A dark glass drawer is bolted to the top right corner; its handle — a satchel
+glyph labelled *Inventory* — pulls the whole drawer out, as does `I`. Inside,
+top to bottom: a title band with the slot count, an inspector for the selected
+item (name, what it is · what it does, a line of flavour, trait chips, weight ·
+worth · count), the bag itself as a grid of twenty slots — icons, counts and
+hotkeys only, the way BG3 or WoW lay a bag out — and a foot with the load bar
+and the purse. Rarity reads as colour on the slot and the name, never as a word,
+and the single gold accent is reserved for selection, for whatever is in his
+hands, and for whatever he is wearing.
+
+Clicking a slot inspects the item; equipping is the *Equip* button (or a
+double-click on the slot). Weapons drive the same state the `1`/`2`/`3` keys
+do; armour has its own bit of state in the same store (`src/ui/equipment.js`,
+a small external store everything reads through `useSyncExternalStore`). The
+drawer sizes itself to the bag, so all twenty slots are in view without
+scrolling on any screen 800 px tall or more; on shorter screens the grid alone
+scrolls.
 
 | Item | Count | Cost | Weight |
 | --- | --- | --- | --- |
 | Greatsword | 1 | 50 gp | 6 lb. |
 | Flail | 1 | 10 gp | 2 lb. |
 | Javelin | 8 | 5 sp each — 4 gp the sheaf | 2 lb. each — 16 lb. |
-| **Carried** | | **64 gp** | **24 lb.** |
+| Chain mail | 1 | 75 gp | 55 lb. |
+| **Carried** | | **139 gp** | **79 lb.** (of a 240 lb. capacity) |
+
+The chain mail starts on him and can be taken off like anything else: the
+hauberk is built onto his body model, so unequipping it swaps him to the tunic
+and trousers he wears underneath — no rings, no shoulder caps, no skirt — and
+equipping it puts them back. Its slot shows the gold notch while it is worn.
 
 Prices live in silver (`src/data/items.js`) and are split into gold and silver
 on the way out at 10 sp = 1 gp, so a stack of eight javelins at 5 sp comes to
@@ -93,20 +115,18 @@ Run `node tools/iconPreview.mjs out/icons.png` to render the same framing
 headlessly — every item at four points in its spin, with the margin to the slot
 edge reported per cell — so the icons can be checked without a browser.
 
-The sheet itself is plain HTML and CSS over the canvas, and deliberately plain
-at that: one ink colour on one paper colour, hand-ruled lines (the inner rule
-is not inset the same on all four sides), tea stains set off-centre, and
-line-art glyphs all drawn at the same pen weight. Entries are separated by a
-ruled line rather than each sitting in its own card, properties run on as text
-instead of sitting in chips, and the one in his hands is marked with a stroke
-ruled down the margin in scribe's red. No glows, no bevels, no gradient type;
-the only shadow is the one lifting the sheet off the white world. Type is Cinzel
-for names over EB Garamond for everything else, at normal UI sizes — nothing is
-a bitmap and nothing is pixel-art, so the text stays sharp at any zoom or DPI.
+The drawer itself is plain HTML and CSS over the canvas: dark glass with a
+breath of grain, one warm metal hairline, and a single gold accent reserved
+for selection and for what is on him. Slots are squares with their rarity as
+the edge colour, a count on a small dark plate and nothing else; trait chips
+and buttons are drawn as quiet inline shapes at one pen weight. Type is Cinzel
+for the band and names over EB Garamond for the ledger lines, at normal UI
+sizes — nothing is a bitmap and nothing is pixel-art, so the text stays sharp
+at any zoom or DPI.
 
 ## Health bar
 
-14 hit points, drawn as a smooth flat UI bar: rounded track, soft shadow,
+13 hit points, drawn as a smooth flat UI bar: rounded track, soft shadow,
 gradient fill and an animated width transition. It is plain HTML sitting on top
 of the canvas — no geometry, no voxels. Each frame the renderer projects a point
 2.06 m above his feet to screen space and publishes the pixel coordinates in
@@ -129,14 +149,15 @@ so wiring it to real damage later is a one-line change in `Player.jsx`.
 * `src/components/Human.jsx` — the skeleton (hips → torso → head/arms, hips → legs),
   how the equipped weapon is held (one hand, or both for the greatsword), and the
   carried-kit spring simulation.
-* `src/components/HealthBar.jsx` — the floating 14 HP bar (flat UI, world-anchored).
-* `src/components/Inventory.jsx` — the pack: satchel button, panel, item cards.
+* `src/components/HealthBar.jsx` — the floating 13 HP bar (flat UI, world-anchored).
+* `src/components/Inventory.jsx` — the inventory: handle, drawer, inspector, slot grid.
 * `src/components/ItemIcon.jsx` — one item's live turntable render.
 * `src/voxel/iconFit.js` — icon framing maths (bounds fit, spin-safe zoom), shared
   with the offline icon previewer.
 * `src/data/items.js` — what he carries: counts, costs in silver, weights, traits.
-* `src/ui/equipment.js` — the shared "what is in his hands" store.
-* `src/ui/inventory.css` — the pack's brass-and-leather styling.
+* `src/ui/equipment.js` — the shared store for what is in his hands and what he
+  is wearing; `src/ui/inventory.js` — whether the drawer is open.
+* `src/ui/inventory.css` — the drawer's dark-glass styling.
 * `src/anim/poseRig.js` — the animation system: keyframe clips, spline sampling,
   speed blending, jump/land layers, the foot/ground solver, and the shared joint
   offsets (`METRICS`) that the app and the offline tools both build from.
@@ -210,5 +231,6 @@ so bends never open a seam, the hair stops above the shoulders, the javelin shea
 is slung so its butt swings clear of the hip instead of through it, the two-handed
 stance is solved with explicit body-clearance penalties, and the third-person
 camera is kept above the floor.
-* `src/components/Player.jsx` — movement, jumping, drag-to-look camera, weapon keys.
+* `src/components/Player.jsx` — movement, jumping, mouse-look camera (free
+  cursor), weapon keys.
 * `src/App.jsx` — the blank white world and lighting.

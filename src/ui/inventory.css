@@ -1,16 +1,23 @@
 /* ------------------------------------------------------------------ *
- * The pack: a drawer bolted to the right edge of the screen.           *
+ * The inventory: a drawer bolted to the right edge of the screen.      *
  *                                                                      *
- * Dark glass, one warm metal hairline, a single gold accent reserved    *
- * for selection and for what is in his hands. Rarity is colour, not     *
- * words. The handle is part of the drawer and rides out with it.        *
- * Everything that can be an icon is an icon; the only text in the grid  *
- * is a count and a hotkey.                                              *
+ * Dark glass with a breath of grain, one warm metal hairline, a single *
+ * gold accent reserved for selection and for what is in his hands.     *
+ * Rarity is colour, not words. The handle is part of the drawer and     *
+ * rides out with it. Everything that can be an icon is an icon; the     *
+ * only text in the grid is a count and a hotkey.                        *
+ *                                                                      *
+ * Top to bottom: a slim title band, the inspector, the bag as a grid   *
+ * of slots, and a foot with the load bar and the purse. The drawer     *
+ * sizes itself to the bag — all twenty slots show without scrolling —  *
+ * and only shortens itself on short screens, where the grid scrolls.   *
  * ------------------------------------------------------------------ */
 
 .inv {
   --w: 384px; /* drawer width */
   --tab: 52px; /* handle size — same square the old button was */
+  --slide: 340ms; /* drawer travel, shared by everything that follows it */
+  --ease: cubic-bezier(0.18, 0.76, 0.24, 1);
 
   --glass: rgba(16, 15, 13, 0.82);
   --glass-solid: #131210;
@@ -39,6 +46,26 @@
   color: var(--txt);
   -webkit-font-smoothing: antialiased;
   font-variant-numeric: tabular-nums lining-nums;
+  user-select: none; /* counts and hotkeys are labels, not text to take */
+}
+
+/* A quiet veil over the world while the inventory is open: darkest towards
+ * drawer, thinning away from it. Never intercepts the mouse. */
+.inv::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    150% 130% at 85% 8%,
+    rgba(8, 6, 4, 0.28),
+    rgba(8, 6, 4, 0.1) 55%,
+    rgba(8, 6, 4, 0.04)
+  );
+  opacity: 0;
+  transition: opacity var(--slide) ease;
+}
+.inv.is-open::before {
+  opacity: 1;
 }
 
 /* ---------------- the dock: handle + drawer, one moving piece ------- */
@@ -51,7 +78,7 @@
   align-items: flex-start;
   pointer-events: auto;
   transform: translateX(var(--w));
-  transition: transform 260ms cubic-bezier(0.22, 0.75, 0.25, 1);
+  transition: transform var(--slide) var(--ease);
   will-change: transform;
 }
 .inv.is-open .inv-dock {
@@ -69,9 +96,9 @@
   cursor: pointer;
   border: 1px solid var(--edge);
   border-right: 0;
-  border-radius: 6px 0 0 6px;
+  border-radius: 5px 0 0 5px;
   background:
-    linear-gradient(180deg, rgba(255, 238, 206, 0.09), rgba(255, 238, 206, 0) 58%),
+    linear-gradient(180deg, rgba(255, 238, 206, 0.1), rgba(255, 238, 206, 0) 60%),
     var(--glass);
   backdrop-filter: blur(14px) saturate(120%);
   -webkit-backdrop-filter: blur(14px) saturate(120%);
@@ -79,14 +106,16 @@
     -6px 4px 18px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 var(--edge-soft);
   color: var(--txt-soft);
-  display: grid;
-  place-items: center;
+  touch-action: manipulation;
   transition:
     color 140ms ease,
     background-color 140ms ease;
 }
 .inv-tab:hover {
   color: var(--gold-hot);
+  background:
+    linear-gradient(180deg, rgba(255, 238, 206, 0.17), rgba(255, 238, 206, 0) 60%),
+    var(--glass);
 }
 .inv-tab:focus-visible {
   outline: 1px solid var(--gold);
@@ -94,29 +123,50 @@
 }
 .inv.is-open .inv-tab {
   color: var(--gold);
+  background:
+    linear-gradient(180deg, rgba(255, 238, 206, 0.04), rgba(0, 0, 0, 0.14)),
+    var(--glass);
 }
 .inv-tab-face {
   position: relative;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   width: 100%;
   height: 100%;
-  padding-right: 4px;
 }
 .inv-tab svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: block;
+}
+.inv-tab-face > svg {
+  transition: transform 160ms ease;
+}
+.inv-tab:hover .inv-tab-face > svg {
+  transform: translateY(-1px);
+}
+/* the handle names itself, in a whisper */
+.inv-tab-label {
+  font-size: 6.5px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  margin-right: -0.14em; /* balance the tracking tail */
+  text-transform: uppercase;
+  opacity: 0.7;
+  white-space: nowrap;
 }
 /* the chevron flips to point the way the drawer will go */
 .inv-tab-chev {
   position: absolute;
-  right: 1px;
-  bottom: 4px;
-  width: 13px !important;
-  height: 13px !important;
-  opacity: 0.55;
-  transition: transform 260ms cubic-bezier(0.22, 0.75, 0.25, 1);
+  right: 2px;
+  bottom: 3px;
+  width: 12px !important;
+  height: 12px !important;
+  opacity: 0.5;
+  transition: transform var(--slide) var(--ease);
 }
 .inv.is-open .inv-tab-chev {
   transform: scaleX(-1);
@@ -128,37 +178,86 @@
   flex: none;
   width: var(--w);
   max-width: 100vw;
-  /* deliberately short of both edges of the screen */
-  height: min(640px, calc(100vh - 140px));
+  /* tall enough to hold the whole bag, never taller than the screen;
+   * below that the grid gives up its height and scrolls */
+  height: auto;
+  max-height: calc(100vh - 24px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--edge);
   border-right: 0;
-  border-radius: 4px 0 0 4px;
+  border-radius: 5px 0 0 5px;
   background:
-    radial-gradient(120% 60% at 50% 0%, rgba(217, 178, 106, 0.08), transparent 70%),
+    /* a breath of grain, so the glass reads as a material */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"),
+    radial-gradient(120% 60% at 50% 0%, rgba(217, 178, 106, 0.07), transparent 70%),
     linear-gradient(180deg, rgba(255, 240, 210, 0.045), rgba(0, 0, 0, 0.12)),
     var(--glass);
   backdrop-filter: blur(18px) saturate(125%);
   -webkit-backdrop-filter: blur(18px) saturate(125%);
   box-shadow:
-    -14px 10px 42px rgba(0, 0, 0, 0.5),
+    -18px 12px 48px rgba(0, 0, 0, 0.55),
     inset 0 1px 0 var(--edge-soft);
 }
 .inv-panel[aria-hidden='true'] {
   visibility: hidden;
-  transition: visibility 0s linear 260ms;
+  transition: visibility 0s linear var(--slide);
+}
+
+/* ---------------- the title band ---------------- */
+
+.inv-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 9px;
+  border-bottom: 1px solid var(--edge-soft);
+}
+/* "PACK", flanked by rules that fade out from under it */
+.inv-head-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--txt-soft);
+}
+.inv-head-title::before,
+.inv-head-title::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+}
+.inv-head-title::before {
+  background: linear-gradient(90deg, transparent, var(--edge-soft));
+}
+.inv-head-title::after {
+  background: linear-gradient(90deg, var(--edge-soft), transparent);
+}
+.inv-head-slots {
+  font-size: 11px;
+  color: var(--txt-faint);
+}
+.inv-head-slots i {
+  font-style: normal;
+  opacity: 0.75;
 }
 
 /* ---------------- the inspector ---------------- */
 
 .inv-detail {
   flex: none;
+  /* pinned so swapping items never reflows the bag below */
+  min-height: 208px;
   display: flex;
-  gap: 14px;
-  padding: 16px 16px 14px;
-  min-height: 188px;
+  gap: 15px;
+  padding: 13px 16px 11px;
   border-bottom: 1px solid var(--edge-soft);
   background: linear-gradient(180deg, rgba(255, 240, 210, 0.035), transparent);
 }
@@ -167,10 +266,19 @@
   justify-content: center;
 }
 .inv-detail-empty {
-  font-size: 12px;
-  letter-spacing: 0.16em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--txt-faint);
+}
+.inv-detail-empty svg {
+  width: 28px;
+  height: 28px;
+  opacity: 0.55;
 }
 
 .inv-detail-art {
@@ -181,18 +289,27 @@
   display: grid;
   place-items: center;
   border: 1px solid var(--slot-edge);
-  border-radius: 3px;
+  border-radius: 4px;
   background:
     radial-gradient(60% 60% at 50% 42%, rgba(255, 255, 255, 0.07), transparent 72%),
     rgba(0, 0, 0, 0.26);
   box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.5);
+}
+/* an inner hairline, like the mat of a frame */
+.inv-detail-art::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(255, 246, 228, 0.06);
+  border-radius: 2px;
+  pointer-events: none;
 }
 .inv-detail-art::after {
   content: '';
   position: absolute;
   inset: -1px;
   border: 1px solid transparent;
-  border-radius: 3px;
+  border-radius: 4px;
   pointer-events: none;
 }
 .inv-detail-art.r-common::after {
@@ -210,6 +327,26 @@
   display: block;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55));
 }
+/* a sheen washes across the portrait when a new item is inspected;
+ * the element is keyed by item id, so remounting replays it */
+.inv-detail-sweep {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.inv-detail-sweep::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 42%;
+  transform: translateX(-130%) rotate(14deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 244, 212, 0.12) 50%, transparent);
+  animation: inv-sweep 700ms ease-out 90ms both;
+}
 
 .inv-detail-body {
   flex: 1;
@@ -222,7 +359,7 @@
   font-family: 'Cinzel', Georgia, serif;
   font-size: 18px;
   font-weight: 600;
-  letter-spacing: 0.035em;
+  letter-spacing: 0.04em;
   line-height: 1.15;
   color: var(--txt);
   white-space: nowrap;
@@ -238,14 +375,36 @@
 .inv-detail.r-rare .inv-detail-name {
   color: var(--rare);
 }
+/* the ledger line: what it is · what it does, set in the book face */
 .inv-detail-sub {
   margin: 3px 0 0;
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 13.5px;
+  letter-spacing: 0.03em;
   color: var(--txt-faint);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.inv-detail-sub-sep {
+  margin: 0 6px;
+  opacity: 0.55;
+}
+.inv-detail-sub-dmg {
+  color: var(--txt-soft);
+}
+/* one line of flavour, the field-guide voice; never more than two lines */
+.inv-detail-flavor {
+  margin: 6px 0 0;
+  font-family: 'EB Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--txt-faint);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .inv-detail-traits {
@@ -253,33 +412,41 @@
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  margin: 9px 0 0;
+  margin: 8px 0 0;
   padding: 0;
 }
 .inv-detail-traits li {
-  padding: 2px 7px;
+  padding: 3px 8px;
   border: 1px solid var(--slot-edge);
-  border-radius: 2px;
-  background: rgba(255, 246, 228, 0.04);
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255, 246, 228, 0.05), rgba(255, 246, 228, 0.02));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--txt-soft);
 }
 
+/* weight · worth · count, parted by hairlines */
 .inv-detail-stats {
   display: flex;
   align-items: center;
-  gap: 16px;
   margin-top: auto;
-  padding-top: 10px;
-  font-size: 13px;
+  padding-top: 8px;
+  font-size: 12.5px;
   color: var(--txt-soft);
 }
 .inv-detail-stats span {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  padding: 0 13px;
+}
+.inv-detail-stats span:first-child {
+  padding-left: 0;
+}
+.inv-detail-stats span + span {
+  border-left: 1px solid var(--edge-soft);
 }
 .inv-detail-stats svg {
   width: 14px;
@@ -288,6 +455,7 @@
 }
 .inv-detail-stats .ea {
   margin-left: auto;
+  padding-right: 0;
   color: var(--txt-faint);
 }
 
@@ -300,24 +468,35 @@
   position: relative;
   flex: 1;
   height: 32px;
-  padding: 0 10px;
+  padding: 0 12px;
   cursor: pointer;
   border: 1px solid var(--slot-edge);
-  border-radius: 3px;
-  background: rgba(255, 246, 228, 0.05);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(255, 246, 228, 0.06), rgba(255, 246, 228, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   color: var(--txt-soft);
   font: inherit;
-  font-size: 11.5px;
-  letter-spacing: 0.12em;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  touch-action: manipulation;
   transition:
-    background-color 130ms ease,
-    color 130ms ease,
-    border-color 130ms ease;
+    background-color 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 100ms ease;
 }
 .inv-act:hover:not(:disabled) {
-  background: rgba(255, 246, 228, 0.1);
+  border-color: rgba(255, 240, 210, 0.22);
+  background: linear-gradient(180deg, rgba(255, 246, 228, 0.1), rgba(255, 246, 228, 0.05));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 3px 12px rgba(0, 0, 0, 0.3);
   color: var(--txt);
+}
+.inv-act:active:not(:disabled) {
+  transform: translateY(1px);
 }
 .inv-act:focus-visible {
   outline: 1px solid var(--gold);
@@ -328,26 +507,40 @@
   cursor: default;
 }
 .inv-act.is-primary {
-  border-color: var(--edge);
-  background: linear-gradient(180deg, rgba(217, 178, 106, 0.22), rgba(217, 178, 106, 0.08));
+  border-color: rgba(217, 178, 106, 0.5);
+  background: linear-gradient(180deg, rgba(217, 178, 106, 0.26), rgba(217, 178, 106, 0.1));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 210, 0.18),
+    0 0 0 1px rgba(217, 178, 106, 0.1);
   color: var(--gold-hot);
 }
-.inv-act.is-primary:hover {
-  background: linear-gradient(180deg, rgba(217, 178, 106, 0.32), rgba(217, 178, 106, 0.14));
+.inv-act.is-primary:hover:not(:disabled) {
+  border-color: rgba(217, 178, 106, 0.65);
+  background: linear-gradient(180deg, rgba(217, 178, 106, 0.34), rgba(217, 178, 106, 0.16));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 210, 0.22),
+    0 2px 14px rgba(217, 178, 106, 0.25);
   color: #fff3d8;
 }
 .inv-act.is-primary.is-on {
   border-color: rgba(255, 240, 210, 0.2);
   background: rgba(255, 246, 228, 0.06);
+  box-shadow: none;
   color: var(--txt-soft);
 }
+/* the hotkey hint, drawn as the keycap it stands for */
 .inv-act em {
   position: absolute;
-  right: 7px;
+  right: 6px;
   top: 50%;
   transform: translateY(-50%);
   font-style: normal;
-  font-size: 10px;
+  font-size: 9px;
+  line-height: 1;
+  padding: 2.5px 4px;
+  border: 1px solid var(--slot-edge);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.28);
   color: var(--txt-faint);
 }
 
@@ -358,7 +551,7 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 14px;
+  padding: 9px 14px;
   scrollbar-width: thin;
   scrollbar-color: rgba(217, 178, 106, 0.35) transparent;
 }
@@ -369,11 +562,14 @@
   background: rgba(217, 178, 106, 0.3);
   border-radius: 3px;
 }
+.inv-grid-wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 178, 106, 0.5);
+}
 
 .inv-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
-  gap: 8px;
+  gap: 7px;
 }
 
 .inv-cell {
@@ -384,26 +580,40 @@
   place-items: center;
   cursor: pointer;
   border: 1px solid var(--slot-edge);
-  border-radius: 3px;
+  border-radius: 4px;
   background:
     radial-gradient(70% 70% at 50% 35%, rgba(255, 255, 255, 0.05), transparent 75%),
     rgba(0, 0, 0, 0.3);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 16px rgba(0, 0, 0, 0.55);
   color: var(--txt-soft);
   font: inherit;
+  touch-action: manipulation;
   transition:
-    border-color 130ms ease,
-    transform 130ms ease,
-    box-shadow 130ms ease;
+    border-color 140ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease;
 }
 .inv-cell.is-empty {
   cursor: default;
   background: rgba(0, 0, 0, 0.22);
   box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.45);
 }
+/* an empty slot keeps a faint diamond at its centre, the way a empty
+ * socket does — the bag reads as fixed size, not as list length */
+.inv-cell.is-empty::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  transform: rotate(45deg);
+  border: 1px solid rgba(255, 246, 228, 0.06);
+  background: rgba(255, 246, 228, 0.02);
+}
 .inv-cell:not(.is-empty):hover {
   transform: translateY(-1px);
   border-color: rgba(255, 240, 210, 0.3);
+}
+.inv-cell:not(.is-empty):active {
+  transform: translateY(0) scale(0.96);
 }
 .inv-cell:focus-visible {
   outline: 1px solid var(--gold);
@@ -415,6 +625,10 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
+  transition: transform 180ms ease;
+}
+.inv-cell:not(.is-empty):hover .inv-cell-art {
+  transform: scale(1.07);
 }
 .inv-cell canvas {
   display: block;
@@ -441,10 +655,17 @@
 .inv-cell.is-selected {
   border-color: var(--gold);
   box-shadow:
-    0 0 0 1px rgba(217, 178, 106, 0.4),
-    inset 0 0 18px rgba(217, 178, 106, 0.16);
+    0 0 0 1px rgba(217, 178, 106, 0.35),
+    0 0 16px rgba(217, 178, 106, 0.18),
+    inset 0 0 18px rgba(217, 178, 106, 0.14);
 }
-/* in hand: a gold notch in the corner, no words */
+/* in hand: a gold notch in the corner and a warm breath inside, no words */
+.inv-cell.is-equipped {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 16px rgba(0, 0, 0, 0.55),
+    inset 0 0 20px rgba(217, 178, 106, 0.1);
+}
 .inv-cell.is-equipped::after {
   content: '';
   position: absolute;
@@ -452,26 +673,37 @@
   left: 0;
   border-top: 11px solid var(--gold);
   border-right: 11px solid transparent;
-  border-top-left-radius: 2px;
+  border-top-left-radius: 3px;
+}
+.inv-cell.is-selected.is-equipped {
+  box-shadow:
+    0 0 0 1px rgba(217, 178, 106, 0.35),
+    0 0 16px rgba(217, 178, 106, 0.18),
+    inset 0 0 18px rgba(217, 178, 106, 0.14),
+    inset 0 0 20px rgba(217, 178, 106, 0.1);
 }
 
 .inv-cell-key {
   position: absolute;
-  top: 2px;
-  right: 4px;
-  font-size: 9.5px;
+  top: 3px;
+  right: 5px;
+  font-size: 9px;
   line-height: 1;
   color: var(--txt-faint);
 }
+/* the count sits on a small dark plate so it reads over any icon */
 .inv-cell-qty {
   position: absolute;
   right: 3px;
-  bottom: 2px;
-  font-size: 11px;
+  bottom: 3px;
+  padding: 1.5px 4px;
+  border: 1px solid rgba(255, 246, 228, 0.14);
+  border-radius: 3px;
+  background: rgba(10, 9, 7, 0.78);
+  font-size: 10.5px;
   line-height: 1;
   font-weight: 600;
   color: var(--txt);
-  text-shadow: 0 1px 2px #000;
 }
 
 /* ---------------- the foot ---------------- */
@@ -481,7 +713,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px 16px 12px;
+  padding: 10px 16px 11px;
   border-top: 1px solid var(--edge-soft);
   background: rgba(0, 0, 0, 0.22);
 }
@@ -492,33 +724,92 @@
   gap: 9px;
   min-width: 0;
 }
+/* the load bar, quartered by ticks the way a scale is */
 .inv-load-bar {
+  position: relative;
   flex: 1;
-  height: 4px;
-  border-radius: 2px;
-  overflow: hidden;
-  background: rgba(255, 246, 228, 0.1);
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 246, 228, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 246, 228, 0.05);
 }
 .inv-load-bar span {
   display: block;
   width: 100%;
   height: 100%;
+  border-radius: 3px;
   transform-origin: left center;
-  background: linear-gradient(90deg, var(--gold), var(--gold-hot));
+  background: linear-gradient(90deg, #b98f45, var(--gold-hot));
+  box-shadow: 0 0 8px rgba(217, 178, 106, 0.3);
   transition: transform 220ms ease;
+}
+.inv-load-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent calc(25% - 1px),
+    rgba(0, 0, 0, 0.45) calc(25% - 1px),
+    rgba(0, 0, 0, 0.45) 25%
+  );
 }
 .inv-load-num,
 .inv-coin {
   display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  align-items: baseline;
   font-size: 12px;
   color: var(--txt-soft);
+}
+.inv-load-num {
+  gap: 2px;
+}
+.inv-load-num b {
+  font-weight: 600;
+}
+.inv-load-num i {
+  font-style: normal;
+  color: var(--txt-faint);
+}
+.inv-coin {
+  gap: 5px;
 }
 .inv-coin svg {
   width: 13px;
   height: 13px;
+  align-self: center;
   color: var(--gold);
+}
+
+/* ---------------- the drawer wakes up ---------------- */
+
+/* the contents lean in a beat after the drawer itself, top first */
+@keyframes inv-reveal {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+.inv.is-open .inv-head {
+  animation: inv-reveal 380ms var(--ease) 60ms backwards;
+}
+.inv.is-open .inv-detail {
+  animation: inv-reveal 380ms var(--ease) 110ms backwards;
+}
+.inv.is-open .inv-grid-wrap {
+  animation: inv-reveal 380ms var(--ease) 160ms backwards;
+}
+.inv.is-open .inv-foot {
+  animation: inv-reveal 380ms var(--ease) 210ms backwards;
+}
+
+@keyframes inv-sweep {
+  to {
+    transform: translateX(420%) rotate(14deg);
+  }
 }
 
 /* ---------------- small screens ---------------- */
@@ -527,20 +818,40 @@
   .inv {
     --w: min(320px, calc(100vw - 58px));
   }
-  .inv-panel {
-    height: min(560px, calc(100vh - 120px));
+  .inv-detail {
+    min-height: 196px;
+    gap: 12px;
   }
   .inv-detail-art {
     width: 92px;
     height: 92px;
+  }
+  .inv-grid {
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .inv-dock,
   .inv-tab-chev,
+  .inv-tab-face > svg,
   .inv-cell,
+  .inv-cell-art,
+  .inv-act,
   .inv-load-bar span {
     transition: none;
+  }
+  .inv::before {
+    transition: none;
+  }
+  .inv.is-open .inv-head,
+  .inv.is-open .inv-detail,
+  .inv.is-open .inv-grid-wrap,
+  .inv.is-open .inv-foot {
+    animation: none;
+  }
+  .inv-detail-sweep::before {
+    animation: none;
+    display: none;
   }
 }

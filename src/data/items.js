@@ -6,9 +6,8 @@
 
 export const SILVER_PER_GOLD = 10
 
-// What he can carry before the weight starts to tell on him: 5 lb per point
-// of Strength, so a 15 Strength fighter walks easy up to 75 lb.
-export const CARRY_LIMIT = 75
+// What he can carry before the weight starts to tell on him.
+export const CARRY_LIMIT = 240
 
 export const ITEMS = [
   {
@@ -55,6 +54,21 @@ export const ITEMS = [
     weightLb: 2,
     blurb: 'One in hand, seven in the sheaf on his back.',
     icon: { scale: 0.98, tilt: 0.5, lean: 0.08, bundle: true },
+  },
+  {
+    id: 'chainmail',
+    gear: 'mail', // the icon model: a hauberk built as one piece
+    worn: 'mail', // armour slot key — equipping toggles the hauberk on him
+    name: 'Chain Mail',
+    rarity: 'common',
+    qty: 1,
+    type: 'Heavy armour',
+    damage: 'AC 16',
+    traits: ['Heavy', 'Stealth disadvantage'],
+    costSilver: 750, // 75 gp
+    weightLb: 55,
+    blurb: 'Riveted rings from throat to thigh. He sleeps in it.',
+    icon: { scale: 0.96, tilt: 0.5, lean: 0.06 },
   },
 ]
 

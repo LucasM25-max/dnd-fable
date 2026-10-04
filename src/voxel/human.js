@@ -130,15 +130,16 @@ export function chestZ(y) {
 /*   shoulder 75.5 · neck 79 · chin 82 · crown 93                       */
 /* ------------------------------------------------------------------ */
 
-function buildHips() {
+function buildHips(armoured = true) {
   const b = new VoxelBuilder(S)
   // seat and pelvis under the mail
   b.taper(42, 50, [0, 0], [6.4, 4.3], [0, 0], [7.6, 5.0], weave(C.trousers, C.trousersDark), MAT.MATTE, { square: 0.5 })
   b.taper(50, 58, [0, 0], [7.6, 5.0], [0, 0], [7.2, 4.8], weave(C.trousers, C.trousersDark), MAT.MATTE, { square: 0.5 })
   // hip joint caps so the legs never open a gap
   for (const sx of [-1, 1]) b.ellipsoid([sx * 4.5, 49, 0], [3.9, 4.0, 4.3], weave(C.trousers, C.trousersDark), MAT.MATTE)
-  // hauberk hem: hangs to the top of the thigh, split front and back for riding
-  b.region([-11, 11], [46, 58], [-8, 8], (x, y, z) => {
+  // hauberk hem: hangs to the top of the thigh, split front and back for
+  // riding — only while he wears the mail
+  if (armoured) b.region([-11, 11], [46, 58], [-8, 8], (x, y, z) => {
     const t = (y - 46) / 12
     const rx = 8.6 - t * 1.0
     const rz = 5.7 - t * 0.6
@@ -158,7 +159,7 @@ function buildHips() {
   return b
 }
 
-function buildTorso() {
+function buildTorso(armoured = true) {
   const b = new VoxelBuilder(S)
   // profile of the ribcage: narrow waist, broad chest, flat shoulder shelf
   const rxAt = (y) => {
@@ -175,28 +176,36 @@ function buildTorso() {
   b.taper(55, 75.5, [0, 0], [7.2, 4.7], [0, 0], [8.0, 5.2], weave(C.tunic, C.tunicDark), MAT.MATTE, { square: 0.5 })
   // cap it so no flat cloth disc shows through the mail at the neckline
   b.taper(75.5, 77.5, [0, 0], [8.0, 5.2], [0, 0], [4.6, 4.0], weave(C.tunic, C.tunicDark), MAT.MATTE, { square: 0.4 })
-  // the hauberk itself
-  b.region([-11, 11], [55, 80], [-8, 8], (x, y, z) => {
-    const rx = rxAt(y)
-    const rz = rzAt(y)
-    const n = (Math.abs(x) / rx) ** 2.3 + (Math.abs(z) / rz) ** 2.3
-    if (n > 1 || n < 0.58) return null
-    if (y > 75.5 && Math.abs(x) < 3.8 && z > 0.2) return null // neck opening
-    if (y > 77.5 && Math.abs(x) < 5.5 && z < -1) return null
-    return mail(x, y, z)
-  }, MAT.METAL, 0.03)
-  // deltoid caps
-  for (const sx of [-1, 1]) {
-    b.ellipsoid([sx * 9.0, 74.8, 0.2], [3.5, 3.7, 5.1], mail, MAT.METAL, { hollow: 0.3, jitter: 0.03 })
-    // a single riveted strap running over the cap, front to back
-    b.capsule([sx * 9.0, 77.8, 0.2], [sx * 10.4, 73.4, 0.2], [1.1, 1.1, 1.2], grain(C.strap, C.leatherDark), MAT.LEATHER)
+  // the hauberk itself, with its shoulder caps — off with the mail
+  if (armoured) {
+    b.region([-11, 11], [55, 80], [-8, 8], (x, y, z) => {
+      const rx = rxAt(y)
+      const rz = rzAt(y)
+      const n = (Math.abs(x) / rx) ** 2.3 + (Math.abs(z) / rz) ** 2.3
+      if (n > 1 || n < 0.58) return null
+      if (y > 75.5 && Math.abs(x) < 3.8 && z > 0.2) return null // neck opening
+      if (y > 77.5 && Math.abs(x) < 5.5 && z < -1) return null
+      return mail(x, y, z)
+    }, MAT.METAL, 0.03)
+    // deltoid caps
+    for (const sx of [-1, 1]) {
+      b.ellipsoid([sx * 9.0, 74.8, 0.2], [3.5, 3.7, 5.1], mail, MAT.METAL, { hollow: 0.3, jitter: 0.03 })
+      // a single riveted strap running over the cap, front to back
+      b.capsule([sx * 9.0, 77.8, 0.2], [sx * 10.4, 73.4, 0.2], [1.1, 1.1, 1.2], grain(C.strap, C.leatherDark), MAT.LEATHER)
+    }
   }
   // tunic collar standing at the neck
   b.taper(76.2, 77.8, [0, 0.4], [4.0, 3.5], [0, 0.5], [3.6, 3.2], weave(C.tunicLight, C.tunic), MAT.MATTE, { square: 0.35 })
   // neck
   b.taper(76.5, 83.5, [0, 0.2], [2.9, 2.7], [0, 0.4], [3.1, 2.9], shade(C.skin, C.skinDark, 76.5, 83.5), MAT.MATTE)
-  // trapezius filling the gap between neck and shoulders
-  b.ellipsoid([0, 77.2, -0.6], [6.4, 2.0, 3.6], mail, MAT.METAL, { jitter: 0.03 })
+  // trapezius filling the gap between neck and shoulders: mail rings with
+  // the hauberk, bunched cloth at the collar without it
+  b.ellipsoid(
+    [0, 77.2, -0.6], [6.4, 2.0, 3.6],
+    armoured ? mail : weave(C.tunic, C.tunicDark),
+    armoured ? MAT.METAL : MAT.MATTE,
+    { jitter: 0.03 }
+  )
   // baldric over the right shoulder, down to the left hip
   b.capsule([-7.6, 77.0, -1.6], [7.0, 58.5, 3.2], [1.6, 1.6, 1.3], grain(C.leather, C.leatherDark), MAT.LEATHER)
   // second strap, carrying the javelin sheaf
@@ -283,14 +292,21 @@ function buildHelmet() {
   return b
 }
 
-function buildUpperArm(side) {
+function buildUpperArm(side, armoured = true) {
   // side: +1 his left, -1 his right. pivot at the shoulder (±10, 75.5, 0)
   const b = new VoxelBuilder(S)
-  // mail sleeve, thicker at the deltoid, tapering to the elbow
-  b.capsule([0, -0.5, 0], [side * 1.0, -9, 0], [3.2, 3.2, 3.2], mail, MAT.METAL, { jitter: 0.03 })
-  b.capsule([side * 1.0, -9, 0], [side * 1.2, -12.4, 0], [2.8, 2.8, 2.8], mail, MAT.METAL, { jitter: 0.03 })
-  // scalloped sleeve edge, then the tunic below it
-  b.capsule([side * 1.2, -12.6, 0], [side * 1.3, -13.6, 0], [2.7, 1.0, 2.7], weave(C.tunic, C.tunicDark), MAT.MATTE)
+  if (armoured) {
+    // mail sleeve, thicker at the deltoid, tapering to the elbow
+    b.capsule([0, -0.5, 0], [side * 1.0, -9, 0], [3.2, 3.2, 3.2], mail, MAT.METAL, { jitter: 0.03 })
+    b.capsule([side * 1.0, -9, 0], [side * 1.2, -12.4, 0], [2.8, 2.8, 2.8], mail, MAT.METAL, { jitter: 0.03 })
+    // scalloped sleeve edge, then the tunic below it
+    b.capsule([side * 1.2, -12.6, 0], [side * 1.3, -13.6, 0], [2.7, 1.0, 2.7], weave(C.tunic, C.tunicDark), MAT.MATTE)
+  } else {
+    // no mail: the tunic sleeve runs the whole arm down to the elbow
+    b.capsule([0, -0.5, 0], [side * 1.0, -9, 0], [3.2, 3.2, 3.2], weave(C.tunic, C.tunicDark), MAT.MATTE)
+    b.capsule([side * 1.0, -9, 0], [side * 1.2, -12.4, 0], [2.8, 2.8, 2.8], weave(C.tunic, C.tunicDark), MAT.MATTE)
+    b.capsule([side * 1.2, -12.6, 0], [side * 1.3, -13.6, 0], [2.7, 1.0, 2.7], weave(C.tunic, C.tunicDark), MAT.MATTE)
+  }
   return b
 }
 
@@ -468,21 +484,68 @@ function buildJavelinBundle(n) {
 }
 
 /* ------------------------------------------------------------------ */
+/* armour — worn, never wielded                                         */
+/* ------------------------------------------------------------------ */
+
+// A chain mail hauberk shown on its own: the item's portrait in the
+// inventory, built with the same ring patterns he wears so the icon is the
+// armour itself and not a drawing of it — the same rule the weapons' icons
+// follow. What he actually wears is buildHuman(armoured) on the body.
+function buildMail() {
+  const b = new VoxelBuilder(S)
+  // the skirt, flaring over the hips, scalloped at the hem and split front
+  // and back for riding
+  b.region([-11, 11], [0, 16], [-8, 8], (x, y, z) => {
+    const t = y / 16
+    const rx = 8.6 - t * 1.2
+    const rz = 5.7 - t * 0.7
+    const n = (Math.abs(x) / rx) ** 2.3 + (Math.abs(z) / rz) ** 2.3
+    if (n > 1 || n < 0.55) return null
+    if (y < 1 && (Math.round(x * S) + Math.round(z * S)) % 5 === 0) return null
+    return y < 3 ? mailSkirt(x, y, z) : mail(x, y, z)
+  }, MAT.METAL, 0.03)
+  // the body: waist to the shoulder shelf, with a neck opening front and back
+  b.region([-11, 11], [15, 44], [-8, 8], (x, y, z) => {
+    const t = (y - 15) / 29
+    const ease = Math.sin(t * Math.PI * 0.5)
+    const rx = 7.4 + ease * 1.5
+    const rz = 4.9 + ease * 0.9
+    const n = (Math.abs(x) / rx) ** 2.3 + (Math.abs(z) / rz) ** 2.3
+    if (n > 1 || n < 0.55) return null
+    if (y > 40 && Math.abs(x) < 3.6 && z > 0.2) return null // neck opening
+    if (y > 42 && Math.abs(x) < 5.4 && z < -1) return null
+    return mail(x, y, z)
+  }, MAT.METAL, 0.03)
+  // deltoid caps, a riveted strap over each, and a short sleeve hanging off
+  for (const sx of [-1, 1]) {
+    b.ellipsoid([sx * 8.7, 41.2, 0.2], [3.4, 3.6, 5.0], mail, MAT.METAL, { hollow: 0.3, jitter: 0.03 })
+    b.capsule([sx * 8.7, 44.2, 0.2], [sx * 10.1, 39.4, 0.2], [1.0, 1.0, 1.1], grain(C.strap, C.leatherDark), MAT.LEATHER)
+    b.capsule([sx * 8.9, 40.0, 0.1], [sx * 9.9, 31.0, 0.3], [2.9, 2.9, 2.9], mail, MAT.METAL, { jitter: 0.03 })
+    b.capsule([sx * 9.9, 31.0, 0.3], [sx * 10.1, 28.0, 0.4], [2.5, 2.5, 2.5], mailSkirt, MAT.METAL, { jitter: 0.03 })
+  }
+  return b
+}
+
+/* ------------------------------------------------------------------ */
 /* assembly                                                            */
 /* ------------------------------------------------------------------ */
 
-let cache = null
+const caches = {}
 
-export function buildHuman() {
-  if (cache) return cache
+// `armoured` builds the hauberk (and its shoulder caps and skirt) onto him;
+// without it he stands in his tunic and trousers. Both variants are cached,
+// so taking the mail off or putting it back on is a cheap swap.
+export function buildHuman(armoured = true) {
+  const key = armoured ? 'mail' : 'tunic'
+  if (caches[key]) return caches[key]
 
-  const upperL = buildUpperArm(1)
+  const upperL = buildUpperArm(1, armoured)
   const lowerL = buildLowerArm(1)
   const shinL = buildShin(1)
 
   const parts = {
-    hips: { b: buildHips(), pivot: [0, 52, 0] },
-    torso: { b: buildTorso(), pivot: [0, 52, 0] },
+    hips: { b: buildHips(armoured), pivot: [0, 52, 0] },
+    torso: { b: buildTorso(armoured), pivot: [0, 52, 0] },
     head: { b: buildHead(), pivot: [0, 81.5, 0] },
     helmet: { b: buildHelmet(), pivot: [0, 81.5, 0] },
     upperArmL: { b: upperL, pivot: [0, 0, 0] },
@@ -502,6 +565,9 @@ export function buildHuman() {
     flail: { b: buildFlail() },
     javelin: { b: buildJavelin() },
     javelins7: { b: buildJavelinBundle(7) },
+    // the mail's model is its inventory portrait; the shirt he wears is
+    // part of his body build (buildHuman(armoured))
+    mail: { b: buildMail() },
   }
 
   const out = { parts: {}, gear: {}, stats: {} }
@@ -515,6 +581,6 @@ export function buildHuman() {
     total += out.gear[k].reduce((a, g) => a + g.count, 0)
   }
   out.stats.voxels = total
-  cache = out
+  caches[key] = out
   return out
 }
