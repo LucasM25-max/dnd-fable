@@ -15,6 +15,7 @@ export const ITEMS = [
     id: 'greatsword',
     gear: 'greatsword', // key into the baked voxel models
     name: 'Greatsword',
+    rarity: 'rare',
     qty: 1,
     hotkey: '1',
     type: 'Martial melee weapon',
@@ -29,6 +30,7 @@ export const ITEMS = [
     id: 'flail',
     gear: 'flail',
     name: 'Flail',
+    rarity: 'uncommon',
     qty: 1,
     hotkey: '2',
     type: 'Martial melee weapon',
@@ -43,6 +45,7 @@ export const ITEMS = [
     id: 'javelin',
     gear: 'javelin',
     name: 'Javelin',
+    rarity: 'common',
     qty: 8,
     hotkey: '3',
     type: 'Simple melee weapon',

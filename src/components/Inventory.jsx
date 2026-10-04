@@ -7,28 +7,32 @@ import '../ui/inventory.css'
 /* ------------------------------------------------------------------ *
  * The pack.                                                           *
  *                                                                     *
- * A paper tab in the top right corner; pressing it (or `I`) unfolds   *
- * the sheet his kit is written out on. Each entry is drawn from the   *
- * real voxel model, says what it weighs and what it cost, and         *
- * clicking it puts the thing in his hands — the same state the 1/2/3  *
- * keys drive.                                                         *
+ * A drawer welded to the right edge of the screen. The handle is part *
+ * of the drawer, so pressing it (or `I`) slides the whole assembly     *
+ * out from the side. Inside: an inspector across the top, and the kit  *
+ * below it as a grid of slots — icons, counts and hotkeys only, the    *
+ * way BG3 or WoW lay a bag out. Clicking a slot loads the item into    *
+ * the inspector; equipping is an explicit action in there, and drives  *
+ * the same state the 1/2/3 keys do.                                    *
  * ------------------------------------------------------------------ */
+
+const GRID_SLOTS = 20 // the bag always looks like a bag, full or not
 
 /* ---------------- coin (10 sp = 1 gp) ---------------- */
 
 function coinText(silver) {
   const { gold, silver: sp } = splitCoin(silver)
-  if (gold && sp) return `${gold} gp ${sp} sp`
-  if (gold) return `${gold} gp`
-  return `${sp} sp`
+  if (gold && sp) return `${gold}g ${sp}s`
+  if (gold) return `${gold}g`
+  return `${sp}s`
 }
 
-/* ---------------- line art, all one pen weight ---------------- */
+/* ---------------- glyphs, one pen weight ---------------- */
 
 const PEN = {
   fill: 'none',
   stroke: 'currentColor',
-  strokeWidth: 1.3,
+  strokeWidth: 1.4,
   strokeLinecap: 'round',
   strokeLinejoin: 'round',
 }
@@ -39,14 +43,6 @@ const Satchel = (props) => (
     <path d="M8.2 9.6V7.3a3.8 3.8 0 0 1 7.6 0v2.3" />
     <path d="M4 13.3h16" />
     <path d="M12 12.7v3" />
-  </svg>
-)
-
-const Crest = (props) => (
-  <svg viewBox="0 0 32 32" {...PEN} {...props}>
-    <path d="M16 4 26 7.3v7.9c0 5.8-3.9 10.3-10 12.4-6.1-2.1-10-6.6-10-12.4V7.3L16 4Z" />
-    <path d="M11.4 11.8 20.6 21.2" />
-    <path d="M20.6 11.8 11.4 21.2" />
   </svg>
 )
 
@@ -65,91 +61,115 @@ const CoinGlyph = (props) => (
   </svg>
 )
 
-/* ---------------- one entry ---------------- */
+const Chevron = (props) => (
+  <svg viewBox="0 0 24 24" {...PEN} {...props}>
+    <path d="M14.5 6 8.8 12l5.7 6" />
+  </svg>
+)
 
-function ItemRow({ item, equipped, onEquip }) {
-  const stackWeight = item.weightLb * item.qty
-  const stackCost = item.costSilver * item.qty
-  const verb = equipped ? 'Put away the' : 'Take up the'
+/* ---------------- one slot ---------------- */
+
+function ItemCell({ item, equipped, selected, onSelect }) {
   return (
-    <li>
-      <button
-        type="button"
-        className={`inv-row${equipped ? ' is-equipped' : ''}`}
-        onClick={() => onEquip(item)}
-        aria-pressed={equipped}
-        title={`${verb} ${item.name.toLowerCase()}`}
-      >
-        <span className="inv-slot">
-          <span className="inv-floor" />
-          <ItemIcon item={item} size={96} />
-          {item.qty > 1 && <span className="inv-qty">×{item.qty}</span>}
-        </span>
-
-        <span className="inv-info">
-          <span className="inv-name">
-            <span className="n">{item.name}</span>
-            {equipped && <span className="held">in hand</span>}
-            <span className="key">{item.hotkey}</span>
-          </span>
-
-          <span className="inv-type">
-            {item.type} · {item.damage}
-          </span>
-
-          <span className="inv-traits">{item.traits.join(' · ')}</span>
-
-          <span className="inv-blurb">{item.blurb}</span>
-
-          <span className="inv-stats">
-            <span className="inv-stat">
-              <Anvil />
-              {lb(stackWeight)}
-              {item.qty > 1 && <span className="ea">{lb(item.weightLb)} each</span>}
-            </span>
-            <span className="inv-stat">
-              <CoinGlyph />
-              {coinText(stackCost)}
-              {item.qty > 1 && <span className="ea">{coinText(item.costSilver)} each</span>}
-            </span>
-          </span>
-        </span>
-      </button>
-    </li>
+    <button
+      type="button"
+      className={`inv-cell r-${item.rarity || 'common'}${equipped ? ' is-equipped' : ''}${
+        selected ? ' is-selected' : ''
+      }`}
+      onClick={() => onSelect(item.id)}
+      onDoubleClick={() => toggleHeld(item.gear)}
+      aria-pressed={selected}
+      aria-label={item.name}
+      title={item.name}
+    >
+      <span className="inv-cell-art">
+        <ItemIcon item={item} size={64} spin={false} />
+      </span>
+      {item.hotkey && <span className="inv-cell-key">{item.hotkey}</span>}
+      {item.qty > 1 && <span className="inv-cell-qty">{item.qty}</span>}
+    </button>
   )
 }
 
-/* ---------------- the sheet ---------------- */
+/* ---------------- the inspector ---------------- */
+
+function Detail({ item, equipped }) {
+  if (!item) {
+    return (
+      <section className="inv-detail is-empty" aria-live="polite">
+        <span className="inv-detail-empty">Select an item</span>
+      </section>
+    )
+  }
+
+  const stackWeight = item.weightLb * item.qty
+  const stackCost = item.costSilver * item.qty
+
+  return (
+    <section className={`inv-detail r-${item.rarity || 'common'}`} aria-live="polite">
+      <div className={`inv-detail-art r-${item.rarity || 'common'}`}>
+        <ItemIcon item={item} size={104} />
+      </div>
+
+      <div className="inv-detail-body">
+        <h2 className="inv-detail-name">{item.name}</h2>
+        <p className="inv-detail-sub">
+          {item.type} · {item.damage}
+        </p>
+
+        <ul className="inv-detail-traits">
+          {item.traits.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+
+        <div className="inv-detail-stats">
+          <span>
+            <Anvil />
+            {lb(stackWeight)}
+          </span>
+          <span>
+            <CoinGlyph />
+            {coinText(stackCost)}
+          </span>
+          {item.qty > 1 && <span className="ea">×{item.qty}</span>}
+        </div>
+
+        <div className="inv-detail-actions">
+          <button
+            type="button"
+            className={`inv-act is-primary${equipped ? ' is-on' : ''}`}
+            onClick={() => toggleHeld(item.gear)}
+          >
+            {equipped ? 'Unequip' : 'Equip'}
+            <em>{item.hotkey}</em>
+          </button>
+          <button type="button" className="inv-act" disabled>
+            Drop
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ---------------- the drawer ---------------- */
 
 export default function Inventory() {
   const held = useSyncExternalStore(subscribeHeld, getHeld, getHeld)
   const [open, setOpen] = useState(false)
-  const [closing, setClosing] = useState(false)
+  const [selectedId, setSelectedId] = useState(ITEMS[0]?.id ?? null)
   const isOpen = useRef(false) // read by the handlers without re-binding them
-  const timer = useRef(0)
 
-  // closing plays a short fade, so the sheet outlives `open` briefly
   const close = useCallback(() => {
-    if (!isOpen.current) return
     isOpen.current = false
     setOpen(false)
-    setClosing(true)
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => setClosing(false), 90)
-  }, [])
-
-  const show = useCallback(() => {
-    if (isOpen.current) return
-    isOpen.current = true
-    clearTimeout(timer.current)
-    setClosing(false)
-    setOpen(true)
   }, [])
 
   const toggle = useCallback(() => {
-    if (isOpen.current) close()
-    else show()
-  }, [close, show])
+    isOpen.current = !isOpen.current
+    setOpen(isOpen.current)
+  }, [])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -165,73 +185,66 @@ export default function Inventory() {
     return () => window.removeEventListener('keydown', onKey)
   }, [toggle, close])
 
-  useEffect(() => () => clearTimeout(timer.current), [])
-
   const items = ITEMS
+  const selected = items.find((it) => it.id === selectedId) || null
   const weight = totalWeight(items)
   const value = totalValue(items)
+  const load = Math.min(1, weight / CARRY_LIMIT)
+  const empties = Math.max(0, GRID_SLOTS - items.length)
 
   return (
-    <div className="inv">
-      <button
-        type="button"
-        className={`inv-btn${open ? ' is-open' : ''}`}
-        onClick={toggle}
-        aria-expanded={open}
-        aria-label={open ? 'Close pack' : 'Open pack'}
-        title="Pack (I)"
-      >
-        <Satchel />
-        <em>I</em>
-      </button>
-
-      {(open || closing) && (
-        <aside
-          className={`inv-panel${closing ? ' is-closing' : ''}`}
-          role="dialog"
-          aria-label="Pack"
+    <div className={`inv${open ? ' is-open' : ''}`}>
+      <div className="inv-dock">
+        <button
+          type="button"
+          className="inv-tab"
+          onClick={toggle}
+          aria-expanded={open}
+          aria-label={open ? 'Close pack' : 'Open pack'}
+          title="Pack (I)"
         >
-          <header className="inv-head">
-            <span className="inv-crest">
-              <Crest width="30" height="30" />
-            </span>
-            <div className="inv-title">
-              <h2>Pack</h2>
-              <p>what he is carrying</p>
+          <span className="inv-tab-face">
+            <Satchel />
+            <Chevron className="inv-tab-chev" />
+          </span>
+        </button>
+
+        <aside className="inv-panel" role="dialog" aria-label="Pack" aria-hidden={!open}>
+          <Detail item={selected} equipped={selected ? held === selected.gear : false} />
+
+          <div className="inv-grid-wrap">
+            <div className="inv-grid">
+              {items.map((item) => (
+                <ItemCell
+                  key={item.id}
+                  item={item}
+                  equipped={held === item.gear}
+                  selected={item.id === selectedId}
+                  onSelect={setSelectedId}
+                />
+              ))}
+              {Array.from({ length: empties }, (_, i) => (
+                <span key={`e${i}`} className="inv-cell is-empty" aria-hidden="true" />
+              ))}
             </div>
-            <button type="button" className="inv-close" onClick={close} aria-label="Close pack">
-              ✕
-            </button>
-          </header>
-
-          <div className="inv-rule" aria-hidden="true" />
-
-          <ul className="inv-list">
-            {items.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                equipped={held === item.gear}
-                onEquip={(it) => toggleHeld(it.gear)}
-              />
-            ))}
-          </ul>
+          </div>
 
           <footer className="inv-foot">
-            <div className="inv-totals">
-              <span className="k">Load</span>
-              <span>{lb(weight)}</span>
-              <span className="dot">·</span>
-              <span className="k">Worth</span>
-              <span>{coinText(value)}</span>
-              <span className="ea">carries {lb(CARRY_LIMIT)} easily</span>
+            <div className="inv-load">
+              <div className="inv-load-bar">
+                <span style={{ transform: `scaleX(${load})` }} />
+              </div>
+              <span className="inv-load-num">
+                {Math.round(weight)}/{CARRY_LIMIT}
+              </span>
             </div>
-            <span className="inv-hint">
-              click an entry to take it up · 1–3 equip · 0 stows · I closes
+            <span className="inv-coin">
+              <CoinGlyph />
+              {coinText(value)}
             </span>
           </footer>
         </aside>
-      )}
+      </div>
     </div>
   )
 }

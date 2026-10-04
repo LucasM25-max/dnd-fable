@@ -32,7 +32,7 @@ export default function App() {
       {/* flat UI, drawn over the canvas and tracked to a point above his head */}
       <HealthBar />
 
-      {/* the pack: satchel button, top right */}
+      {/* the pack: a drawer bolted to the right edge, handle top right */}
       <Inventory />
     </div>
   )

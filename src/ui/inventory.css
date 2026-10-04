@@ -1,458 +1,546 @@
 /* ------------------------------------------------------------------ *
- * The pack: a sheet of paper with his kit written out on it.           *
+ * The pack: a drawer bolted to the right edge of the screen.           *
  *                                                                      *
- * Deliberately plain. One ink colour, one paper colour, hand-ruled     *
- * lines, line-art glyphs drawn in the same weight as each other. No    *
- * glows, no bevels, no gradient type, no pill-shaped chips — the only  *
- * shadow in here is the one that lifts the sheet off the white world.  *
+ * Dark glass, one warm metal hairline, a single gold accent reserved    *
+ * for selection and for what is in his hands. Rarity is colour, not     *
+ * words. The handle is part of the drawer and rides out with it.        *
+ * Everything that can be an icon is an icon; the only text in the grid  *
+ * is a count and a hotkey.                                              *
  * ------------------------------------------------------------------ */
 
 .inv {
-  --paper: #e7dcc0;
-  --paper-warm: #ded1b0;
-  --paper-deep: #d3c49f;
-  --ink: #2b2318;
-  --ink-soft: #574836;
-  --ink-faint: #7f6d53;
-  --rule: rgba(43, 35, 24, 0.32);
-  --rubric: #8d3c26; /* the red a scribe uses for headings */
+  --w: 384px; /* drawer width */
+  --tab: 52px; /* handle size — same square the old button was */
 
-  /* paper fibre; coarse on purpose so it reads as stock, not as a filter */
-  --fibre: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23f)'/%3E%3C/svg%3E");
+  --glass: rgba(16, 15, 13, 0.82);
+  --glass-solid: #131210;
+  --edge: rgba(201, 164, 94, 0.34);
+  --edge-soft: rgba(255, 240, 210, 0.08);
+  --slot: rgba(255, 246, 228, 0.045);
+  --slot-edge: rgba(255, 240, 214, 0.12);
+
+  --txt: #efe6d6;
+  --txt-soft: #b3a894;
+  --txt-faint: #7d7465;
+  --gold: #d9b26a;
+  --gold-hot: #f2cf8c;
+
+  --common: #b9b2a4;
+  --uncommon: #71b06a;
+  --rare: #5a9fe0;
 
   position: fixed;
-  top: 0;
-  right: 0;
+  inset: 0;
   z-index: 2147483100;
-  font-family: 'EB Garamond', Georgia, 'Times New Roman', serif;
-  font-size: 15px;
-  color: var(--ink);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  font-variant-numeric: lining-nums;
-}
-
-/* ---------------- the tab you open it with ---------------- */
-
-.inv-btn {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  width: 52px;
-  height: 52px;
-  padding: 0;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--ink);
-  border-radius: 3px;
-  background-color: var(--paper);
-  background-image: var(--fibre);
-  background-size: 200px 200px;
-  background-blend-mode: multiply;
-  color: var(--ink);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
-}
-.inv-btn:hover {
-  background-color: var(--paper-warm);
-}
-.inv-btn:active {
-  transform: translateY(1px);
-}
-.inv-btn:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-}
-.inv-btn.is-open {
-  background-color: var(--paper-deep);
-}
-.inv-btn svg {
-  width: 27px;
-  height: 27px;
-  display: block;
-}
-/* the key, written on the corner of the tab rather than keycapped */
-.inv-btn em {
-  position: absolute;
-  right: 4px;
-  bottom: 1px;
-  font-size: 11px;
-  font-style: italic;
-  line-height: 1;
-  color: var(--ink-faint);
-}
-
-/* ---------------- the sheet ---------------- */
-
-.inv-panel {
-  position: fixed;
-  top: 78px;
-  right: 16px;
-  width: min(392px, calc(100vw - 32px));
-  max-height: min(80vh, calc(100vh - 100px));
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--ink);
-  border-radius: 2px;
-  color: var(--ink);
-  /* tea stains, set off-centre so the sheet isn't symmetric */
-  background-color: var(--paper);
-  background-image:
-    radial-gradient(42% 30% at 78% 4%, rgba(123, 86, 38, 0.1), transparent 70%),
-    radial-gradient(34% 26% at 8% 62%, rgba(123, 86, 38, 0.08), transparent 72%),
-    radial-gradient(60% 40% at 50% 112%, rgba(80, 56, 26, 0.12), transparent 70%),
-    var(--fibre);
-  background-size: auto, auto, auto, 200px 200px;
-  background-blend-mode: normal, normal, normal, multiply;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.33);
-  overflow: hidden;
-  animation: inv-in 110ms ease-out both;
-}
-/* the inner rule, ruled by hand: not the same inset on all four sides */
-.inv-panel::before {
-  content: '';
-  position: absolute;
-  top: 5px;
-  right: 6px;
-  bottom: 7px;
-  left: 5px;
-  border: 1px solid var(--rule);
   pointer-events: none;
-  z-index: 3;
-}
-@keyframes inv-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-}
-.inv-panel.is-closing {
-  animation: inv-out 90ms ease-in both;
-}
-@keyframes inv-out {
-  to {
-    opacity: 0;
-  }
+  overflow: hidden; /* the parked drawer must not grow the page */
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: var(--txt);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* ---------------- heading ---------------- */
+/* ---------------- the dock: handle + drawer, one moving piece ------- */
 
-.inv-head {
+.inv-dock {
+  position: absolute;
+  top: 16px; /* the handle keeps exactly the height it always had */
+  right: 0;
   display: flex;
   align-items: flex-start;
-  gap: 11px;
-  padding: 15px 16px 9px 17px;
+  pointer-events: auto;
+  transform: translateX(var(--w));
+  transition: transform 260ms cubic-bezier(0.22, 0.75, 0.25, 1);
+  will-change: transform;
 }
-.inv-crest {
+.inv.is-open .inv-dock {
+  transform: translateX(0);
+}
+
+/* ---------------- the handle ---------------- */
+
+.inv-tab {
   flex: none;
-  width: 30px;
-  height: 30px;
-  margin-top: 1px;
-  color: var(--ink);
+  width: calc(var(--tab) + 6px);
+  height: var(--tab);
+  margin-right: -1px;
+  padding: 0;
+  cursor: pointer;
+  border: 1px solid var(--edge);
+  border-right: 0;
+  border-radius: 6px 0 0 6px;
+  background:
+    linear-gradient(180deg, rgba(255, 238, 206, 0.09), rgba(255, 238, 206, 0) 58%),
+    var(--glass);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  box-shadow:
+    -6px 4px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 var(--edge-soft);
+  color: var(--txt-soft);
+  display: grid;
+  place-items: center;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease;
 }
-.inv-title {
+.inv-tab:hover {
+  color: var(--gold-hot);
+}
+.inv-tab:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 2px;
+}
+.inv.is-open .inv-tab {
+  color: var(--gold);
+}
+.inv-tab-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding-right: 4px;
+}
+.inv-tab svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+/* the chevron flips to point the way the drawer will go */
+.inv-tab-chev {
+  position: absolute;
+  right: 1px;
+  bottom: 4px;
+  width: 13px !important;
+  height: 13px !important;
+  opacity: 0.55;
+  transition: transform 260ms cubic-bezier(0.22, 0.75, 0.25, 1);
+}
+.inv.is-open .inv-tab-chev {
+  transform: scaleX(-1);
+}
+
+/* ---------------- the drawer ---------------- */
+
+.inv-panel {
+  flex: none;
+  width: var(--w);
+  max-width: 100vw;
+  /* deliberately short of both edges of the screen */
+  height: min(640px, calc(100vh - 140px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--edge);
+  border-right: 0;
+  border-radius: 4px 0 0 4px;
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(217, 178, 106, 0.08), transparent 70%),
+    linear-gradient(180deg, rgba(255, 240, 210, 0.045), rgba(0, 0, 0, 0.12)),
+    var(--glass);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  box-shadow:
+    -14px 10px 42px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 var(--edge-soft);
+}
+.inv-panel[aria-hidden='true'] {
+  visibility: hidden;
+  transition: visibility 0s linear 260ms;
+}
+
+/* ---------------- the inspector ---------------- */
+
+.inv-detail {
+  flex: none;
+  display: flex;
+  gap: 14px;
+  padding: 16px 16px 14px;
+  min-height: 188px;
+  border-bottom: 1px solid var(--edge-soft);
+  background: linear-gradient(180deg, rgba(255, 240, 210, 0.035), transparent);
+}
+.inv-detail.is-empty {
+  align-items: center;
+  justify-content: center;
+}
+.inv-detail-empty {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+}
+
+.inv-detail-art {
+  position: relative;
+  flex: none;
+  width: 112px;
+  height: 112px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--slot-edge);
+  border-radius: 3px;
+  background:
+    radial-gradient(60% 60% at 50% 42%, rgba(255, 255, 255, 0.07), transparent 72%),
+    rgba(0, 0, 0, 0.26);
+  box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.5);
+}
+.inv-detail-art::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  pointer-events: none;
+}
+.inv-detail-art.r-common::after {
+  border-color: rgba(185, 178, 164, 0.3);
+}
+.inv-detail-art.r-uncommon::after {
+  border-color: rgba(113, 176, 106, 0.5);
+  box-shadow: inset 0 0 20px rgba(113, 176, 106, 0.12);
+}
+.inv-detail-art.r-rare::after {
+  border-color: rgba(90, 159, 224, 0.55);
+  box-shadow: inset 0 0 20px rgba(90, 159, 224, 0.14);
+}
+.inv-detail-art canvas {
+  display: block;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55));
+}
+
+.inv-detail-body {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
-.inv-title h2 {
+.inv-detail-name {
   margin: 0;
   font-family: 'Cinzel', Georgia, serif;
   font-size: 18px;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.035em;
   line-height: 1.15;
-  color: var(--ink);
-}
-.inv-title p {
-  margin: 1px 0 0;
-  font-size: 14px;
-  font-style: italic;
-  color: var(--ink-faint);
-}
-.inv-close {
-  font: inherit;
-  flex: none;
-  width: 24px;
-  height: 24px;
-  margin-top: -1px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  border: 0;
-  background: none;
-  color: var(--ink-soft);
-  font-size: 16px;
-  line-height: 1;
-}
-.inv-close:hover {
-  color: var(--rubric);
-}
-.inv-close:focus-visible {
-  outline: 1px solid var(--ink);
-  outline-offset: 2px;
-}
-
-/* a ruled line under the heading — two strokes, the second lighter, the
-   way a second pass of the pen comes out */
-.inv-rule {
-  height: 3px;
-  margin: 0 17px 0 18px;
-  border-top: 1px solid var(--ink);
-  border-bottom: 1px solid rgba(43, 35, 24, 0.22);
-}
-
-/* ---------------- the list ---------------- */
-
-.inv-list {
-  list-style: none;
-  margin: 0;
-  padding: 4px 13px 10px 14px;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-color: rgba(43, 35, 24, 0.4) transparent;
-  scrollbar-width: thin;
-}
-.inv-list::-webkit-scrollbar {
-  width: 8px;
-}
-.inv-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-.inv-list::-webkit-scrollbar-thumb {
-  background: rgba(43, 35, 24, 0.33);
-  border-radius: 0;
-}
-/* entries are separated by a ruled line, not by a card each */
-.inv-list li + li .inv-row {
-  border-top: 1px solid var(--rule);
-}
-
-.inv-row {
-  position: relative;
-  width: 100%;
-  display: flex;
-  gap: 13px;
-  align-items: flex-start;
-  text-align: left;
-  padding: 11px 6px 12px 10px;
-  cursor: pointer;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-}
-.inv-row:hover {
-  background: rgba(123, 86, 38, 0.07);
-}
-.inv-row:focus-visible {
-  outline: 1px solid var(--ink);
-  outline-offset: -2px;
-}
-/* in hand: a stroke ruled down the margin, the way you'd tick an entry */
-.inv-row.is-equipped {
-  background: rgba(123, 86, 38, 0.09);
-}
-.inv-row.is-equipped::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 12px;
-  bottom: 13px;
-  width: 2px;
-  background: var(--rubric);
-}
-
-/* ---------------- the drawing of the item ---------------- */
-
-.inv-slot {
-  position: relative;
-  flex: none;
-  width: 98px;
-  height: 98px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--rule);
-  /* a faint wash, a shade deeper than the page, so pale steel still reads */
-  background: rgba(43, 35, 24, 0.055);
-}
-.inv-floor {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  width: 54%;
-  height: 7px;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: radial-gradient(50% 50% at 50% 50%, rgba(43, 35, 24, 0.26), transparent 72%);
-  pointer-events: none;
-}
-.inv-slot canvas {
-  display: block;
-  position: relative;
-  z-index: 2;
-  filter: drop-shadow(0 2px 2px rgba(43, 35, 24, 0.22));
-}
-/* the count, written beside the drawing */
-.inv-qty {
-  position: absolute;
-  right: 4px;
-  bottom: 2px;
-  z-index: 3;
-  font-size: 13px;
-  font-style: italic;
-  color: var(--ink-soft);
-}
-
-/* ---------------- the entry ---------------- */
-
-.inv-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding-top: 1px;
-}
-.inv-name {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-}
-.inv-name .n {
-  display: block;
-  min-width: 0;
-  font-family: 'Cinzel', Georgia, serif;
-  font-size: 15.5px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: var(--ink);
+  color: var(--txt);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.inv-name .held {
-  font-size: 13px;
-  font-style: italic;
-  color: var(--rubric);
+.inv-detail.r-common .inv-detail-name {
+  color: var(--common);
+}
+.inv-detail.r-uncommon .inv-detail-name {
+  color: var(--uncommon);
+}
+.inv-detail.r-rare .inv-detail-name {
+  color: var(--rare);
+}
+.inv-detail-sub {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: var(--txt-faint);
   white-space: nowrap;
-}
-.inv-name .key {
-  margin-left: auto;
-  flex: none;
-  font-size: 13px;
-  font-style: italic;
-  color: var(--ink-faint);
-}
-.inv-type {
-  display: block;
-  margin-top: 1px;
-  font-size: 13.5px;
-  font-style: italic;
-  color: var(--ink-soft);
-}
-/* properties run on as text instead of sitting in chips */
-.inv-traits {
-  display: block;
-  margin-top: 3px;
-  font-size: 11px;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.inv-blurb {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-top: 5px;
-  font-size: 13.5px;
-  line-height: 1.36;
-  color: var(--ink-soft);
+  text-overflow: ellipsis;
 }
 
-.inv-stats {
+.inv-detail-traits {
+  list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 18px;
-  margin-top: 8px;
-  padding-top: 7px;
-  border-top: 1px solid var(--rule);
+  gap: 5px;
+  margin: 9px 0 0;
+  padding: 0;
 }
-.inv-stat {
+.inv-detail-traits li {
+  padding: 2px 7px;
+  border: 1px solid var(--slot-edge);
+  border-radius: 2px;
+  background: rgba(255, 246, 228, 0.04);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--txt-soft);
+}
+
+.inv-detail-stats {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
-  min-width: 0;
-  font-size: 14px;
+  align-items: center;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: 13px;
+  color: var(--txt-soft);
 }
-.inv-stat svg {
-  flex: none;
+.inv-detail-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.inv-detail-stats svg {
   width: 14px;
   height: 14px;
-  align-self: center;
-  color: var(--ink-soft);
+  color: var(--txt-faint);
 }
-.inv-stat .ea {
-  font-size: 12.5px;
-  font-style: italic;
-  color: var(--ink-faint);
+.inv-detail-stats .ea {
+  margin-left: auto;
+  color: var(--txt-faint);
 }
 
-/* ---------------- the tally at the foot ---------------- */
-
-.inv-foot {
-  padding: 9px 17px 12px 18px;
-  border-top: 1px solid var(--ink);
-  background: rgba(123, 86, 38, 0.06);
-}
-.inv-totals {
+.inv-detail-actions {
   display: flex;
-  align-items: baseline;
   gap: 8px;
-  font-size: 14.5px;
+  margin-top: 10px;
 }
-.inv-totals .k {
-  font-size: 11px;
+.inv-act {
+  position: relative;
+  flex: 1;
+  height: 32px;
+  padding: 0 10px;
+  cursor: pointer;
+  border: 1px solid var(--slot-edge);
+  border-radius: 3px;
+  background: rgba(255, 246, 228, 0.05);
+  color: var(--txt-soft);
+  font: inherit;
+  font-size: 11.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  transition:
+    background-color 130ms ease,
+    color 130ms ease,
+    border-color 130ms ease;
 }
-.inv-totals .dot {
-  color: var(--ink-faint);
+.inv-act:hover:not(:disabled) {
+  background: rgba(255, 246, 228, 0.1);
+  color: var(--txt);
 }
-.inv-totals .ea {
-  margin-left: auto;
-  font-size: 12.5px;
-  font-style: italic;
-  color: var(--ink-faint);
+.inv-act:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 1px;
 }
-.inv-hint {
-  display: block;
-  margin-top: 4px;
-  font-size: 12.5px;
-  font-style: italic;
-  color: var(--ink-faint);
+.inv-act:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+.inv-act.is-primary {
+  border-color: var(--edge);
+  background: linear-gradient(180deg, rgba(217, 178, 106, 0.22), rgba(217, 178, 106, 0.08));
+  color: var(--gold-hot);
+}
+.inv-act.is-primary:hover {
+  background: linear-gradient(180deg, rgba(217, 178, 106, 0.32), rgba(217, 178, 106, 0.14));
+  color: #fff3d8;
+}
+.inv-act.is-primary.is-on {
+  border-color: rgba(255, 240, 210, 0.2);
+  background: rgba(255, 246, 228, 0.06);
+  color: var(--txt-soft);
+}
+.inv-act em {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-style: normal;
+  font-size: 10px;
+  color: var(--txt-faint);
 }
 
-@media (max-width: 480px) {
-  .inv-panel {
-    top: 76px;
-    right: 12px;
-    left: 12px;
-    width: auto;
-    max-height: calc(100vh - 96px);
+/* ---------------- the grid ---------------- */
+
+.inv-grid-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(217, 178, 106, 0.35) transparent;
+}
+.inv-grid-wrap::-webkit-scrollbar {
+  width: 6px;
+}
+.inv-grid-wrap::-webkit-scrollbar-thumb {
+  background: rgba(217, 178, 106, 0.3);
+  border-radius: 3px;
+}
+
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+  gap: 8px;
+}
+
+.inv-cell {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border: 1px solid var(--slot-edge);
+  border-radius: 3px;
+  background:
+    radial-gradient(70% 70% at 50% 35%, rgba(255, 255, 255, 0.05), transparent 75%),
+    rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 16px rgba(0, 0, 0, 0.55);
+  color: var(--txt-soft);
+  font: inherit;
+  transition:
+    border-color 130ms ease,
+    transform 130ms ease,
+    box-shadow 130ms ease;
+}
+.inv-cell.is-empty {
+  cursor: default;
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.45);
+}
+.inv-cell:not(.is-empty):hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 240, 210, 0.3);
+}
+.inv-cell:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 1px;
+}
+.inv-cell-art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.inv-cell canvas {
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+/* rarity reads as the slot's edge and a breath of colour behind the icon */
+.inv-cell.r-common {
+  border-color: rgba(185, 178, 164, 0.22);
+}
+.inv-cell.r-uncommon {
+  border-color: rgba(113, 176, 106, 0.42);
+  background:
+    radial-gradient(70% 70% at 50% 60%, rgba(113, 176, 106, 0.16), transparent 72%),
+    rgba(0, 0, 0, 0.3);
+}
+.inv-cell.r-rare {
+  border-color: rgba(90, 159, 224, 0.45);
+  background:
+    radial-gradient(70% 70% at 50% 60%, rgba(90, 159, 224, 0.18), transparent 72%),
+    rgba(0, 0, 0, 0.3);
+}
+
+.inv-cell.is-selected {
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 1px rgba(217, 178, 106, 0.4),
+    inset 0 0 18px rgba(217, 178, 106, 0.16);
+}
+/* in hand: a gold notch in the corner, no words */
+.inv-cell.is-equipped::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-top: 11px solid var(--gold);
+  border-right: 11px solid transparent;
+  border-top-left-radius: 2px;
+}
+
+.inv-cell-key {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 9.5px;
+  line-height: 1;
+  color: var(--txt-faint);
+}
+.inv-cell-qty {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 600;
+  color: var(--txt);
+  text-shadow: 0 1px 2px #000;
+}
+
+/* ---------------- the foot ---------------- */
+
+.inv-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--edge-soft);
+  background: rgba(0, 0, 0, 0.22);
+}
+.inv-load {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.inv-load-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255, 246, 228, 0.1);
+}
+.inv-load-bar span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--gold), var(--gold-hot));
+  transition: transform 220ms ease;
+}
+.inv-load-num,
+.inv-coin {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--txt-soft);
+}
+.inv-coin svg {
+  width: 13px;
+  height: 13px;
+  color: var(--gold);
+}
+
+/* ---------------- small screens ---------------- */
+
+@media (max-width: 460px) {
+  .inv {
+    --w: min(320px, calc(100vw - 58px));
   }
-  .inv-blurb {
-    display: none;
+  .inv-panel {
+    height: min(560px, calc(100vh - 120px));
+  }
+  .inv-detail-art {
+    width: 92px;
+    height: 92px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .inv-panel,
-  .inv-panel.is-closing {
-    animation: none;
+  .inv-dock,
+  .inv-tab-chev,
+  .inv-cell,
+  .inv-load-bar span {
+    transition: none;
   }
 }
