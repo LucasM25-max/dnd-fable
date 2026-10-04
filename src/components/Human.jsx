@@ -250,7 +250,7 @@ export default function Human({ motion, held, armour = 'mail', hideHead = false 
             {/* the greatsword is held in both hands, off the torso */}
             {wield('greatsword', G.greatsword)}
 
-            {/* head (the helm rides with it) */}
+            {/* head (the helm rides with it, and comes off with the mail) */}
             <group ref={set('head')} position={[0, v(29.5), 0]}>
               <VoxelMesh data={model.parts.head} />
               <VoxelMesh data={model.parts.helmet} />

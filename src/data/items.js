@@ -67,7 +67,7 @@ export const ITEMS = [
     traits: ['Heavy', 'Stealth disadvantage'],
     costSilver: 750, // 75 gp
     weightLb: 55,
-    blurb: 'Riveted rings from throat to thigh. He sleeps in it.',
+    blurb: 'Riveted rings throat to thigh, helm and all. He sleeps in it.',
     icon: { scale: 0.96, tilt: 0.5, lean: 0.06 },
   },
 ]

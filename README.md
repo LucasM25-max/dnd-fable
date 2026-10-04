@@ -59,7 +59,9 @@ within a few percent of its base tone and lets the lighting do the work.
   nothing rides on his back that he is not currently using.
 * **Open-faced helm** — riveted skull cap with reinforcing ribs, a brow band, a
   nasal bar, hinged cheek plates and a short mail aventail at the neck. It rides
-  with the head, so it moves with every head turn and nod.
+  with the head, so it moves with every head turn and nod. It is part of the
+  chain mail item: unequip the mail and the helm comes off with it, leaving his
+  cropped hair bare.
 * **Clean-shaven face** — long jaw, strong brow, visible eyes and mouth, short
   cropped hair under the helm.
 
@@ -92,9 +94,10 @@ scrolls.
 | **Carried** | | **139 gp** | **79 lb.** (of a 240 lb. capacity) |
 
 The chain mail starts on him and can be taken off like anything else: the
-hauberk is built onto his body model, so unequipping it swaps him to the tunic
-and trousers he wears underneath — no rings, no shoulder caps, no skirt — and
-equipping it puts them back. Its slot shows the gold notch while it is worn.
+hauberk and the helm it includes are built onto his body model, so unequipping
+it swaps him to the tunic and trousers he wears underneath — no rings, no
+shoulder caps, no skirt, and a bare head with his cropped hair — and equipping
+it puts them all back. Its slot shows the gold notch while it is worn.
 
 Prices live in silver (`src/data/items.js`) and are split into gold and silver
 on the way out at 10 sp = 1 gp, so a stack of eight javelins at 5 sp comes to

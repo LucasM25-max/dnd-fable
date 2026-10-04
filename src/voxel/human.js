@@ -547,7 +547,9 @@ export function buildHuman(armoured = true) {
     hips: { b: buildHips(armoured), pivot: [0, 52, 0] },
     torso: { b: buildTorso(armoured), pivot: [0, 52, 0] },
     head: { b: buildHead(), pivot: [0, 81.5, 0] },
-    helmet: { b: buildHelmet(), pivot: [0, 81.5, 0] },
+    // the helm is part of the armour: with the mail off his head is bare
+    // (an empty build bakes to no groups, so nothing is drawn)
+    helmet: { b: armoured ? buildHelmet() : new VoxelBuilder(S), pivot: [0, 81.5, 0] },
     upperArmL: { b: upperL, pivot: [0, 0, 0] },
     upperArmR: { b: upperL.mirrored(0), pivot: [0, 0, 0] },
     lowerArmL: { b: lowerL, pivot: [0, 0, 0] },
