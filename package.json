@@ -1,0 +1,12 @@
+{
+  "name": "dicebound",
+  "version": "0.1.0",
+  "description": "Dicebound — a 3D voxel tactical combat game. This milestone: the main-menu hub.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 8000 --bind 0.0.0.0",
+    "export:model": "node scripts/export-model.mjs",
+    "preview:model": "python3 scripts/preview.py"
+  }
+}
