@@ -111,17 +111,6 @@ Principles: reach combat in under two minutes, introduce choices after the playe
 - **Tooltips:** consistent rules terminology everywhere.
 - **Accessibility:** reduced-motion support, colorblind modes, scalable text.
 
-## 10. Hub mockup status
-
-A working hub mockup exists as a published page, built with Three.js and plain HTML.
-
-- Voxel human fighter (chain mail, red tabard, plumed helm, cape, shield, longsword) on a glowing podium, with idle animation and mouse-follow head and body.
-- Voxel tavern: plank floor, stone walls, fireplace with animated flames and embers, window, banner, bar with bottles, barrels, tables, beams and lanterns.
-- Full UI layout with working hover states, encounter cycling and placeholder buttons.
-- The sample character is a level 3 Champion Fighter: AC 19 (chain mail 16, shield +2, Defense style +1), 28 HP, +5 to hit with the longsword for 1d8+3 slashing and the Sap mastery, with Second Wind, Action Surge and Improved Critical.
-- Sample encounters use real XP values: goblin warriors 50 XP each, bandits 25 XP each, wolves 50 XP each. Gold ranges are placeholders.
-- Planned next state: a first-launch variant with a level 1 hero, near-empty gold and highlighted prompts on Play and the Armory.
-
 ## 11. Suggested build order
 
 1. Character creation and sheet, the foundation for everything else.
