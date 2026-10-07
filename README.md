@@ -8,9 +8,9 @@ The game opens straight into the world. Add `#menu` to the URL to open the menu 
 Add `?map=<id>` to pick a map (default: `forest-clearing`) and `?zones` to draw the spawn zones (blue = player, red = enemies), e.g. `index.html?map=forest-clearing&zones`.
 
 ## Flow
-Game opens in the 3D forest-clearing map (player spawns at the south edge, path to the ruined outpost, enemies spawn in front of its gate). **Esc** opens the menu (tavern hub); **Play** returns to the world.
+Game opens in the 3D forest-clearing map (the player starts five metres farther into the clearing, beside the path to the ruined outpost; two small voxel-built goblin minions ambush the path about 22–28 ft ahead, within 30-ft movement range). A 10-second opening camera tour orbits the fighter, moves to the goblins, and returns; the player remains fixed at the tutorial spawn. **Esc** opens the menu (tavern hub); **Play** returns to the world.
 
-World controls: WASD or arrows move, Shift sprints, Space jumps, drag the mouse to orbit the camera, wheel zooms, Q/E turn the camera.
+Camera controls: drag the mouse to orbit, wheel to zoom, and Q/E to turn the camera. Player movement is disabled.
 
 ## Structure
 ```
@@ -20,6 +20,7 @@ css/menu.css            hub menu UI
 js/core/renderer.js     Fable namespace + shared WebGL renderer
 js/core/voxel.js        block helper, material cache, 1cm voxelizer
 js/characters/human-fighter.js   fighter model (shared by menu and world)
+js/characters/goblin-minion.js    Small voxel goblins, each with three daggers
 js/menu/tavern.js       voxel tavern backdrop
 js/menu/menu-ui.js      buttons, toast, encounter picker
 js/menu/menu-scene.js   hub 3D scene (lights, podium, embers, camera)
