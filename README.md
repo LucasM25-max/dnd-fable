@@ -4,10 +4,10 @@
 
 ## Run
 Open `index.html` in a browser (no build step), or serve the folder with GitHub Pages. Three.js r128 loads from cdnjs.
-Add `#world` to the URL to skip the menu and land straight in the world.
+The game opens straight into the world. Add `#menu` to the URL to open the menu first (the menu scene is only built when it is opened).
 
 ## Flow
-Menu (tavern hub) -> **Play** -> 3D forest clearing with a ruined outpost. **Esc** returns to the menu.
+Game opens in the 3D forest world (spawn at the south edge, path to the ruined outpost). **Esc** opens the menu (tavern hub); **Play** returns to the world.
 
 World controls: WASD or arrows move, Shift sprints, Space jumps, drag the mouse to orbit the camera, wheel zooms, Q/E turn the camera.
 
@@ -25,7 +25,8 @@ js/menu/menu-scene.js   hub 3D scene (lights, podium, embers, camera)
 js/world/block-batch.js InstancedMesh block batching + seeded RNG
 js/world/terrain.js     ground, path, grass, flowers, ferns
 js/world/flora.js       oaks, pines, bushes, tree line
-js/world/outpost.js     ruined walls, gate, campfire, banner, crates, palisade
+js/world/outpost.js     ruined walls, gate, campfire, banner, crates, palisade (offset into the big world)
+js/world/landmarks.js   standing stone circle and ruined watchtower far from the outpost
 js/world/props.js       rocks, logs, stumps
 js/world/world.js       assembles the world, lights, shadows
 js/game/input.js        keyboard + pointer
@@ -34,4 +35,4 @@ js/game/game-scene.js   world scene + follow camera
 js/main.js              scene switching and main loop
 ```
 
-Scale: 1 world unit = 10cm. The playable area is 60 x 50 ft (182.9 x 152.4 units). The fighter uses 1cm voxels; the world uses chunky 10cm-and-up blocks like the tavern.
+Scale: 1 world unit = 10cm. The playable area is 400 x 336 units (about 131 x 110 ft, roughly 4.8x the original 60 x 50 ft). The fighter uses 1cm voxels; the world uses chunky 10cm-and-up blocks like the tavern.

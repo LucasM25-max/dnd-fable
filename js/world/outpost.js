@@ -1,7 +1,13 @@
 /* Ruined outpost: crumbling walls, corner stumps, gate pillars, flagstones, campfire,
    banner pole, crates, toppled column and a broken palisade. */
 (function(){
-Fable.buildOutpost=function(ctx){
+Fable.buildOutpost=function(base){
+  /* the outpost is modelled around its own origin and shifted to base.outpost in the big world */
+  var ox=base.outpost.x,oz=base.outpost.z;
+  function shift(bt){return {add:function(x,y,z,w,h,d,c){bt.add(x+ox,y,z+oz,w,h,d,c)}}}
+  var ctx=Object.create(base);ctx.solid=shift(base.solid);ctx.deco=shift(base.deco);
+  ctx.addCollider=function(x,z,w,d,top){base.addCollider(x+ox,z+oz,w,d,top)};
+  ctx.scene={add:function(o){o.position.x+=ox;o.position.z+=oz;base.scene.add(o)}};
   var r=ctx.rnd,S=ctx.solid,D=ctx.deco;
   var st=[0x6a6258,0x5b544b,0x776e62,0x504a42],moss=[0x5f7a4a,0x6b8a52],wood=[0x8a5a2e,0x6a4426,0x4a2f19];
   function stone(){return r()<.14?moss[(r()*2)|0]:st[(r()*4)|0]}

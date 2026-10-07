@@ -1,5 +1,5 @@
 /* Hub scene: voxel tavern, podium, human fighter, embers. */
-(function(){
+Fable.createMenuScene=function(){
 var b=Fable.b;
 var S=new THREE.Scene();S.background=new THREE.Color(0x120a06);S.fog=new THREE.Fog(0x120a06,70,150);
 var cam=new THREE.PerspectiveCamera(38,1,.1,300);
@@ -43,5 +43,5 @@ function update(ms){
   cam.lookAt(0,10.5,0);
   
 }
-Fable.menuScene={scene:S,camera:cam,update:update,resize:resize};
-})();
+return {scene:S,camera:cam,update:update,resize:resize};
+};

@@ -2,7 +2,7 @@
 (function(){
 Fable.createGameScene=function(){
   var world=Fable.buildWorld(),S=world.scene;
-  var cam=new THREE.PerspectiveCamera(45,1,.5,900),inp=Fable.input,tgt=new THREE.Vector3(),want=new THREE.Vector3(),look=new THREE.Vector3();
+  var cam=new THREE.PerspectiveCamera(45,1,.5,1400),inp=Fable.input,tgt=new THREE.Vector3(),want=new THREE.Vector3(),look=new THREE.Vector3();
   var fg=Fable.createHumanFighter();S.add(fg.root);
   var P=Fable.createPlayer(world,fg);
   function place(dt){
@@ -18,7 +18,7 @@ Fable.createGameScene=function(){
     resize:function(w,h){cam.aspect=w/h;cam.updateProjectionMatrix()},
     update:function(ms,dt){
       var t=ms/1000,k=inp.keys;inp.cam.yaw+=((k.KeyQ?1:0)-(k.KeyE?1:0))*1.8*dt;
-      P.update(dt,inp,t);world.animated.forEach(function(f){f(t)});place(dt);
+      P.update(dt,inp,t);world.followSun(P.x,P.z);world.animated.forEach(function(f){f(t)});place(dt);
     }};
 };
 })();
