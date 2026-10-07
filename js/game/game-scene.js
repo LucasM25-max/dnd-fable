@@ -1,45 +1,63 @@
-/* The 3D voxel world scene for one map: builds the world, spawns the human fighter and tutorial
-   minions, runs the opening camera tour, then restores free camera control. */
+/* Generic game scene: loads the selected encounter, map, character and monsters by content ID. */
 (function(){
-Fable.createGameScene=function(map){
+Fable.createGameScene=function(encounter){
+  if(!encounter)throw new Error('No encounter selected');
+  var map=Fable.content.maps.get(encounter.map);
+  if(!map)throw new Error('Encounter "'+encounter.id+'" references unknown map "'+encounter.map+'"');
   var world=Fable.buildWorld(map),S=world.scene;
   var cam=new THREE.PerspectiveCamera(45,1,.5,1900),inp=Fable.input,tgt=new THREE.Vector3(),want=new THREE.Vector3(),look=new THREE.Vector3();
-  var fg=Fable.createHumanFighter();S.add(fg.root);
-  var P=Fable.createPlayer(world,fg),enemyZone=world.enemySpawns[0]||null,enemyZ=0;
+  var characterId=encounter.playerCharacter||'human-fighter';
+  var fg=Fable.content.characters.create(characterId);
+  S.add(fg.root);
+  var P=Fable.createPlayer(world,fg);
+  var spawned=[];
 
-  // Starter tutorial encounter: two small goblin minions in the first enemy spawn zone.
-  if(enemyZone){
-    var spread=Math.min(12,enemyZone.w/4);
-    enemyZ=enemyZone.z+Math.min(5,enemyZone.d/12);
-    [-spread,spread].forEach(function(offset){
-      var goblin=Fable.createGoblinMinion(),goblinX=enemyZone.x+offset;
-      goblin.root.position.set(goblinX,0,enemyZ);
-      goblin.root.rotation.y=Math.atan2(world.spawn.x-goblinX,world.spawn.z-enemyZ); // face the player
-      S.add(goblin.root);
-    });
+  function formationPosition(zone,index,count,formation,rnd){
+    formation=formation||{};
+    var type=formation.type||'line',spacing=formation.spacing||12;
+    var ox=formation.offsetX||0,oz=formation.offsetZ||0;
+    if(type==='line'){
+      var delta=(index-(count-1)/2)*spacing;
+      if((formation.axis||'x')==='z')return {x:zone.x+ox,z:zone.z+oz+delta};
+      return {x:zone.x+ox+delta,z:zone.z+oz};
+    }
+    if(type==='random')return world.enemySpawnPoint(rnd,formation.margin||4,zone.id);
+    return {x:zone.x+ox,z:zone.z+oz};
   }
 
-  inp.cam.yaw=world.spawn.facing-Math.PI; // start with the camera behind the player
+  (encounter.enemies||[]).forEach(function(group,groupIndex){
+    var zone=world.getEnemySpawnZone(group.spawnZone);
+    if(!zone)throw new Error('Encounter "'+encounter.id+'" references unknown spawn zone "'+group.spawnZone+'"');
+    var rnd=Fable.rng(map.seed+(groupIndex+1)*1009+(group.seed||0));
+    for(var i=0;i<group.count;i++){
+      var m=Fable.content.monsters.create(group.monster),p=formationPosition(zone,i,group.count,group.formation,rnd);
+      m.root.position.set(p.x,0,p.z);
+      m.root.rotation.y=Math.atan2(world.spawn.x-p.x,world.spawn.z-p.z);
+      S.add(m.root);
+      spawned.push({instance:m,position:p});
+    }
+  });
+
+  inp.cam.yaw=world.spawn.facing-Math.PI;
   var homeYaw=inp.cam.yaw,homePitch=inp.cam.pitch,homeDist=inp.cam.dist;
   var homeTarget=new THREE.Vector3(world.spawn.x,12,world.spawn.z),homePosition=new THREE.Vector3();
   var enemyTarget=new THREE.Vector3(),enemyPosition=new THREE.Vector3();
   function cameraPosition(target,yaw,pitch,dist,out){
     var cp=Math.cos(pitch);
-    out.set(target.x+Math.sin(yaw)*cp*dist,
-      Math.max(3,target.y+Math.sin(pitch)*dist),
-      target.z+Math.cos(yaw)*cp*dist);
+    out.set(target.x+Math.sin(yaw)*cp*dist,Math.max(3,target.y+Math.sin(pitch)*dist),target.z+Math.cos(yaw)*cp*dist);
   }
   cameraPosition(homeTarget,homeYaw,homePitch,homeDist,homePosition);
 
-  // A ten-second tour: orbit the hero, dolly to the goblins, orbit them, then return to the hero.
-  var playerOrbit=2.4,travel=2.6,goblinOrbit=2.4,returnTravel=2.6;
-  var introDuration=playerOrbit+travel+goblinOrbit+returnTravel,introTime=0,introActive=!!enemyZone;
-  var stationaryInput={keys:{},cam:inp.cam}; // the tutorial player stays at the spawn for now
-  var enemyYaw=0,enemyPitch=.34,enemyDist=34;
-  if(enemyZone){
-    enemyTarget.set(enemyZone.x,6.2,enemyZ);
-    cameraPosition(enemyTarget,enemyYaw,enemyPitch,enemyDist,enemyPosition);
+  var introActive=spawned.length>0,introTime=0;
+  if(introActive){
+    var ex=0,ez=0;
+    spawned.forEach(function(e){ex+=e.position.x;ez+=e.position.z});
+    ex/=spawned.length;ez/=spawned.length;
+    enemyTarget.set(ex,6.2,ez);
   }
+  var playerOrbit=2.4,travel=2.6,goblinOrbit=2.4,returnTravel=2.6;
+  var introDuration=playerOrbit+travel+goblinOrbit+returnTravel,enemyYaw=0,enemyPitch=.34,enemyDist=34;
+  if(introActive)cameraPosition(enemyTarget,enemyYaw,enemyPitch,enemyDist,enemyPosition);
 
   function place(dt){
     var c=inp.cam,cp=Math.cos(c.pitch);
@@ -73,15 +91,16 @@ Fable.createGameScene=function(map){
       moveBetween(enemyTarget,enemyPosition,homeTarget,homePosition,(t-playerOrbit-travel-goblinOrbit)/returnTravel);
     }else returnToControl();
   }
-  P.update(0,stationaryInput,0);place(0);
+  P.update(0,{keys:{},cam:inp.cam},0);place(0);
   return {scene:S,camera:cam,
+    encounter:encounter,
     enter:function(){inp.attach(Fable.canvas)},
     exit:function(){inp.detach()},
     resize:function(w,h){cam.aspect=w/h;cam.updateProjectionMatrix()},
     update:function(ms,dt){
       var t=ms/1000,k=inp.keys;
       if(!introActive)inp.cam.yaw+=((k.KeyQ?1:0)-(k.KeyE?1:0))*1.8*dt;
-      P.update(dt,stationaryInput,t);world.followSun(P.x,P.z);world.animated.forEach(function(f){f(t)});
+      P.update(dt,{keys:k,cam:inp.cam},t);world.followSun(P.x,P.z);world.animated.forEach(function(f){f(t)});
       if(introActive)updateIntro(dt);else place(dt);
     }};
 };
