@@ -8,7 +8,7 @@ Fable.buildLandmarks=function(ctx){
   function rubble(x,z,n,sp){for(var i=0;i<n;i++){var s=1.4+r()*2.6;S.add(x+(r()-.5)*sp,0,z+(r()-.5)*sp,s,s*(.5+r()*.5),s*(.8+r()*.4),stone())}}
 
   // standing stones: 9 pillars on a ring, a few leaning or broken, flat altar slab in the middle
-  var cx=-90,cz=-90,R=26;
+  var cx=-190,cz=-170,R=26;
   for(var i=0;i<9;i++){
     var a=i*Math.PI*2/9,x=cx+Math.cos(a)*R,z=cz+Math.sin(a)*R,h=(i===3||i===7)?16:30+((r()*3)|0)*4,w=5.9;
     for(var y=0;y<h;y+=4)S.add(x+(y>20?(r()-.5)*.8:0),y,z,w-(y>h-8?1:0),4,w-(y>h-8?1:0),stone());
@@ -19,7 +19,7 @@ Fable.buildLandmarks=function(ctx){
   S.add(cx,0,cz,12,4,8,stone());S.add(cx,4,cz,10,2,7,stone());ctx.addCollider(cx,cz,12,8,6);
 
   // ruined watchtower: square footprint, broken top, a collapsed side and rubble
-  var tx=100,tz=100,H=14;
+  var tx=190,tz=180,H=14;
   for(var k=0;k<H;k++){
     var ragged=k>H-5;
     for(var s=-9;s<=9;s+=6)for(var t=-9;t<=9;t+=6){

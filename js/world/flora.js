@@ -34,9 +34,9 @@ Fable.buildFlora=function(ctx){
   function tree(x,z,type,solid,extra){placed.push([x,z]);(type==='oak'?oak:conifer)(x,z,solid,extra)}
   function far(x,z,m){return placed.every(function(p){return Math.hypot(p[0]-x,p[1]-z)>=m})}
   // the woods: a ragged band around the edge of the square, with the middle left as open grass
-  for(var t=0,n=0;t<9000&&n<150;t++){
+  for(var t=0,n=0;t<20000&&n<210;t++){
     var x=(r()*2-1)*(B.x-6),z=(r()*2-1)*(B.z-6);
-    if(Fable.woodIn(x,z)<0||!ctx.isClear(x,z,4)||!far(x,z,16))continue;
+    if(Fable.woodIn(x,z)<0||!ctx.isClear(x,z,4)||!far(x,z,20))continue;
     tree(x,z,r()<.5?'oak':'pine',true);n++;
   }
   // tree line: dense ring just outside the playable area, a taller sparse ring behind it
@@ -46,9 +46,9 @@ Fable.buildFlora=function(ctx){
       if(u<2*w){x=-w+u;z=-d}else if(u<2*w+2*d){x=w;z=-d+(u-2*w)}else if(u<4*w+2*d){x=w-(u-2*w-2*d);z=d}else{x=-w;z=d-(u-4*w-2*d)}
       tree(x+(r()-.5)*5,z+(r()-.5)*5,types[(r()*types.length)|0],false,extra);s+=step+r()*3;}
   }
-  ring(9,12,['pine','pine','oak'],0);ring(30,17,['pine'],14);
+  ring(9,16,['pine','pine','oak'],0);ring(30,24,['pine'],14);
   // undergrowth
-  for(t=0,n=0;t<3000&&n<150;t++){var bx=(r()*2-1)*(B.x-6),bz=(r()*2-1)*(B.z-6);if(Fable.woodIn(bx,bz)>-14&&ctx.isClear(bx,bz,3)){bush(bx,bz);n++}}
+  for(t=0,n=0;t<3000&&n<80;t++){var bx=(r()*2-1)*(B.x-6),bz=(r()*2-1)*(B.z-6);if(Fable.woodIn(bx,bz)>-14&&ctx.isClear(bx,bz,3)){bush(bx,bz);n++}}
   for(var q=-B.x;q<B.x;q+=9+r()*3){S.add(q,0,-B.z-4,8,5,7,pick(leaf));S.add(q,0,B.z+4,8,5,7,pick(leaf))}
   for(q=-B.z;q<B.z;q+=9+r()*3){S.add(-B.x-4,0,q,7,5,8,pick(leaf));S.add(B.x+4,0,q,7,5,8,pick(leaf))}
 };

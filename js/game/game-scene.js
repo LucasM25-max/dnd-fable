@@ -2,7 +2,7 @@
 (function(){
 Fable.createGameScene=function(){
   var world=Fable.buildWorld(),S=world.scene;
-  var cam=new THREE.PerspectiveCamera(45,1,.5,1400),inp=Fable.input,tgt=new THREE.Vector3(),want=new THREE.Vector3(),look=new THREE.Vector3();
+  var cam=new THREE.PerspectiveCamera(45,1,.5,1900),inp=Fable.input,tgt=new THREE.Vector3(),want=new THREE.Vector3(),look=new THREE.Vector3();
   var fg=Fable.createHumanFighter();S.add(fg.root);
   var P=Fable.createPlayer(world,fg);
   function place(dt){

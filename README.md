@@ -35,4 +35,4 @@ js/game/game-scene.js   world scene + follow camera
 js/main.js              scene switching and main loop
 ```
 
-Scale: 1 world unit = 10cm. The playable area is a 400 x 400 unit square (about 131 x 131 ft, roughly 5.7x the original 60 x 50 ft): open grass in the middle, woods only in a band around the edge. The fighter uses 1cm voxels; the world uses chunky 10cm-and-up blocks like the tavern.
+Scale: 1 world unit = 10cm. The playable area is a 694 x 694 unit square (about 228 ft a side, roughly 17x the original 60 x 50 ft): open grass in the middle, woods only in a band around the edge. The fighter uses 1cm voxels; the world uses chunky 10cm-and-up blocks like the tavern.
