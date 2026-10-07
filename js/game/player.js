@@ -3,7 +3,7 @@
 Fable.createPlayer=function(world,fg){
   var F=fg.root,R=3.4,STEP=3.2,GRAV=200,JUMP=62,WALK=30,RUN=54;
   var cs=world.colliders,bx=world.B.x-R,bz=world.B.z-R;
-  var P={x:world.spawn.x,y:0,z:world.spawn.z,vy:0,face:Math.PI,k:0,phase:0,ground:true,moving:false};
+  var P={x:world.spawn.x,y:0,z:world.spawn.z,vy:0,face:world.spawn.facing,k:0,phase:0,ground:true,moving:false};
   function blocked(x,z,y){for(var i=0;i<cs.length;i++){var c=cs[i];if(c.top>y+STEP&&x+R>c.x0&&x-R<c.x1&&z+R>c.z0&&z-R<c.z1)return true}return false}
   function floorAt(x,z,y){var h=0,r=R*.7;for(var i=0;i<cs.length;i++){var c=cs[i];if(c.top>h&&c.top<=y+STEP+.01&&x+r>c.x0&&x-r<c.x1&&z+r>c.z0&&z-r<c.z1)h=c.top}return h}
   P.update=function(dt,inp,t){

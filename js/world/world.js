@@ -1,24 +1,40 @@
-/* Assembles the forest-and-outpost world: a 694 x 694 unit square (69.4 m, roughly 228 ft a side),
-   about 17 times the area of the original 60 x 50 ft clearing and 3x the previous square: open grass ringed by woods. Units: 1 = 10cm. */
+/* Generic world builder: turns any registered map definition (see js/maps/) into a 3D scene.
+   It owns everything that is the same for every map: the scene, block batches, colliders, lights,
+   shadows, spawn points and the scenery keep-out rule. The map's own build(ctx) adds the scenery.
+   Units: 1 = 10cm. Add ?zones to the URL to draw the spawn zones (blue = player, red = enemies). */
 (function(){
-Fable.buildWorld=function(){
-  var sky=0xa9cbe6,S=new THREE.Scene();
-  var W={scene:S,colliders:[],animated:[],B:{x:347,z:347},spawn:{x:0,z:240},outpost:{x:70,z:-70}};
-  Fable.worldB=W.B;
-  S.background=new THREE.Color(sky);S.fog=new THREE.Fog(sky,260,900);
-  var ctx={rnd:Fable.rng(20261007),B:W.B,outpost:W.outpost,scene:S,animated:W.animated,
+function markZones(S,W){
+  function mark(zn,color){
+    var m=new THREE.Mesh(new THREE.PlaneGeometry(zn.w,zn.d),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.35,depthWrite:false}));
+    m.rotation.x=-Math.PI/2;m.position.set(zn.x,.4,zn.z);m.renderOrder=2;S.add(m);
+  }
+  mark(W.playerSpawn,0x3a7bff);W.enemySpawns.forEach(function(e){mark(e,0xff3a3a)});
+}
+Fable.buildWorld=function(map){
+  var Z=Fable.zones,S=new THREE.Scene();
+  var W={map:map,id:map.id,scene:S,colliders:[],animated:[],B:{x:map.bounds.x,z:map.bounds.z},
+    playerSpawn:map.playerSpawn,enemySpawns:map.enemySpawns,
+    spawn:{x:map.playerSpawn.x,z:map.playerSpawn.z,facing:map.playerSpawn.facing}};
+  /* a random point inside one of the enemy spawn zones (null if the map has none); rnd is () => [0,1) */
+  W.enemySpawnPoint=function(rnd,margin){
+    if(!map.enemySpawns.length)return null;
+    return Z.randomPoint(map.enemySpawns[(rnd()*map.enemySpawns.length)|0],rnd,margin);
+  };
+  var keepClear=[map.playerSpawn].concat(map.enemySpawns);
+  S.background=new THREE.Color(map.sky);S.fog=new THREE.Fog(map.sky,map.fog.near,map.fog.far);
+  var ctx={map:map,rnd:Fable.rng(map.seed),B:W.B,scene:S,animated:W.animated,
     ground:Fable.BlockBatch({noCast:true}),deco:Fable.BlockBatch({noCast:true}),solid:Fable.BlockBatch(),
     addCollider:function(x,z,w,d,top){W.colliders.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,top:top})},
+    /* true if a scenery object of padding p may go at x,z: inside the map, outside every spawn zone,
+       and clear of whatever the map itself reserves (paths, buildings) */
     isClear:function(x,z,p){
       if(Math.abs(x)>W.B.x-4||Math.abs(z)>W.B.z-4)return false;
-      if(Math.hypot(x-W.spawn.x,z-W.spawn.z)<18+p)return false;
-      if(Fable.pathDist(x,z)<8+p)return false;
-      var o=W.outpost;
-      return !(x>12+o.x-p&&x<92+o.x+p&&z>-72+o.z-p&&z<-8+o.z+p);
+      for(var i=0;i<keepClear.length;i++)if(Z.contains(keepClear[i],x,z,p))return false;
+      return !(map.isReserved&&map.isReserved(x,z,p));
     }};
-  Fable.buildTerrain(ctx);Fable.buildFlora(ctx);Fable.buildOutpost(ctx);Fable.buildLandmarks(ctx);Fable.buildProps(ctx);
+  map.build(ctx);
   ctx.ground.build(S);ctx.deco.build(S);ctx.solid.build(S);
-  var far=new THREE.Mesh(new THREE.PlaneGeometry(4400,4400),new THREE.MeshLambertMaterial({color:0x4f853a}));
+  var far=new THREE.Mesh(new THREE.PlaneGeometry(4400,4400),new THREE.MeshLambertMaterial({color:map.groundColor}));
   far.rotation.x=-Math.PI/2;far.position.y=-.05;far.receiveShadow=true;S.add(far);
   S.add(new THREE.HemisphereLight(0xcfe3ff,0x5a4a30,.85));
   var sun=new THREE.DirectionalLight(0xfff0cf,.95);sun.position.set(-90,140,70);sun.castShadow=true;
@@ -28,6 +44,7 @@ Fable.buildWorld=function(){
   /* the world is too big for one shadow map, so the sun follows the player (stepped to avoid shimmer) */
   W.sun=sun;W.followSun=function(x,z){var sx=Math.round(x/4)*4,sz=Math.round(z/4)*4;sun.position.set(sx-90,140,sz+70);sun.target.position.set(sx,0,sz);sun.target.updateMatrixWorld()};
   W.followSun(W.spawn.x,W.spawn.z);
+  if(/(^|[?&])zones(=|&|$)/.test(location.search))markZones(S,W);
   return W;
 };
 })();

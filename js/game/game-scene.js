@@ -1,7 +1,8 @@
-/* The 3D voxel world scene: forest clearing and ruined outpost, human fighter spawns here. No UI yet. */
+/* The 3D voxel world scene for one map: builds the world, spawns the human fighter in the map's player
+spawn zone and runs the follow camera. No UI yet. */
 (function(){
-Fable.createGameScene=function(){
-  var world=Fable.buildWorld(),S=world.scene;
+Fable.createGameScene=function(map){
+  var world=Fable.buildWorld(map),S=world.scene;
   var cam=new THREE.PerspectiveCamera(45,1,.5,1900),inp=Fable.input,tgt=new THREE.Vector3(),want=new THREE.Vector3(),look=new THREE.Vector3();
   var fg=Fable.createHumanFighter();S.add(fg.root);
   var P=Fable.createPlayer(world,fg);
@@ -11,6 +12,7 @@ Fable.createGameScene=function(){
     want.set(tgt.x+Math.sin(c.yaw)*cp*c.dist,Math.max(3,tgt.y+Math.sin(c.pitch)*c.dist),tgt.z+Math.cos(c.yaw)*cp*c.dist);
     var a=dt?1-Math.exp(-12*dt):1;cam.position.lerp(want,a);look.lerp(tgt,a);cam.lookAt(look);
   }
+  inp.cam.yaw=world.spawn.facing-Math.PI;   // start with the camera behind the player, whatever way the spawn faces
   look.set(P.x,12,P.z);P.update(0,inp,0);place(0);
   return {scene:S,camera:cam,
     enter:function(){inp.attach(Fable.canvas)},
