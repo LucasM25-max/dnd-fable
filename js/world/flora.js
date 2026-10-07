@@ -33,19 +33,12 @@ Fable.buildFlora=function(ctx){
   var placed=[];
   function tree(x,z,type,solid,extra){placed.push([x,z]);(type==='oak'?oak:conifer)(x,z,solid,extra)}
   function far(x,z,m){return placed.every(function(p){return Math.hypot(p[0]-x,p[1]-z)>=m})}
-  // the wooded section
-  for(var t=0,n=0;t<5000&&n<110;t++){
-    var z=(r()*2-1)*(B.z-8),e=Fable.woodEdge(z),x=-(B.x-4)+r()*(e+6+B.x-4);
-    if(!ctx.isClear(x,z,4)||!far(x,z,16))continue;
+  // the woods: a ragged band around the edge of the square, with the middle left as open grass
+  for(var t=0,n=0;t<9000&&n<150;t++){
+    var x=(r()*2-1)*(B.x-6),z=(r()*2-1)*(B.z-6);
+    if(Fable.woodIn(x,z)<0||!ctx.isClear(x,z,4)||!far(x,z,16))continue;
     tree(x,z,r()<.5?'oak':'pine',true);n++;
   }
-  // small groves scattered across the open ground, far from each other and from the outpost
-  [[22,-100,7],[-20,70,6],[70,112,6],[165,40,7],[-6,-135,6],[60,-20,5],[175,-150,5],[-100,128,4]].forEach(function(g){
-    for(var q=0,m=0;q<80&&m<g[2];q++){var a=r()*6.283,d=4+r()*30,x=g[0]+Math.cos(a)*d,z=g[1]+Math.sin(a)*d;
-      if(ctx.isClear(x,z,4)&&far(x,z,14)){tree(x,z,r()<.55?'oak':'pine',true);m++}}});
-  // lone trees dotted over the clearing
-  for(var t2=0,n2=0;t2<600&&n2<26;t2++){var lx=(r()*2-1)*(B.x-10),lz=(r()*2-1)*(B.z-10);
-    if(lx<Fable.woodEdge(lz)+10||!ctx.isClear(lx,lz,4)||!far(lx,lz,26))continue;tree(lx,lz,r()<.5?'oak':'pine',true);n2++}
   // tree line: dense ring just outside the playable area, a taller sparse ring behind it
   function ring(off,step,types,extra){
     var w=B.x+off,d=B.z+off,per=2*(w+d)*2,s=0;
@@ -55,7 +48,7 @@ Fable.buildFlora=function(ctx){
   }
   ring(9,12,['pine','pine','oak'],0);ring(30,17,['pine'],14);
   // undergrowth
-  for(t=0,n=0;t<2000&&n<170;t++){var bx=(r()*2-1)*(B.x-6),bz=(r()*2-1)*(B.z-6);if(ctx.isClear(bx,bz,3)){bush(bx,bz);n++}}
+  for(t=0,n=0;t<3000&&n<150;t++){var bx=(r()*2-1)*(B.x-6),bz=(r()*2-1)*(B.z-6);if(Fable.woodIn(bx,bz)>-14&&ctx.isClear(bx,bz,3)){bush(bx,bz);n++}}
   for(var q=-B.x;q<B.x;q+=9+r()*3){S.add(q,0,-B.z-4,8,5,7,pick(leaf));S.add(q,0,B.z+4,8,5,7,pick(leaf))}
   for(q=-B.z;q<B.z;q+=9+r()*3){S.add(-B.x-4,0,q,7,5,8,pick(leaf));S.add(B.x+4,0,q,7,5,8,pick(leaf))}
 };

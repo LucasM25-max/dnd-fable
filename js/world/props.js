@@ -20,16 +20,16 @@ Fable.buildProps=function(ctx){
   function spot(m){for(var t=0;t<60;t++){var x=(r()*2-1)*(ctx.B.x-10),z=(r()*2-1)*(ctx.B.z-10);
     if(ctx.isClear(x,z,3)&&placed.every(function(p){return Math.hypot(p[0]-x,p[1]-z)>=m})){placed.push([x,z]);return [x,z]}}return null}
   // big boulders, spread out
-  for(var i=0;i<26;i++){var p=spot(40);if(p)rock(p[0],p[1],.5+r()*.9)}
+  for(var i=0;i<22;i++){var p=spot(44);if(p)rock(p[0],p[1],.5+r()*.9)}
   // small rocks
   for(i=0;i<90;i++){var q=spot(9);if(q)rock(q[0],q[1],.22+r()*.12)}
   // fallen logs
-  for(i=0;i<24;i++){var l=spot(24);if(l)log(l[0],l[1],16+((r()*4)|0)*4,r()<.5?'x':'z')}
+  for(i=0;i<20;i++){var l=spot(24);if(l&&Fable.woodIn(l[0],l[1])>-30)log(l[0],l[1],16+((r()*4)|0)*4,r()<.5?'x':'z')}
   // stumps
-  for(i=0;i<40;i++){var s2=spot(14);if(s2)stump(s2[0],s2[1])}
+  for(i=0;i<40;i++){var s2=spot(14);if(s2&&Fable.woodIn(s2[0],s2[1])>-20)stump(s2[0],s2[1])}
   // seats around the outpost campfire
   log(46+ox,-45+oz,22,'x');log(34+ox,-34+oz,16,'z');log(58+ox,-34+oz,16,'z');
   // small log pile beside the path
-  log(-28,92,24,'x');log(-28,87,24,'x');log(-28,89.5,22,'x',4.6);
+  log(-28,70,24,'x');log(-28,65,24,'x');log(-28,67.5,22,'x',4.6);
 };
 })();

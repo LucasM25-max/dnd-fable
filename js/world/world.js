@@ -1,9 +1,10 @@
-/* Assembles the forest-and-outpost world: 400 x 336 units (40 x 33.6 m, roughly 131 x 110 ft),
-   about 4.8 times the area of the original 60 x 50 ft clearing. Units: 1 = 10cm. */
+/* Assembles the forest-and-outpost world: a 400 x 400 unit square (40 x 40 m, roughly 131 x 131 ft),
+   about 5.7 times the area of the original 60 x 50 ft clearing: a big open grassy square ringed by woods. Units: 1 = 10cm. */
 (function(){
 Fable.buildWorld=function(){
   var sky=0xa9cbe6,S=new THREE.Scene();
-  var W={scene:S,colliders:[],animated:[],B:{x:200,z:168},spawn:{x:0,z:140},outpost:{x:90,z:-40}};
+  var W={scene:S,colliders:[],animated:[],B:{x:200,z:200},spawn:{x:0,z:108},outpost:{x:40,z:-40}};
+  Fable.worldB=W.B;
   S.background=new THREE.Color(sky);S.fog=new THREE.Fog(sky,220,640);
   var ctx={rnd:Fable.rng(20261007),B:W.B,outpost:W.outpost,scene:S,animated:W.animated,
     ground:Fable.BlockBatch({noCast:true}),deco:Fable.BlockBatch({noCast:true}),solid:Fable.BlockBatch(),
