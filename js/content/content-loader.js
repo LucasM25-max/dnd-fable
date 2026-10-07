@@ -1,7 +1,7 @@
 /* Loads content packages from the manifest. Core code never needs per-content script tags. */
 window.Fable=window.Fable||{};
 (function(){
-var C=Fable.content=Fable.content||{};
+var C=Fable.content=Fable.content||{},BASE=new URL('./',document.currentScript.src);
 var ready=false,callbacks=[],packages={};
 C._packages=packages;
 
@@ -15,14 +15,11 @@ function loadScript(url){
   });
 }
 C._loadScript=loadScript;
-C.whenReady=function(fn){
-  if(ready)fn();
-  else callbacks.push(fn);
-};
+C.whenReady=function(fn){if(ready)fn();else callbacks.push(fn)};
 
 function loadPackage(kind,id){
   var key=kind+':'+id;
-  return loadScript(new URL('content/'+kind+'/'+id+'/index.js',new URL('./',document.currentScript.src)).href)
+  return loadScript(new URL('content/'+kind+'/'+id+'/index.js',BASE).href)
     .then(function(){
       if(!packages[key])throw new Error('Content package "'+key+'" did not expose a load promise');
       return packages[key];

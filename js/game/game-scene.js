@@ -10,7 +10,7 @@ Fable.createGameScene=function(encounter){
   var fg=Fable.content.characters.create(characterId);
   S.add(fg.root);
   var P=Fable.createPlayer(world,fg);
-  var spawned=[];
+  var stationaryInput={keys:{},cam:inp.cam},spawned=[];
 
   function formationPosition(zone,index,count,formation,rnd){
     formation=formation||{};
@@ -55,8 +55,8 @@ Fable.createGameScene=function(encounter){
     ex/=spawned.length;ez/=spawned.length;
     enemyTarget.set(ex,6.2,ez);
   }
-  var playerOrbit=2.4,travel=2.6,goblinOrbit=2.4,returnTravel=2.6;
-  var introDuration=playerOrbit+travel+goblinOrbit+returnTravel,enemyYaw=0,enemyPitch=.34,enemyDist=34;
+  var playerOrbit=2.4,travel=2.6,enemyOrbit=2.4,returnTravel=2.6;
+  var introDuration=playerOrbit+travel+enemyOrbit+returnTravel,enemyYaw=0,enemyPitch=.34,enemyDist=34;
   if(introActive)cameraPosition(enemyTarget,enemyYaw,enemyPitch,enemyDist,enemyPosition);
 
   function place(dt){
@@ -84,14 +84,14 @@ Fable.createGameScene=function(encounter){
       orbit(homeTarget,homeYaw+tau*p,homePitch+wave*.045,homeDist+wave*2.5);
     }else if(t<playerOrbit+travel){
       moveBetween(homeTarget,homePosition,enemyTarget,enemyPosition,(t-playerOrbit)/travel);
-    }else if(t<playerOrbit+travel+goblinOrbit){
-      var q=(t-playerOrbit-travel)/goblinOrbit,osc=Math.sin(q*tau);
+    }else if(t<playerOrbit+travel+enemyOrbit){
+      var q=(t-playerOrbit-travel)/enemyOrbit,osc=Math.sin(q*tau);
       orbit(enemyTarget,enemyYaw+tau*q,enemyPitch+osc*.025,enemyDist+osc*1.5);
     }else if(t<introDuration){
-      moveBetween(enemyTarget,enemyPosition,homeTarget,homePosition,(t-playerOrbit-travel-goblinOrbit)/returnTravel);
+      moveBetween(enemyTarget,enemyPosition,homeTarget,homePosition,(t-playerOrbit-travel-enemyOrbit)/returnTravel);
     }else returnToControl();
   }
-  P.update(0,{keys:{},cam:inp.cam},0);place(0);
+  P.update(0,stationaryInput,0);place(0);
   return {scene:S,camera:cam,
     encounter:encounter,
     enter:function(){inp.attach(Fable.canvas)},
@@ -100,7 +100,8 @@ Fable.createGameScene=function(encounter){
     update:function(ms,dt){
       var t=ms/1000,k=inp.keys;
       if(!introActive)inp.cam.yaw+=((k.KeyQ?1:0)-(k.KeyE?1:0))*1.8*dt;
-      P.update(dt,{keys:k,cam:inp.cam},t);world.followSun(P.x,P.z);world.animated.forEach(function(f){f(t)});
+      P.update(dt,encounter.allowMovement?{keys:k,cam:inp.cam}:stationaryInput,t);
+      world.followSun(P.x,P.z);world.animated.forEach(function(f){f(t)});
       if(introActive)updateIntro(dt);else place(dt);
     }};
 };
