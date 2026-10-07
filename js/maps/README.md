@@ -24,8 +24,8 @@ Fable.maps.register({
   bounds:{x:347,z:347},            // half-extents of the playable area, centred on 0,0 (1 unit = 10cm)
   seed:20261007,                   // fixed, so the layout is identical every load
   sky:0xa9cbe6, fog:{near:260,far:900}, groundColor:0x4f853a,
-  playerSpawn:{x:0,z:240,w:48,d:36,facing:Math.PI},          // zone; the player starts at its centre
-  enemySpawns:[{id:'outpost-front',x:110,z:-40,w:80,d:60}],   // zones; may be an empty array
+  playerSpawn:{x:0,z:190,w:48,d:36,facing:Math.PI},          // zone; the player starts at its centre
+  enemySpawns:[{id:'path-ambush',x:50,z:130,w:48,d:36}],     // zones; may be an empty array
   isReserved:function(x,z,p){...}, // optional: extra ground scenery must avoid (paths, buildings)
   build:function(ctx){...}         // adds the map's scenery
 });

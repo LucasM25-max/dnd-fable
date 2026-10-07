@@ -7,12 +7,12 @@ var FC=Fable.forestClearing=Fable.forestClearing||{};
 /* half-extents of the playable square: 694 x 694 units (about 228 ft a side) */
 FC.BOUNDS={x:347,z:347};
 
-/* where the player starts: the south edge, on the open grass beside the start of the path.
+/* where the player starts: five metres into the clearing from the southern start, beside the path.
    facing is the heading in radians (Math.PI = north, towards the outpost). */
-FC.PLAYER_SPAWN={x:0,z:240,w:48,d:36,facing:Math.PI};
+FC.PLAYER_SPAWN={x:0,z:190,w:48,d:36,facing:Math.PI};
 
-/* where enemies appear: open ground just south of the outpost gate, with the path running through it */
-FC.ENEMY_SPAWNS=[{id:'outpost-front',x:110,z:-40,w:80,d:60}];
+/* tutorial ambush zone: a clearing on the path ahead of the player, within first-round movement range */
+FC.ENEMY_SPAWNS=[{id:'path-ambush',x:50,z:130,w:48,d:36}];
 
 /* the ruined outpost is modelled around its own origin and shifted here */
 FC.OUTPOST={x:70,z:-70};
