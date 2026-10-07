@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dicebound</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700;800&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/menu.css">
+</head>
+<body>
+<canvas id="c" aria-label="Dicebound 3D view"></canvas>
+<div id="menu-layer">
+<div class="fade"></div>
+<div id="ui">
+  <header class="top">
+    <div class="prof"><div class="ava"></div><div><div class="nm st">Ser Aldric Voss</div><div class="xpb"><i></i></div><small>Fighter, level 3 (1,350 / 2,700 XP)</small></div><div class="lv st">3</div></div>
+    <div class="logo st">Dicebound</div>
+    <div class="tr">
+      <div class="pill"><span class="coin"></span><b class="st">1,240</b><span class="plus">+</span></div>
+      <button class="rnd" data-t="Settings" aria-label="Settings"><svg viewBox="0 0 24 24"><path d="M10 2h4l.6 3 2.2 1.3 2.9-1 2 3.4-2.3 2v2.6l2.3 2-2 3.4-2.9-1L14.600 18.700 14 22h-4l-.6-3.300L7.200 17.700l-2.900 1-2-3.400 2.300-2v-2.600l-2.300-2 2-3.400 2.900 1L9.400 5z"/><circle cx="12" cy="12" r="3" fill="#1a1009"/></svg></button>
+      <button class="rnd" data-t="Quit" aria-label="Quit"><svg viewBox="0 0 24 24"><path d="M5 3h9v4h-2V5H7v14h5v-2h2v4H5z"/><path d="M15 8l5 4-5 4v-3H9v-2h6z"/></svg></button>
+    </div>
+  </header>
+  <nav class="left" aria-label="Main menu">
+    <button class="tile" data-t="Characters"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.500"/><path d="M3.500 21c0-5 3.500-7.500 8.500-7.500s8.500 2.500 8.500 7.500z"/></svg><span class="st">Characters</span></button>
+    <button class="tile" data-t="the Armory and shop"><span class="new">New</span><svg viewBox="0 0 24 24"><path d="M5 8h14l1.500 13h-17z"/><path d="M8.500 10V7a3.500 3.500 0 017 0v3" fill="none" stroke-width="2.200"/></svg><span class="st">Armory</span></button>
+    <button class="tile" data-t="the Bestiary"><svg viewBox="0 0 24 24"><path d="M4 3h13a3 3 0 013 3v15H7a3 3 0 01-3-3z"/><path d="M8 8h8M8 12h8" stroke-width="2" fill="none"/></svg><span class="st">Bestiary</span></button>
+    <button class="tile" data-t="the Collection"><svg viewBox="0 0 24 24"><path d="M12 2l2.600 6.400L21 9l-5 4.300L17.500 20 12 16.500 6.500 20 8 13.300 3 9l6.400-.600z"/></svg><span class="st">Collection</span></button>
+  </nav>
+  <aside class="right">
+    <div class="ev"><div class="st">Daily contest</div><p>Clear the Goblin Warrens for a bonus.</p><em>+50 gp</em></div>
+    <div class="ev b"><div class="st">Fresh stock</div><p>The armory has new magic items.</p><em>3h 20m left</em></div>
+  </aside>
+  <footer class="bot">
+    <div class="sheet">
+      <div class="sp"><b>19</b><span>AC</span></div><div class="sp"><b>28</b><span>HP</span></div><div class="sp"><b>+1</b><span>Init</span></div><div class="sp"><b>+2</b><span>Prof</span></div>
+      <div class="sp w"><b>Longsword</b>+5 to hit, 1d8+3 slashing</div>
+    </div>
+    <div class="go">
+      <div class="rw" id="rw"></div>
+      <div class="enc"><button class="ar" id="prev" aria-label="Previous encounter">&lt;</button><div><b id="en"></b><span id="ed"></span></div><button class="ar" id="next" aria-label="Next encounter">&gt;</button></div>
+      <button class="playb" id="play">Play</button>
+    </div>
+  </footer>
+</div>
+</div>
+<div id="toast" role="status"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/core/renderer.js"></script>
+<script src="js/core/voxel.js"></script>
+<script src="js/characters/human-fighter.js"></script>
+<script src="js/menu/tavern.js"></script>
+<script src="js/menu/menu-ui.js"></script>
+<script src="js/menu/menu-scene.js"></script>
+<script src="js/world/block-batch.js"></script>
+<script src="js/world/terrain.js"></script>
+<script src="js/world/flora.js"></script>
+<script src="js/world/outpost.js"></script>
+<script src="js/world/props.js"></script>
+<script src="js/world/world.js"></script>
+<script src="js/game/input.js"></script>
+<script src="js/game/player.js"></script>
+<script src="js/game/game-scene.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
