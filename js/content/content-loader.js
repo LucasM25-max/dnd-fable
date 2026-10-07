@@ -19,7 +19,7 @@ C.whenReady=function(fn){if(ready)fn();else callbacks.push(fn)};
 
 function loadPackage(kind,id){
   var key=kind+':'+id;
-  return loadScript(new URL('content/'+kind+'/'+id+'/index.js',BASE).href)
+  return loadScript(new URL(kind+'/'+id+'/index.js',BASE).href)
     .then(function(){
       if(!packages[key])throw new Error('Content package "'+key+'" did not expose a load promise');
       return packages[key];
