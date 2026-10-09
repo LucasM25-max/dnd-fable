@@ -1,6 +1,6 @@
 # Fable: Character and Ability Implementation Plan
 
-Status: v4, with review decisions applied (see section 23 for the decisions log). Scope: how D&D 5.5e (2024 rules) characters, species, backgrounds, classes, feats, items and abilities are represented, computed and used in the game, starting with the tutorial Human Fighter.
+Status: v4, with review decisions applied (see section 23 for the decisions log). Phase 0 is implemented (see section 20). Scope: how D&D 5.5e (2024 rules) characters, species, backgrounds, classes, feats, items and abilities are represented, computed and used in the game, starting with the tutorial Human Fighter.
 
 This plan builds on the existing content-first architecture (`js/content/`, registries, manifest, package loader) described in `README.md` and `js/content/README.md`, and serves the goals in `plan.md` (sections 3, 4, 5 and 8).
 
@@ -59,6 +59,7 @@ Dependencies only point downward. The rules engine never imports Three.js or tou
 ```
 js/
   rules/
+    rng.js                  seeded random numbers (Fable.rng, moved here from engine/block-batch.js)
     dice.js                 expression parser and seeded roller, uses Fable.rng
     formula.js              evaluates "@fighter.level", "@abilities.str.mod" etc.
     effects.js              effect types and the effect applier
@@ -77,6 +78,7 @@ js/
   content/
     content-registry.js     generalized registries (see 4.3)
     content-manifest.js     adds new groups
+    content-groups.js       group order and path rules shared by the loader and the tests
     content-loader.js       adds new groups to load order
     rules-core/             SRD-style shared tables (data only)
       abilities.js
@@ -133,11 +135,11 @@ Extend the loader groups to:
 5. maps, monsters, characters, encounters (as today)
 6. `validateAll()`
 
-The manifest gains matching keys:
+The manifest gains matching keys. The `rules`, `items` and `feats` groups list script names (table style files such as `items/weapons.js`); the other groups list package ids. The group order and path rules live in `js/content/content-groups.js`:
 
 ```js
 Fable.content.manifest = {
-  rules:['core'], items:['weapons','armor','gear','packs'], feats:['origin','fighting-style'],
+  rules:['abilities','skills',...], items:['weapons','armor','gear','packs'], feats:['origin-feats','fighting-style-feats'],
   species:['human'], backgrounds:['soldier'], classes:['fighter'],
   maps:[...], monsters:[...], characters:[...], encounters:[...]
 };
@@ -1334,6 +1336,13 @@ Each phase ends in something verifiable. Combat is turn based from the start, an
 - Loader and manifest extended with the new groups.
 - Node test harness running.
 - Done when: a dummy kind registers, a broken cross reference fails with a clear error, and `node tests/run.js` passes.
+- **Status: done.** Implementation notes:
+  - `js/rules/rng.js` now owns `Fable.rng` (moved out of `block-batch.js`, same sequence, verified against the original). It adds `getState/setState` and `Fable.rng.hash`.
+  - `js/rules/formula.js` (strict `@references`, `floor/ceil/round/abs/min/max`, no `eval`) and `js/rules/dice.js` (`2d6+3`, `kh/kl/dh/dl`, crit doubling, `minDie`, exact `stats`, `d20` with advantage, `rollState`, `createRoller` with savable state). Rolls always take an explicit random function.
+  - `defineKind`, `validateAll`/`validate`, `lookup`/`has`, source filtering (`setAllowedSources`, `?sources=`) are in `content-registry.js`. Encounters are also checked against maps, characters and monsters.
+  - `content-groups.js` (new) defines the group order; `content-loader.js` gained `createLoader` so Node tests can run the real loader; the manifest has empty arrays for the new groups.
+  - The concrete kinds (features, classes, items and so on) are defined with their content in Phases 1 and 2, not before.
+  - `tests/run.js` runs 80+ tests; one extra test loads every real package when the `three` npm package is installed.
 
 **Phase 1: Core tables and items**
 - Abilities, skills, damage types, conditions, weapon properties, weapon masteries (data), proficiency and XP tables.

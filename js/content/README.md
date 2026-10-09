@@ -44,3 +44,30 @@ Each folder's index.js is the package entry point. It loads its internal files i
 ## IDs are the glue
 
 Maps, monsters, characters, and encounters refer to each other by stable IDs. The engine resolves those IDs at runtime.
+
+## Rules data kinds (classes, feats, items and so on)
+
+Rules content is registered through generalized kinds rather than hand-written registries:
+
+    Fable.content.defineKind('feats', {
+      label:'Feat',
+      required:['category'],                       // id, name and source are always required
+      validate:function(def, fail){ if(!def.category) fail('needs a category') },
+      refs:[{path:'prerequisite.feats.*', kind:'feats'}]   // checked by validateAll()
+    });
+    Fable.content.feats.register({ id:'alert', name:'Alert', source:'srd52', category:'origin' });
+
+- `refs` paths are dotted field names. `*` walks every item of a list or every value of an object, and a named field met on a list applies to each item. Missing fields are skipped.
+- `crossCheck(def, {has, get, list, fail})` is an optional hook for checks that go beyond a reference.
+- Registered definitions are deep frozen (pass `freeze:false` to opt out), so rules code cannot change content by accident.
+- Every definition carries a `source` tag. `Fable.content.setAllowedSources(['srd52'])` (or `?sources=srd52`) drops everything else.
+- A definition that is skipped by the source filter is still validated, and anything that refers to it fails `validateAll()`.
+
+## Manifest groups
+
+Groups load in the order set in `content-groups.js`: rules, items, feats, species, backgrounds, classes, maps, monsters, characters, encounters.
+
+- `rules`, `items` and `feats` are table style: list script names, loaded from `js/content/rules-core/<name>.js`, `js/content/items/<name>.js` and `js/content/feats/<name>.js`.
+- Every other group lists package ids, loaded from `js/content/<group>/<id>/index.js` as before.
+- A group name that does not exist, a duplicate entry or an id that breaks the naming pattern stops the load with a clear message.
+- After the last group the loader calls `Fable.content.validateAll()`. A broken reference stops the game at startup and lists every problem in the console.

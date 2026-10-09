@@ -124,6 +124,196 @@ C.encounters={
   byMap:function(mapId){return encounterOrder.filter(function(id){return encounters[id].map===mapId&&encounters[id].enabled!==false}).map(function(id){return encounters[id]})}
 };
 
+/* ---------- Generalized kinds (rules data) ----------
+   Fable.content.defineKind(name, spec) creates Fable.content.<name> with register/registerAll/get/has/list/ids/size/filter.
+   Cross references between kinds are checked once, after everything is loaded, by Fable.content.validateAll().
+   See implementation-plan.md section 4.3. The registries above (maps, monsters, characters, encounters) keep their own code. */
+var ID_RE=/^[a-z0-9]+(-[a-z0-9]+)*$/;
+var KIND_NAME_RE=/^[a-z][A-Za-z0-9]*$/;
+var RESERVED=['manifest','groups','kinds','config','zones','autoload','createLoader','whenReady'];
+var hasOwn=Object.prototype.hasOwnProperty;
+var kinds={},kindOrder=[],allowedSources=null,seenCount=0;
+
+/* Shipping builds can limit content to some sources, for example ['srd52']. Call before any content is registered. */
+C.setAllowedSources=function(list){
+  if(list!==null&&(!Array.isArray(list)||list.some(function(s){return typeof s!=='string'||!s})))
+    throw new Error('setAllowedSources expects null or an array of source tags');
+  if(seenCount)throw new Error('setAllowedSources must be called before any content is registered');
+  allowedSources=list?list.slice():null;
+};
+C.getAllowedSources=function(){return allowedSources?allowedSources.slice():null};
+C.isSourceAllowed=function(src){return allowedSources===null||allowedSources.indexOf(src)>=0};
+
+function deepFreeze(o){
+  if(o&&typeof o==='object'&&!Object.isFrozen(o)){
+    Object.freeze(o);
+    Object.keys(o).forEach(function(k){deepFreeze(o[k])});
+  }
+  return o;
+}
+
+function checkRefSpecs(name,refs){
+  if(refs===undefined)return [];
+  if(!Array.isArray(refs))throw new Error('defineKind "'+name+'": refs must be an array');
+  refs.forEach(function(r,i){
+    if(!r||typeof r.path!=='string'||!r.path||typeof r.kind!=='string'||!r.kind)
+      throw new Error('defineKind "'+name+'": refs['+i+'] needs a path and a kind');
+  });
+  return refs;
+}
+
+C.defineKind=function(name,spec){
+  spec=spec||{};
+  if(typeof name!=='string'||!KIND_NAME_RE.test(name))
+    throw new Error('defineKind: the kind name must be a camelCase word, got "'+name+'"');
+  if(kinds[name]||C[name]!==undefined||RESERVED.indexOf(name)>=0)
+    throw new Error('defineKind "'+name+'": the name is already used on Fable.content');
+  var label=spec.label;
+  if(typeof label!=='string'||!label)throw new Error('defineKind "'+name+'": needs a label such as "Class"');
+  if(spec.validate!==undefined&&typeof spec.validate!=='function')throw new Error('defineKind "'+name+'": validate must be a function');
+  if(spec.crossCheck!==undefined&&typeof spec.crossCheck!=='function')throw new Error('defineKind "'+name+'": crossCheck must be a function');
+  if(spec.normalize!==undefined&&typeof spec.normalize!=='function')throw new Error('defineKind "'+name+'": normalize must be a function');
+  var required=spec.required===undefined?[]:spec.required;
+  if(!Array.isArray(required)||required.some(function(k){return typeof k!=='string'}))
+    throw new Error('defineKind "'+name+'": required must be an array of field names');
+  var refs=checkRefSpecs(name,spec.refs),sourced=spec.sourced!==false,freeze=spec.freeze!==false;
+
+  var items={},seen={},order=[],skipped=[];
+  var reg={
+    name:name,
+    label:label,
+    register:function(def){
+      var id=def&&def.id;
+      if(!def||typeof def!=='object'||Array.isArray(def))fail(label,'(unknown)','a definition must be an object');
+      if(typeof id!=='string'||!ID_RE.test(id))fail(label,id||'(missing)','id must be lowercase words joined by hyphens');
+      if(seen[id])fail(label,id,'already registered');
+      if(typeof def.name!=='string'||!def.name)fail(label,id,'needs a display name');
+      if(sourced&&(typeof def.source!=='string'||!def.source))fail(label,id,'needs a source tag (for example "srd52" or "original")');
+      required.forEach(function(k){if(def[k]===undefined||def[k]===null)fail(label,id,'needs "'+k+'"')});
+      if(spec.normalize)spec.normalize(def);
+      if(spec.validate)spec.validate(def,function(msg){fail(label,id,msg)});
+      seen[id]=1;seenCount++;
+      if(sourced&&!C.isSourceAllowed(def.source)){skipped.push(id);return null}
+      if(freeze)deepFreeze(def);
+      items[id]=def;order.push(id);
+      return def;
+    },
+    registerAll:function(defs){
+      if(!Array.isArray(defs))fail(label,'(registerAll)','expects an array of definitions');
+      defs.forEach(function(d){reg.register(d)});
+      return defs;
+    },
+    get:function(id){return hasOwn.call(items,id)?items[id]:null},
+    has:function(id){return hasOwn.call(items,id)},
+    list:function(){return order.map(function(id){return items[id]})},
+    ids:function(){return order.slice()},
+    size:function(){return order.length},
+    filter:function(fn){return reg.list().filter(fn)},
+    skipped:function(){return skipped.slice()}
+  };
+  reg._refs=refs;
+  reg._crossCheck=spec.crossCheck||null;
+  kinds[name]=reg;kindOrder.push(name);
+  C[name]=reg;
+  return reg;
+};
+C.kindNames=function(){return kindOrder.slice()};
+C.getKind=function(name){return kinds[name]||null};
+
+/* Looks an id up in any kind, including the older registries (maps, monsters, characters, encounters). */
+function registryOf(kind){
+  if(hasOwn.call(kinds,kind))return kinds[kind];
+  var r=C[kind];
+  return r&&typeof r.get==='function'&&typeof r.list==='function'?r:null;
+}
+C.lookup=function(kind,id){var r=registryOf(kind);return r?r.get(id):null};
+C.has=function(kind,id){return !!C.lookup(kind,id)};
+
+/* Reference paths are dotted field names. "*" walks every item of a list or every value of an object, so
+   "features.*" reaches {1:['a','b'],2:['c']} and "startingEquipment.*.item" reaches each entry's item field.
+   Missing fields are skipped, so optional references need no special case. */
+function joinPath(base,seg){return base?base+'.'+seg:seg}
+function collect(node,parts,idx,path,out){
+  if(node===undefined||node===null)return;
+  if(idx===parts.length){out.push({path:path,value:node});return}
+  var p=parts[idx];
+  if(p==='*'){
+    if(Array.isArray(node))node.forEach(function(v,i){collect(v,parts,idx+1,path+'['+i+']',out)});
+    else if(typeof node==='object')Object.keys(node).forEach(function(k){collect(node[k],parts,idx+1,joinPath(path,k),out)});
+    else out.push({path:path,bad:'expected a list or object here'});
+    return;
+  }
+  /* A named field met on a list applies to every item of it, so "startingEquipment.*.item" also reaches {a:[{item:'x'}]}. */
+  if(Array.isArray(node)){node.forEach(function(v,i){collect(v,parts,idx,path+'['+i+']',out)});return}
+  if(typeof node!=='object'||!hasOwn.call(node,p))return;
+  collect(node[p],parts,idx+1,joinPath(path,p),out);
+}
+
+function checkRefs(where,def,refs,errors,reportedKinds){
+  refs.forEach(function(r){
+    var reg=registryOf(r.kind);
+    if(!reg){
+      if(!reportedKinds[r.kind]){reportedKinds[r.kind]=1;errors.push('a reference points at "'+r.kind+'", which is not a known kind (used by '+where+')')}
+      return;
+    }
+    var hits=[];
+    collect(def,r.path.split('.'),0,'',hits);
+    hits.forEach(function(h){
+      if(h.bad){errors.push(where+': '+h.path+' '+h.bad);return}
+      var vals=Array.isArray(h.value)?h.value:[h.value];
+      vals.forEach(function(v,i){
+        var p=Array.isArray(h.value)?h.path+'['+i+']':h.path;
+        if(typeof v!=='string')errors.push(where+': '+p+' must be an id (text), got '+(v&&typeof v==='object'?'an object':typeof v));
+        else if(!reg.get(v))errors.push(where+': '+p+' refers to unknown '+(reg.label||r.kind)+' "'+v+'"');
+      });
+    });
+  });
+}
+
+/* Cross references for the older registries, checked by the same machinery. */
+var BUILTIN_REFS=[
+  {kind:'encounters',label:'Encounter',refs:[
+    {path:'map',kind:'maps'},
+    {path:'playerCharacter',kind:'characters'},
+    {path:'enemies.*.monster',kind:'monsters'}
+  ]}
+];
+
+/* Checks every cross reference. Returns {ok, errors, warnings} and never throws. */
+C.validate=function(){
+  var errors=[],warnings=[],reported={};
+  kindOrder.forEach(function(name){
+    var k=kinds[name];
+    k.list().forEach(function(def){
+      var where=k.label+' "'+def.id+'"';
+      checkRefs(where,def,k._refs,errors,reported);
+      if(k._crossCheck){
+        try{
+          k._crossCheck(def,{
+            has:C.has,get:C.lookup,
+            list:function(kind){var r=registryOf(kind);return r?r.list():[]},
+            fail:function(msg){errors.push(where+': '+msg)}
+          });
+        }catch(e){errors.push(where+': '+e.message)}
+      }
+    });
+    if(k.skipped().length)warnings.push(k.skipped().length+' '+k.label+' definition(s) skipped by the source filter');
+  });
+  BUILTIN_REFS.forEach(function(b){
+    var r=registryOf(b.kind);
+    if(!r)return;
+    r.list().forEach(function(def){checkRefs(b.label+' "'+def.id+'"',def,b.refs,errors,reported)});
+  });
+  return {ok:errors.length===0,errors:errors,warnings:warnings};
+};
+
+/* Same as validate(), but throws one error listing every problem. The loader calls this after all packages are loaded. */
+C.validateAll=function(){
+  var r=C.validate();
+  if(!r.ok)throw new Error('Content validation failed ('+r.errors.length+' problem'+(r.errors.length===1?'':'s')+'):\n - '+r.errors.join('\n - '));
+  return r;
+};
+
 /* Backwards-compatible alias for small external experiments that used Fable.maps. */
 Fable.maps=C.maps;
 })();

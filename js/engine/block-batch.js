@@ -1,7 +1,6 @@
-/* Batched voxel blocks: thousands of boxes drawn as one InstancedMesh. */
+/* Batched voxel blocks: thousands of boxes drawn as one InstancedMesh. Fable.rng now lives in js/rules/rng.js. */
 (function(){
 var geo=new THREE.BoxGeometry(1,1,1);
-Fable.rng=function(a){a|=0;return function(){var t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}};
 Fable.BlockBatch=function(opts){
   opts=opts||{};var a=[],jr=Fable.rng(7);
   return {
