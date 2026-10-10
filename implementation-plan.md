@@ -1,6 +1,6 @@
 # Fable: Character and Ability Implementation Plan
 
-Status: v4, with review decisions applied (see section 23 for the decisions log). Phase 0 is implemented (see section 20). Scope: how D&D 5.5e (2024 rules) characters, species, backgrounds, classes, feats, items and abilities are represented, computed and used in the game, starting with the tutorial Human Fighter.
+Status: v4, with review decisions applied (see section 23 for the decisions log). Phases 0 and 1 are implemented (see section 20). Scope: how D&D 5.5e (2024 rules) characters, species, backgrounds, classes, feats, items and abilities are represented, computed and used in the game, starting with the tutorial Human Fighter.
 
 This plan builds on the existing content-first architecture (`js/content/`, registries, manifest, package loader) described in `README.md` and `js/content/README.md`, and serves the goals in `plan.md` (sections 3, 4, 5 and 8).
 
@@ -1348,6 +1348,14 @@ Each phase ends in something verifiable. Combat is turn based from the start, an
 - Abilities, skills, damage types, conditions, weapon properties, weapon masteries (data), proficiency and XP tables.
 - Full SRD weapon and armor tables, adventuring gear, the Explorer's Pack.
 - Done when: all items load, all property and mastery references validate.
+- **Status: done.** Implementation notes:
+  - Rules-core kinds (`js/content/rules-core/`): `abilities`, `skills`, `damageTypes`, `conditions` (all 15), `weaponProperties`, `weaponMasteries` (all 8, each with a `handler` id and a `trigger`), `languages`, `coins`, `tools` (37 rows: every Gaming Set and Musical Instrument variant is its own row), plus small helper tables `weaponCategories`, `armorCategories` (don and doff times), `levels` (XP and proficiency for levels 1 to 20) and `proficiencyBands` (level or CR 0 to 30).
+  - Items are one kind, `items`, with a `type` of `weapon`, `armor`, `gear`, `pack` or `tool`, so `{item:'longsword', qty:1}` works for anything. 38 weapons, 13 armor rows (including the Shield), 87 gear items, 7 packs and a carryable item for every tool (`items/tool-items.js` copies them from the tools). `items/item-kind.js` defines the kind and must stay first in `manifest.items`.
+  - Deviations from the schema sketches in section 5: armor `don`/`doff` are structured (`{minutes:10}` or `{action:'utilize'}`) and filled in from the armor category; armor `ac` is `{base, dex:'full'|'cap'|'none', dexCap}` (heavy armor ignores Dexterity entirely, even a negative modifier) or `{bonus:2}` for the Shield; item `cost` stays a coin object and `costCp` (exact integer copper) is added at load.
+  - Ammunition is modeled: weapons name an `ammoType` (`arrow`, `bolt`, `needle`, `sling-bullet`, `firearm-bullet`) and the Ammunition table rows are gear items with `amount` and `storage`. The Costume (Entertainer's Pack) is gear with the 4 lb its pack weight implies.
+  - New pure helpers: `Fable.money` (`js/rules/money.js`: `toCp`, `fromCp`, `format`, coin weight) and `Fable.tables` (`js/rules/tables.js`: `abilityModifier`, `proficiencyBonus(levelOrCr)`, `levelForXp`, `xpForLevel`, `xpProgress`).
+  - Validation: per-type checks at registration, and `validateAll()` checks references (damage types, properties, masteries, pack contents, storage, tools), ammunition types, and that each pack's weight equals its contents. Tests cover the tutorial kit (116 GP, 129 lb) and every table (`node tests/run.js` runs 140 tests with `three` installed, 139 plus one skip without).
+  - Every value was cross-checked against the SRD 5.2.1 extract. Text is ASCII only. SRD attribution is in `ATTRIBUTION.md`.
 
 **Phase 2: Tutorial content**
 - Human species, Soldier background, Fighter class (level 1 features, level table to 20 stubbed for later), Defense, Savage Attacker and Alert feats, Second Wind, Weapon Mastery choice.

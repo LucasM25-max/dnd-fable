@@ -4,8 +4,8 @@
 window.Fable=window.Fable||{};
 Fable.content=Fable.content||{};
 Fable.content.manifest={
-  rules:[],
-  items:[],
+  rules:['abilities','skills','damage-types','conditions','weapon-properties','weapon-mastery','languages','coins','weapon-categories','armor-categories','progression','tools'],
+  items:['item-kind','weapons','armor','gear','packs','tool-items'],
   feats:[],
   species:[],
   backgrounds:[],

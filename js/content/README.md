@@ -71,3 +71,11 @@ Groups load in the order set in `content-groups.js`: rules, items, feats, specie
 - Every other group lists package ids, loaded from `js/content/<group>/<id>/index.js` as before.
 - A group name that does not exist, a duplicate entry or an id that breaks the naming pattern stops the load with a clear message.
 - After the last group the loader calls `Fable.content.validateAll()`. A broken reference stops the game at startup and lists every problem in the console.
+
+## Rules data shipped so far (Phase 1)
+
+- `rules-core/` kinds: abilities, skills, damageTypes, conditions, weaponProperties, weaponMasteries, languages, coins, weaponCategories, armorCategories, levels, proficiencyBands, tools.
+- `items/` is one kind, `items`, with `type` `weapon`, `armor`, `gear`, `pack` or `tool`. `item-kind.js` defines it and must stay first in `manifest.items`; `weapons.js`, `armor.js`, `gear.js` and `packs.js` only register rows; `tool-items.js` creates an item for every tool.
+- Add a weapon: add a row to `items/weapons.js`. Its properties, mastery and damage type are checked at load, and `validateAll()` fails with a clear message if one does not exist.
+- Prices are coin objects such as `{gp:15}` or `{sp:5}`; `costCp` (exact copper) is added automatically.
+- Add a rules table row (for example a new condition) to its file in `rules-core/`. Rows reference each other by id.

@@ -15,7 +15,7 @@ function runFile(file){
   const abs=path.isAbsolute(file)?file:path.join(ROOT,file);
   vm.runInThisContext(fs.readFileSync(abs,'utf8'),{filename:abs});
 }
-function loadRules(){['js/rules/rng.js','js/rules/formula.js','js/rules/dice.js'].forEach(runFile)}
+function loadRules(){['js/rules/rng.js','js/rules/formula.js','js/rules/dice.js','js/rules/money.js','js/rules/tables.js'].forEach(runFile)}
 function loadRegistry(){['js/content/content-registry.js','js/content/content-groups.js','js/content/content-loader.js'].forEach(runFile)}
 
 /* Script loader with the same contract as the browser one: runs the file, rejects when it is missing. */
@@ -32,4 +32,19 @@ function nodeLoadScript(url){
 }
 function dirUrl(dir){return pathToFileURL(path.resolve(dir)+path.sep)}
 
-module.exports={ROOT,fresh,runFile,loadRules,loadRegistry,nodeLoadScript,dirUrl};
+/* Loads the real rules and item data (the rules, items and feats groups of the real manifest) through the real loader.
+   Maps, monsters, characters and encounters are left out because they need Three.js. Resolves to Fable.content. */
+async function loadData(opts){
+  opts=opts||{};
+  fresh();loadRules();loadRegistry();
+  if(opts.sources)Fable.content.setAllowedSources(opts.sources);
+  runFile('js/content/content-manifest.js');
+  const m=Fable.content.manifest;
+  m.maps=[];m.monsters=[];m.characters=[];m.encounters=[];
+  const loader=Fable.content.createLoader({loadScript:nodeLoadScript,base:dirUrl(path.join(ROOT,'js','content'))});
+  if(opts.skipValidate){Fable.content.validateAll=function(){return {ok:true,errors:[],warnings:[]}}}
+  await loader.loadAll();
+  return Fable.content;
+}
+
+module.exports={ROOT,fresh,runFile,loadRules,loadRegistry,nodeLoadScript,dirUrl,loadData};

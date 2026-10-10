@@ -17,7 +17,7 @@ Examples:
 The engine is deliberately separated from game content:
 
 js/core/               renderer and voxel primitives
-js/rules/              pure rules code (seeded rng, formulas, dice); no DOM and no Three.js
+js/rules/              pure rules code (seeded rng, formulas, dice, money, tables); no DOM and no Three.js
 js/engine/             generic world building and instanced block batching
 js/game/               player input, movement and scene runner
 js/menu/               hub UI and scene
@@ -87,6 +87,14 @@ The fighter and player remain as before: 3D voxel character, camera tour, and mo
 - `Fable.content.defineKind(name, spec)` creates a registry for rules data (classes, feats, items and so on). `Fable.content.validateAll()` checks every cross reference after loading and the loader runs it automatically.
 - The loader and manifest know the planned groups (`rules`, `items`, `feats`, `species`, `backgrounds`, `classes`) in addition to maps, monsters, characters and encounters.
 - `?sources=srd52` limits content to the listed source tags, to preview a shipping build.
+
+## Core tables and items (implementation plan, Phase 1)
+
+- `js/content/rules-core/` holds the SRD rules tables as data: abilities, skills, damage types, the 15 conditions, weapon properties, the 8 weapon masteries, languages, coins, tools, armor categories, XP and proficiency tables.
+- `js/content/items/` holds every SRD weapon (38), armor and shield (13), adventuring gear (87), the 7 equipment packs including the Explorer's Pack, and a carryable item for each tool. All of them live in one `Fable.content.items` registry (`type` is `weapon`, `armor`, `gear`, `pack` or `tool`).
+- `Fable.money` stores money as whole copper pieces (`toCp`, `fromCp`, `format`). `Fable.tables` gives `abilityModifier`, `proficiencyBonus(levelOrCr)`, `levelForXp`, `xpForLevel` and `xpProgress`.
+- Adding an item means adding one row to the matching file in `js/content/items/`. Nothing else needs editing.
+- Rules content is based on the SRD 5.2.1, see `ATTRIBUTION.md`.
 
 ## Tests
 
