@@ -96,6 +96,12 @@ The fighter and player remain as before: 3D voxel character, camera tour, and mo
 - Adding an item means adding one row to the matching file in `js/content/items/`. Nothing else needs editing.
 - Rules content is based on the SRD 5.2.1, see `ATTRIBUTION.md`.
 
+## Character options (implementation plan, Phase 2)
+
+- Features, feats, species, backgrounds, classes and subclasses are data kinds (`Fable.content.features`, `.feats`, `.species`, `.backgrounds`, `.classes`, `.subclasses`), defined in `js/content/feats/`.
+- The tutorial hero's pieces are in: the Human species, the Soldier background, the Fighter class (level 1 features, and all 20 levels listed with later features as labelled stubs), the Defense, Savage Attacker and Alert feats, Second Wind, Weapon Mastery and Heroic Inspiration.
+- Adding a species, background, class or feat means adding a folder or row plus one manifest entry. `validateAll()` checks every reference, choice source and resource at startup.
+
 ## Tests
 
 `node tests/run.js` runs the Node test harness (no build step, no dependencies). `node tests/run.js dice` runs only tests whose name contains "dice".

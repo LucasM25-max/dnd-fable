@@ -79,3 +79,13 @@ Groups load in the order set in `content-groups.js`: rules, items, feats, specie
 - Add a weapon: add a row to `items/weapons.js`. Its properties, mastery and damage type are checked at load, and `validateAll()` fails with a clear message if one does not exist.
 - Prices are coin objects such as `{gp:15}` or `{sp:5}`; `costCp` (exact copper) is added automatically.
 - Add a rules table row (for example a new condition) to its file in `rules-core/`. Rows reference each other by id.
+
+## Character options (Phase 2)
+
+Kinds for character options are defined in `js/content/feats/` (see the header comment of `feature-kind.js` for the full field list): `features`, `feats`, `species`, `backgrounds`, `classes`, `subclasses`. Order in `manifest.feats` matters: `feature-kind`, `feat-kind`, `option-kinds`, then the data files.
+
+- Add a feat: add a row to `feats/origin-feats.js`, `feats/fighting-style-feats.js` (or a new file listed in `manifest.feats`). A Fighting Style feat is picked up by the Fighter's Fighting Style choice automatically.
+- Add a species, background or class: copy `species/human/`, `backgrounds/soldier/` or `classes/fighter/`, register its features before the option itself, and add the id to `species`, `backgrounds` or `classes` in the manifest.
+- A feature or feat can contain `resources`, `actions`, `effects`, `choices`, `grants` and `onRest`. Choices say what they offer with `from:{kind, ...filters}`; numbers that grow with level are `{byClassLevel:{fighter:{1:2,4:3,10:4}}}`.
+- A class lists features for all 20 levels. Features not built yet are registered with `status:'stub'`, and the class's `implementedLevel` says how far the real ones go; `validateAll()` rejects a stub at or below that level.
+- Bespoke behaviour is a handler id (for example `feat.savage-attacker`) named in an effect. The handlers themselves arrive in Phase 6.

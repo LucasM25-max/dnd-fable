@@ -1,6 +1,6 @@
 # Fable: Character and Ability Implementation Plan
 
-Status: v4, with review decisions applied (see section 23 for the decisions log). Phases 0 and 1 are implemented (see section 20). Scope: how D&D 5.5e (2024 rules) characters, species, backgrounds, classes, feats, items and abilities are represented, computed and used in the game, starting with the tutorial Human Fighter.
+Status: v4, with review decisions applied (see section 23 for the decisions log). Phases 0, 1 and 2 are implemented (see section 20). Scope: how D&D 5.5e (2024 rules) characters, species, backgrounds, classes, feats, items and abilities are represented, computed and used in the game, starting with the tutorial Human Fighter.
 
 This plan builds on the existing content-first architecture (`js/content/`, registries, manifest, package loader) described in `README.md` and `js/content/README.md`, and serves the goals in `plan.md` (sections 3, 4, 5 and 8).
 
@@ -210,7 +210,7 @@ Fable.content.species.register({
   size:{choose:['Medium','Small']},   // 2024 Humans pick a size
   speed:30,
   features:['human-resourceful','human-skillful','human-versatile'],
-  languages:{fixed:['common'], choose:{count:1, from:'any-standard'}}
+  languages:{fixed:['common'], choose:{count:2, from:{kind:'languages', rarity:'standard', exclude:['common']}}}   // SRD p. 20: Common plus two
 });
 ```
 
@@ -353,7 +353,7 @@ Handlers receive a context object and return modifications (for example "apply t
   choices:{                              // keyed by "<sourceId>:<choiceId>"
     'human-versatile:feat':'alert',
     'human-skillful:skill':'insight',
-    'human:language':'dwarvish',
+    'human:languages':['dwarvish','elvish'],
     'soldier:tool':'dice-set',
     'fighter:skills':['acrobatics','perception'],
     'fighter-fighting-style:style':'defense',
@@ -451,7 +451,7 @@ Design note: Nick only matters when the character wields two Light weapons. The 
 | Item | Value |
 |---|---|
 | Species | Human: Medium, 30 ft speed, Resourceful, Skillful, Versatile |
-| Languages | Common plus Dwarvish |
+| Languages | Common plus Dwarvish and Elvish (the SRD gives every character Common plus two standard languages) |
 | Background | Soldier: Savage Attacker origin feat, Athletics and Intimidation, Dice Set proficiency |
 | Class | Fighter level 1, hit die d10 |
 | Saving throw proficiencies | Strength and Constitution |
@@ -464,7 +464,7 @@ Design note: Nick only matters when the character wields two Light weapons. The 
 | Second Wind | Bonus Action, heal 1d10 + Fighter level, 2 uses |
 | Weapon Mastery | Longsword (Sap), Dagger (Nick), Javelin (Slow) |
 
-Why these picks: Alert adds the proficiency bonus to Initiative, which matters in every fight of a turn-based game and works from the first turn. Perception is the most commonly rolled skill, Acrobatics gives the Dex-based escape and balance option, and Insight covers the social side the Soldier skills do not. Dwarvish and the Dice Set are flavor choices with no mechanical cost. All of these are data in the build record, so they can be changed without code.
+Why these picks: Alert adds the proficiency bonus to Initiative, which matters in every fight of a turn-based game and works from the first turn. Perception is the most commonly rolled skill, Acrobatics gives the Dex-based escape and balance option, and Insight covers the social side the Soldier skills do not. Dwarvish, Elvish and the Dice Set are flavor choices with no mechanical cost. All of these are data in the build record, so they can be changed without code.
 
 Final ability scores:
 
@@ -1360,7 +1360,14 @@ Each phase ends in something verifiable. Combat is turn based from the start, an
 **Phase 2: Tutorial content**
 - Human species, Soldier background, Fighter class (level 1 features, level table to 20 stubbed for later), Defense, Savage Attacker and Alert feats, Second Wind, Weapon Mastery choice.
 - Done when: all content kinds register with no engine edits.
-
+- **Status: done.** Implementation notes:
+  - New kinds, defined in `js/content/feats/` (the `feats` group hosts the shared kinds, in this order in `manifest.feats`: `feature-kind`, `feat-kind`, `option-kinds`): `features`, `feats`, `species`, `backgrounds`, `classes` and `subclasses`. No loader, registry, engine, UI or `index.html` edits were needed; the only shared files touched are `content-manifest.js` and the docs.
+  - Content: `core-features.js` (Heroic Inspiration), `origin-feats.js` (Alert, Savage Attacker), `fighting-style-feats.js` (Defense), `species/human`, `backgrounds/soldier`, `classes/fighter` (level 1 features implemented; all 20 levels listed, with the 13 later features registered as `status:'stub'` and the class's `implementedLevel:1` checked at load). `subclasses` is defined but empty until Champion (Phase 10).
+  - Features and feats share one body (`resources`, `actions`, `effects`, `choices`, `grants`, `onRest`, documented in `feats/feature-kind.js`). Deviations from the sketches in section 5 and 6: proficiency grants are the feature field `grants`, not an effect type; `choice` and `resource` are fields, not effect types; the damage effect names its type `damageType`; backgrounds use `startingEquipment` like classes (`{options:[{id, items, gold}]}`, with `{fromChoice:'tool'}` for the Soldier's gaming set); a feat prerequisite is `{featureTag:'fighting-style'}` (features carry `tags`), so a new class with a Fighting Style feature needs no feat edit; the handler events gain `onInitiative` (Alert) and `onRoll` (Heroic Inspiration rerolls).
+  - Helpers: `Fable.content.valueAtLevel(spec, {fighter:4})` reads per-class-level tables (Second Wind uses 2, 3, 4; Weapon Mastery 3, 4, 5, 6), and `Fable.content.choiceOptions(from)` lists what a choice offers. `validateAll()` also checks that every choice source holds enough options, resource ids are unique, consumed resources exist, and recommended picks are real options.
+  - Corrections made after checking the SRD extract: Human languages are Common plus two standard languages (the plan had one), so the hero speaks Dwarvish and Elvish; the 155 GP Fighter choice is option C, not B (the tests confirm options A, B and C are all worth exactly 155 GP).
+  - Handlers named in data (`feat.savage-attacker`, `feat.alert-initiative-swap`, `inspiration.reroll`) are dormant ids until Phase 6. Phase 3 supplies the formula scope the data uses: `@proficiencyBonus`, `@level`, `@class.<id>.level`, `@abilities.<id>.mod`.
+  - `tests/suites/phase2.test.js` adds 31 tests (`node tests/run.js` runs 171 with `three` installed).
 **Phase 3: Character build and sheet**
 - Build record, choice resolution, stat pipeline, sheet breakdowns, validation.
 - Premade `human-fighter` converted to a build.
@@ -1423,7 +1430,7 @@ Points checked against the 2024 rules, with the decision taken. Rows marked "ver
 | Item | Decision |
 |---|---|
 | Level 1 hit points | Maximum die plus CON modifier, no roll. Hero has 12 HP. |
-| Starting gold | 205 GP (Fighter option B 155 GP plus Soldier 50 GP). The kit costs 116 GP. The other 89 GP is discarded, so the hero starts with 0 GP. |
+| Starting gold | 205 GP (Fighter option C, 155 GP, plus Soldier option B, 50 GP). The kit costs 116 GP. The other 89 GP is discarded, so the hero starts with 0 GP. |
 | Second Wind uses | 2 at level 1 (3 at level 4, 4 at level 10), one back on a short rest, all on a long rest. |
 | Defense | Applies only while wearing armor. A shield alone does not trigger it. |
 | Heavy armor Strength requirement | Chain Mail needs Str 13, met by Str 17. Below the requirement speed drops by 10 ft. |
@@ -1455,7 +1462,7 @@ Points checked against the 2024 rules, with the decision taken. Rows marked "ver
 | Shop gold at the start | Only tutorial rewards |
 | Armor | Downgraded to Chain Mail to fit the budget |
 | Daggers | Second Dagger added so the Nick loadout works |
-| Hero choices | Fixed (Alert, Insight, Acrobatics and Perception, Dwarvish, Dice Set) |
+| Hero choices | Fixed (Alert, Insight, Acrobatics and Perception, Dwarvish and Elvish, Dice Set) |
 | Combat | Turn based, and the game starts directly in combat |
 | Movement | Hover over a destination to see a blue arc with the distance; the arc turns red when the move is denied; click to move |
 | Diagonal movement | 5 ft, same as orthogonal |
