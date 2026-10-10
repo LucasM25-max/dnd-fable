@@ -46,7 +46,7 @@ The first public release should contain one playable character at a time, with a
 | Starting equipment | Legal starting equipment choices |
 | Character creation | Available at launch; premade characters may also be offered as an easier starting option |
 
-The exact two subclasses for each class and the final background list still need to be chosen. Content should fit the game's 2024-rules-era scope.
+The launch subclass lineup is confirmed: Fighter — Champion and Eldritch Knight; Rogue — Assassin and Thief; Cleric — Life Domain and War Domain; Wizard — Evoker and Abjurer. The final background list still needs to be chosen. Content should fit the game's 2024-rules-era scope.
 
 ### Gold unlocks
 
@@ -298,7 +298,7 @@ The order can be adjusted where a vertical slice needs it, but the guiding rule 
 - Ordinary Play uses procedural encounters selected by difficulty, not a fixed encounter list.
 - Launch difficulties use 2024 terminology: Low, Moderate and High.
 - At launch, only one level 1–5 character fights at a time; the encounter generator limits monsters to at most two per player character.
-- Launch classes: Fighter, Rogue, Cleric and Wizard; two subclasses per class.
+- Launch classes and subclasses: Fighter — Champion and Eldritch Knight; Rogue — Assassin and Thief; Cleric — Life Domain and War Domain; Wizard — Evoker and Abjurer.
 - Launch species: Human, Halfling, Elf and Dwarf.
 - A curated set of backgrounds, all included origin feats, and the relevant level 1–5 Cleric/Wizard spells are free.
 - Starting equipment is free; additional equipment and optional standard feat unlocks cost gold.
@@ -310,7 +310,7 @@ The order can be adjusted where a vertical slice needs it, but the guiding rule 
 
 ### Items still to decide
 
-- The exact two free subclasses per class and final list of free backgrounds.
+- The final list of free backgrounds.
 - Gold prices, rewards and the unlock pace, to be decided after simulations.
 - Whether standard feat unlocks include any exceptions beyond the baseline Ability Score Improvement availability.
 - The detailed permanent campaign sequence and the exact content to adapt from each eligible source.
