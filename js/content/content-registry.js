@@ -279,6 +279,18 @@ var BUILTIN_REFS=[
   ]}
 ];
 
+/* Extra load-time checks owned by other systems (for example the character module checks that every premade hero's build
+   computes). addValidator(name, fn) registers fn(ctx), run at the end of validate(); ctx has has, get, list, and fail(msg)
+   and warn(msg) to report a problem (the message should name what it is about). Registering the same name again replaces
+   it, so loading a script twice does no harm. */
+var validators=[];
+C.addValidator=function(name,fn){
+  if(typeof name!=='string'||!name)throw new Error('addValidator: needs a name');
+  if(typeof fn!=='function')throw new Error('addValidator "'+name+'": needs a function');
+  validators=validators.filter(function(v){return v.name!==name});
+  validators.push({name:name,fn:fn});
+};
+
 /* Checks every cross reference. Returns {ok, errors, warnings} and never throws. */
 C.validate=function(){
   var errors=[],warnings=[],reported={};
@@ -303,6 +315,16 @@ C.validate=function(){
     var r=registryOf(b.kind);
     if(!r)return;
     r.list().forEach(function(def){checkRefs(b.label+' "'+def.id+'"',def,b.refs,errors,reported)});
+  });
+  validators.forEach(function(v){
+    try{
+      v.fn({
+        has:C.has,get:C.lookup,
+        list:function(kind){var r=registryOf(kind);return r?r.list():[]},
+        fail:function(msg){errors.push(msg)},
+        warn:function(msg){warnings.push(msg)}
+      });
+    }catch(e){errors.push(v.name+': '+e.message)}
   });
   return {ok:errors.length===0,errors:errors,warnings:warnings};
 };

@@ -8,6 +8,13 @@ Fable.createGameScene=function(encounter){
   var cam=new THREE.PerspectiveCamera(45,1,.5,1900),inp=Fable.input,tgt=new THREE.Vector3(),want=new THREE.Vector3(),look=new THREE.Vector3();
   var characterId=encounter.playerCharacter||'human-fighter';
   var fg=Fable.content.characters.create(characterId);
+  /* The hero's rules state: the premade build and the sheet computed from it (implementation plan, section 11.7).
+     Combat, the HUD and the stats panels read this; the model above is only what is drawn. */
+  var heroDef=Fable.content.characters.get(characterId),hero=null;
+  if(heroDef&&heroDef.build){
+    hero={id:characterId,build:heroDef.build,sheet:Fable.character.compute(heroDef.build)};
+    hero.sheet.issues.forEach(function(i){console[i.severity==='error'?'error':'warn']('Character "'+characterId+'": '+i.message)});
+  }
   S.add(fg.root);
   var P=Fable.createPlayer(world,fg);
   var stationaryInput={keys:{},cam:inp.cam},spawned=[];
@@ -94,6 +101,7 @@ Fable.createGameScene=function(encounter){
   P.update(0,stationaryInput,0);place(0);
   return {scene:S,camera:cam,
     encounter:encounter,
+    hero:hero,
     enter:function(){inp.attach(Fable.canvas)},
     exit:function(){inp.detach()},
     resize:function(w,h){cam.aspect=w/h;cam.updateProjectionMatrix()},

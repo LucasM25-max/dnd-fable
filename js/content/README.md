@@ -89,3 +89,11 @@ Kinds for character options are defined in `js/content/feats/` (see the header c
 - A feature or feat can contain `resources`, `actions`, `effects`, `choices`, `grants` and `onRest`. Choices say what they offer with `from:{kind, ...filters}`; numbers that grow with level are `{byClassLevel:{fighter:{1:2,4:3,10:4}}}`.
 - A class lists features for all 20 levels. Features not built yet are registered with `status:'stub'`, and the class's `implementedLevel` says how far the real ones go; `validateAll()` rejects a stub at or below that level.
 - Bespoke behaviour is a handler id (for example `feat.savage-attacker`) named in an effect. The handlers themselves arrive in Phase 6.
+
+## Character builds (Phase 3)
+
+- A premade character can carry a `build` (see the header of `js/character/build.js`). It is checked by `validateAll()`: it must compute with no errors and no pending choices.
+- Choices in a build are keyed `<sourceId>:<choiceId>` (for example `fighter:skills`, `human-versatile:feat`, `weapon-mastery:weapons`). A feature that is gained more than once uses `<featureId>#2:<choiceId>` for its second copy.
+- `rules-core/standard-actions.js` defines the 12 standard actions every sheet lists. Feature actions come from the features themselves.
+- Effects with `type:'modifier'` feed the sheet through `stat` (`ac`, `speed`, `initiative`, `hp-max`, `hp-per-level`, `proficiency-bonus`, `passive-perception`, `attack`, `damage`, `ability:<id>`, `save:<id>`, `skill:<id>`). New feats and features change the sheet with data alone.
+

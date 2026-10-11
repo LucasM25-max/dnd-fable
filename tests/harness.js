@@ -15,8 +15,9 @@ function runFile(file){
   const abs=path.isAbsolute(file)?file:path.join(ROOT,file);
   vm.runInThisContext(fs.readFileSync(abs,'utf8'),{filename:abs});
 }
-function loadRules(){['js/rules/rng.js','js/rules/formula.js','js/rules/dice.js','js/rules/money.js','js/rules/tables.js'].forEach(runFile)}
-function loadRegistry(){['js/content/content-registry.js','js/content/content-groups.js','js/content/content-loader.js'].forEach(runFile)}
+function loadRules(){['js/rules/rng.js','js/rules/formula.js','js/rules/dice.js','js/rules/money.js','js/rules/tables.js','js/rules/stats.js'].forEach(runFile)}
+/* Same order as index.html: the registry, then the character modules (they register a load-time validator with it), then the loader. */
+function loadRegistry(){['js/content/content-registry.js','js/character/build.js','js/character/choices.js','js/character/sheet.js','js/content/content-groups.js','js/content/content-loader.js'].forEach(runFile)}
 
 /* Script loader with the same contract as the browser one: runs the file, rejects when it is missing. */
 function nodeLoadScript(url){

@@ -102,6 +102,13 @@ The fighter and player remain as before: 3D voxel character, camera tour, and mo
 - The tutorial hero's pieces are in: the Human species, the Soldier background, the Fighter class (level 1 features, and all 20 levels listed with later features as labelled stubs), the Defense, Savage Attacker and Alert feats, Second Wind, Weapon Mastery and Heroic Inspiration.
 - Adding a species, background, class or feat means adding a folder or row plus one manifest entry. `validateAll()` checks every reference, choice source and resource at startup.
 
+## Character build and sheet (implementation plan, Phase 3)
+
+- A character is saved as a small build record (`js/character/build.js`); `Fable.character.compute(build)` derives the full sheet from it: abilities, AC, HP, initiative, speed, saves, skills, attacks, actions, resources and carrying weight. Every number carries a breakdown (`Fable.character.explain(sheet.stats.ac)` gives `Chain Mail 16 + Shield 2 + Defense 1 = 19`).
+- Problems are reported in `sheet.issues` and unfinished decisions in `sheet.pendingChoices`; `compute` does not throw for bad data.
+- The premade `human-fighter` is a build in `js/content/characters/human-fighter/definition.js`. `validateAll()` fails at startup if a premade hero's build does not compute cleanly.
+- `Fable.stats` (`js/rules/stats.js`) is the stat pipeline used by the sheet.
+
 ## Tests
 
 `node tests/run.js` runs the Node test harness (no build step, no dependencies). `node tests/run.js dice` runs only tests whose name contains "dice".

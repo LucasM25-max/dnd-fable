@@ -10,8 +10,24 @@ function show(){
   if(!E.length){name.textContent='No encounters';desc.textContent='Add an encounter package to continue';rw.textContent='';return}
   var e=E[ei],reward=e.rewards&&e.rewards.xp!=null?e.rewards.xp+' XP':'';
   var gold=e.rewards&&e.rewards.goldMin!=null?' and '+e.rewards.goldMin+' to '+e.rewards.goldMax+' gp':'';
-  name.textContent=e.name;desc.textContent=e.description||e.map;rw.textContent='Reward: '+reward+gold;
+  name.textContent=e.name;desc.textContent=e.description||e.map;showHero(e);rw.textContent='Reward: '+reward+gold;
   document.getElementById('prev').disabled=E.length<2;document.getElementById('next').disabled=E.length<2;
+}
+/* The hub's stat strip reads the hero's computed sheet instead of hard coded numbers (implementation plan, section 13). */
+function showHero(e){
+  var id=(e&&e.playerCharacter)||'human-fighter',def=Fable.content.characters.get(id);
+  if(!def||!def.build)return;
+  var sheet=Fable.character.compute(def.build),m=sheet.summary;
+  if(!m)return;
+  function set(el,text){var n=document.getElementById(el);if(n)n.textContent=text}
+  set('st-ac',m.ac);set('st-hp',m.hp);set('st-init',Fable.stats.signed(m.initiative));set('st-prof',Fable.stats.signed(m.proficiencyBonus));
+  var w=document.getElementById('st-weapon');
+  if(w&&m.mainAttack){
+    w.textContent='';
+    var b=document.createElement('b');b.textContent=m.mainAttack.name;
+    w.appendChild(b);
+    w.appendChild(document.createTextNode(Fable.stats.signed(m.mainAttack.bonus)+' to hit, '+m.mainAttack.damage+' '+m.mainAttack.damageType));
+  }
 }
 function refresh(){
   E=Fable.content.encounters.enabled();ei=Math.min(ei,Math.max(0,E.length-1));show();

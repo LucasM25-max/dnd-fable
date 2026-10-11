@@ -1,6 +1,6 @@
 # Fable: Character and Ability Implementation Plan
 
-Status: v4, with review decisions applied (see section 23 for the decisions log). Phases 0, 1 and 2 are implemented (see section 20). Scope: how D&D 5.5e (2024 rules) characters, species, backgrounds, classes, feats, items and abilities are represented, computed and used in the game, starting with the tutorial Human Fighter.
+Status: v4, with review decisions applied (see section 23 for the decisions log). Phases 0, 1, 2 and 3 are implemented (see section 20). Scope: how D&D 5.5e (2024 rules) characters, species, backgrounds, classes, feats, items and abilities are represented, computed and used in the game, starting with the tutorial Human Fighter.
 
 This plan builds on the existing content-first architecture (`js/content/`, registries, manifest, package loader) described in `README.md` and `js/content/README.md`, and serves the goals in `plan.md` (sections 3, 4, 5 and 8).
 
@@ -1372,6 +1372,15 @@ Each phase ends in something verifiable. Combat is turn based from the start, an
 - Build record, choice resolution, stat pipeline, sheet breakdowns, validation.
 - Premade `human-fighter` converted to a build.
 - Done when: the golden sheet test from section 11.5 passes.
+- **Status: done.** Implementation notes:
+  - New files: `js/rules/stats.js` (`Fable.stats`: `reduce`, `explain`, `when`, `rollState`, `signed`), `js/character/build.js` (record shape, `create`, `normalize`, `migrate` with a `migrations` table and a `renamedIds` table, `serialize`/`parse`, `checkRecord`, `choiceKey`), `js/character/choices.js` (`Fable.character.resolve`) and `js/character/sheet.js` (`Fable.character.compute`, `forCharacter`, `explain`). The choice resolver lives in `js/character/` rather than `js/rules/` because it reads content.
+  - Stat pipeline: base (the highest base wins, the rest are listed in `ignored`), set, add, then min and max, which show up as adjustment entries so every breakdown sums to its value. `sheet.stats` holds `proficiency-bonus`, `ac`, `speed`, `initiative`, `hp-max` and `passive-perception`; abilities, `saves`, `skills`, attack bonuses, damage bonuses and carrying capacity carry the same `{value, breakdown}`.
+  - `compute` never throws for bad data. It returns `sheet.issues` (`error` or `warning`), `pendingChoices` (what the builder asks next, with options, recommended pick and change rules) and `complete`. A record with a malformed shape or an unknown species, background or class gives a `fatal` sheet that only carries the issues.
+  - The sheet also provides what combat and the HUD need: `attacks[]` (melee, thrown, ranged and the Light extra attack, with mastery `chosen/applicable/usable` and a reason, versatile two handed damage, range, ammunition, roll state), `actions[]` (the 12 standard actions plus feature actions with resolved heal or damage dice and availability), `resources`, `handlers` (the dormant handler ids with their events), `onRest`, `rollStates`, `loadout`, `inventory`, `carrying` and `summary`.
+  - Rules that the golden sheet needed and so live in Phase 3 (Phase 4 adds the equip and swap operations, the Utilize cost and the visuals on top): armor class from the equipped armor and Shield (Dexterity per armor type), Strength requirement speed penalty, stealth disadvantage, disadvantage for untrained armor and Heavy weapons, carrying capacity.
+  - Deviations from the sketches: the build needs `'human:size':'Medium'` (the plan's 7.1 sample left the Human size choice out); the build gains `hitDiceUsed` for Phase 6 rests; the subclass is a choice `'<class>:subclass'` like every other decision; a repeated feature uses `<feature>#2:<choice>`; resources missing from the build start full, except those with no recharge of their own (Heroic Inspiration), which start empty; `standardActions` is a new rules-core kind (`rules-core/standard-actions.js`); `Fable.content.addValidator(name, fn)` lets the character module check every premade hero's build inside `validateAll()`; multiclass entries are accepted as groundwork with a warning.
+  - The premade `human-fighter` now has a `build`. `game-scene.js` computes its sheet (`scene.hero = {id, build, sheet}`) and the hub's stat strip reads the sheet instead of hard coded numbers.
+  - `tests/suites/phase3.test.js` adds 78 tests, including every value of section 11.5 for Loadouts A and B, level 5, rolled hit points, a second class, subclasses and repeated features registered by data only (`node tests/run.js` runs 249 with `three` installed).
 
 **Phase 4: Inventory, equipment and visible gear**
 - Equip rules, AC computation, weight and capacity, currency, Str requirement and stealth effects.
