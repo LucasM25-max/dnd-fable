@@ -30,6 +30,11 @@ Fable.content.characters.register({
       {item:'javelin',qty:4},{item:'explorers-pack',qty:1}
     ],
     equipped:{body:'chain-mail',offhand:'shield',mainhand:'longsword'},
+    /* Loadout A is the one on the sheet; B swaps to the dagger pair (implementation plan, section 20, Phase 4). */
+    loadouts:[
+      {id:'a',name:'Longsword and Shield',equipped:{body:'chain-mail',mainhand:'longsword',offhand:'shield'}},
+      {id:'b',name:'Dagger pair',equipped:{body:'chain-mail',mainhand:'dagger',offhand:'dagger'}}
+    ],
     currency:{gp:0},
     resources:{'second-wind-uses':2},
     hpCurrent:null

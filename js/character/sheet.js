@@ -22,6 +22,10 @@
      inventory      [{item, name, type, qty, weight, totalWeight, equippedQty}]
      currency       {coins, totalCp, text}
      carrying       {weight, capacity:{value, breakdown}, encumbered}
+     loadouts       [{id, name, equipped, active, available, reasons, cost, changes}]: saved equipment sets; cost is what
+                    swapping to it from the current gear costs {utilize, weaponChanges, minutes}
+     visuals        {worn:{body, mainhand, offhand}, stowed:[{qty, ...}]}: each entry {item, model, params, palette, mount, stow}
+                    is what the model code draws, so equipment on screen always follows the sheet
      attacks        every weapon the character carries, see below, and an Unarmed Strike
      masteries      {pick, chosen:[{item, name, mastery}]}
      features, feats, resources, actions, handlers, onRest
@@ -41,12 +45,15 @@
    Rules that live here because the golden sheet needs them: armor class from the equipped armor and shield (Dexterity
    applied per armor type, a Shield only when trained), the Strength requirement speed penalty, stealth disadvantage,
    disadvantage for untrained armor and for Heavy weapons, carrying capacity, and the Light and Thrown weapon rules.
-   Changing equipment (equip and swap rules, the Utilize cost) arrives in Phase 4 and works on the build's `equipped`. */
+   Changing equipment (equip, unequip, loadouts and what they cost) is Fable.character.inventory (inventory.js); it edits the
+   build's `equipped` and the sheet is recomputed. compute(build, {variants:{encumbrance:true}}) switches on the encumbrance
+   variant (speed and Disadvantage from weight); it is off by default. */
 (function(G){
 G.Fable=G.Fable||{};
 var Fable=G.Fable;
 var Ch=Fable.character=Fable.character||{};
 var S=Fable.stats;
+var Inv=null;
 
 var METHOD_LABEL={'standard-array':'Standard array','point-buy':'Point buy','manual':'Assigned score'};
 var CAPACITY_PER_STR=15;
@@ -65,13 +72,14 @@ function fatalSheet(rec,issues){
     v:Ch.CURRENT_VERSION,fatal:true,name:(rec&&rec.name)||'',level:0,complete:false,issues:issues,
     pendingChoices:[],choices:[],identity:{name:(rec&&rec.name)||''},abilities:{},stats:{},hp:null,hitDice:[],
     saves:{},skills:{},proficiencies:{},rollStates:{},equipment:{},loadout:null,inventory:[],currency:null,carrying:null,
-    attacks:[],masteries:null,features:[],feats:[],resources:{},actions:[],handlers:[],onRest:[],summary:null
+    attacks:[],masteries:null,features:[],feats:[],resources:{},actions:[],handlers:[],onRest:[],summary:null,loadouts:[],visuals:{worn:{body:null,mainhand:null,offhand:null},stowed:[]}
   };
 }
 
-Ch.compute=function(input){
+Ch.compute=function(input,options){
   var C=Fable.content;
   if(!C||!C.abilities||!C.skills||!C.items||!C.classes)throw new Error('Character: content is not loaded yet. Wait for Fable.content.whenReady.');
+  Inv=Ch.inventory;
   var rec=Ch.normalize(input);
   var issues=Ch.checkRecord(rec);
   if(issues.some(function(i){return i.severity==='error'}))return fatalSheet(rec,issues);
@@ -186,6 +194,39 @@ Ch.compute=function(input){
   var scope={proficiencyBonus:pb.value,level:R.level,class:classScope,abilities:scopeAbilities};
   function abilityName(a){return C.abilities.get(a).name}
 
+  /* ===== 9. inventory, currency, carrying ===== */
+  var equippedQty={};
+  Object.keys(used).forEach(function(id){equippedQty[id]=used[id]});
+  var weightC=[],totalWeight=0,inventory=[];
+  Object.keys(inv).forEach(function(id){
+    var it=C.items.get(id),qty=inv[id],w=it.weight*qty;
+    totalWeight+=w;
+    inventory.push({item:id,name:it.name,type:it.type,category:it.category||null,qty:qty,weight:it.weight,totalWeight:w,costCp:it.costCp,equippedQty:Math.min(equippedQty[id]||0,qty),
+      slots:Inv.slotsFor(id),equippedSlots:Ch.SLOTS.filter(function(sl){return rec.equipped[sl]===id}),contents:it.type==='pack'?it.contents.map(function(c){return {item:c.item,qty:c.qty}}):null});
+  });
+  var coins=rec.currency,coinCount=0,totalCp=0;
+  var coinsOk=Object.keys(coins).length===0||Fable.money.checkCost(coins)===null;
+  if(!coinsOk)issue('error','bad-currency','The currency holds an unknown coin: '+Object.keys(coins).join(', '),'currency');
+  else{
+    Object.keys(coins).forEach(function(k){coinCount+=coins[k]});
+    if(Object.keys(coins).length)totalCp=Fable.money.toCp(coins);
+  }
+  totalWeight+=Fable.money.coinWeight(coinCount);
+  var capacity=sumOf([{label:'Strength score '+scoreOf.str+' x '+CAPACITY_PER_STR,op:'base',value:scoreOf.str*CAPACITY_PER_STR}]);
+  var variants=(options&&options.variants)||{};
+  var encLevel=0;
+  if(variants.encumbrance){
+    if(totalWeight>scoreOf.str*10)encLevel=2;else if(totalWeight>scoreOf.str*5)encLevel=1;
+  }
+  var loadItems=inventory.slice().sort(function(x,y){return y.totalWeight-x.totalWeight}).filter(function(x){return x.totalWeight>0})
+    .map(function(x){return {label:x.name+(x.qty>1?' x'+x.qty:''),weight:x.totalWeight}});
+  if(coinCount)loadItems.push({label:plural(coinCount,'coin'),weight:Fable.money.coinWeight(coinCount)});
+  var carrying={weight:totalWeight,capacity:capacity,overCapacity:totalWeight>capacity.value,encumbered:encLevel>0,
+    level:['none','encumbered','heavily-encumbered'][encLevel],variant:!!variants.encumbrance,breakdown:loadItems,
+    thresholds:{encumbered:scoreOf.str*5,heavilyEncumbered:scoreOf.str*10}};
+  if(carrying.overCapacity)issue('warning','over-capacity','Carrying '+totalWeight+' lb is more than the capacity of '+capacity.value+' lb','inventory');
+
+
   /* ===== 4. proficiencies ===== */
   var KIND_REG={armorTraining:'armorCategories',weaponProficiency:'weaponCategories',savingThrows:'abilities',skills:'skills',tools:'tools',languages:'languages'};
   var proficiencies={};
@@ -217,6 +258,9 @@ Ch.compute=function(input){
   }
   if(shield&&!trained('armorTraining','shield'))issue('warning','untrained-shield','Not trained with Shields: no Armor Class bonus and Disadvantage on Strength and Dexterity tests','equipped.offhand');
   if(shield&&!trained('armorTraining','shield'))UNTRAINED_KEYS.forEach(function(k){addState(k,'disadvantage',shield.name+' (untrained)')});
+  if(encLevel===2){
+    ['ability:str','ability:dex','ability:con','save:str','save:dex','save:con','attack'].forEach(function(k){addState(k,'disadvantage','Heavily encumbered')});
+  }
   function combine(keys){
     var adv=[],dis=[];
     keys.forEach(function(k){if(states[k]){adv=adv.concat(states[k].advantage);dis=dis.concat(states[k].disadvantage)}});
@@ -265,6 +309,7 @@ Ch.compute=function(input){
   if(eq.body&&eq.body.strengthRequirement&&scoreOf.str<eq.body.strengthRequirement){
     speedC.push({label:eq.body.name+' needs Strength '+eq.body.strengthRequirement,op:'add',value:-STR_REQUIREMENT_PENALTY});
   }
+  if(encLevel>0)speedC.push({label:encLevel===2?'Heavily encumbered':'Encumbered',op:'add',value:encLevel===2?-20:-10});
   var speed=sumOf(speedC.concat(modsFor('speed',scope)).concat([{label:'Speed cannot be negative',op:'min',value:0}]));
 
   var initiative=sumOf([{label:'Dexterity modifier',op:'base',value:modOf.dex}].concat(modsFor('initiative',scope)));
@@ -315,26 +360,6 @@ Ch.compute=function(input){
   Object.keys(rec.hitDiceUsed).forEach(function(c){
     if(!R.classLevels[c])issue('warning','unknown-hit-dice','hitDiceUsed names the class "'+c+'", which the character does not have','hitDiceUsed.'+c);
   });
-
-  /* ===== 9. inventory, currency, carrying ===== */
-  var equippedQty={};
-  Object.keys(used).forEach(function(id){equippedQty[id]=used[id]});
-  var weightC=[],totalWeight=0,inventory=[];
-  Object.keys(inv).forEach(function(id){
-    var it=C.items.get(id),qty=inv[id],w=it.weight*qty;
-    totalWeight+=w;
-    inventory.push({item:id,name:it.name,type:it.type,qty:qty,weight:it.weight,totalWeight:w,equippedQty:Math.min(equippedQty[id]||0,qty)});
-  });
-  var coins=rec.currency,coinCount=0,totalCp=0;
-  var coinsOk=Object.keys(coins).length===0||Fable.money.checkCost(coins)===null;
-  if(!coinsOk)issue('error','bad-currency','The currency holds an unknown coin: '+Object.keys(coins).join(', '),'currency');
-  else{
-    Object.keys(coins).forEach(function(k){coinCount+=coins[k]});
-    if(Object.keys(coins).length)totalCp=Fable.money.toCp(coins);
-  }
-  totalWeight+=Fable.money.coinWeight(coinCount);
-  var capacity=sumOf([{label:'Strength score '+scoreOf.str+' x '+CAPACITY_PER_STR,op:'base',value:scoreOf.str*CAPACITY_PER_STR}]);
-  var carrying={weight:totalWeight,capacity:capacity,encumbered:false};
 
   /* ===== 10. attacks ===== */
   var masteryChosen=R.selections[Ch.MASTERY_CHOICE_KEY]||[];
@@ -538,6 +563,24 @@ Ch.compute=function(input){
 
   R.pending.forEach(function(c){if(c.status==='pending')issue('warning','pending-choice',c.message||'A choice is missing','choices.'+c.key)});
   var errors=issues.filter(function(i){return i.severity==='error'});
+  /* What to draw (Phase 4): the worn items and the carried ones that hang on the body, as plain data the model code reads. */
+  function visualOf(it){
+    if(!it||!it.visual)return null;
+    var m=C.itemModels&&C.itemModels.get(it.visual.model);
+    return {item:it.id,model:it.visual.model,params:Object.assign({},it.visual.params),palette:Object.assign({},it.visual.palette),
+      mount:m?m.mount:null,stow:it.visual.stow!==undefined?it.visual.stow:(m&&m.stow!==undefined?m.stow:null)};
+  }
+  var visuals={worn:{body:visualOf(eq.body),mainhand:visualOf(eq.mainhand),offhand:visualOf(eq.offhand)},stowed:[]};
+  inventory.forEach(function(e){
+    var it=C.items.get(e.item),v=visualOf(it),n=e.qty-e.equippedQty;
+    if(v&&v.stow&&n>0)visuals.stowed.push(Object.assign({qty:n},v));
+  });
+  var activeLoadout=Inv.activeLoadout(rec);
+  var loadouts=rec.loadouts.map(function(l){
+    var r=Inv.applyLoadout(rec,l.id);
+    return {id:l.id,name:l.name,equipped:Object.assign({},l.equipped),active:l.id===activeLoadout,available:r.ok,reasons:r.reasons,
+      cost:r.cost,changes:r.changes};
+  });
   var main=attacks.filter(function(a){return a.id===mainAttack})[0];
   var classLine=R.species.name+' '+classes.map(function(c){return c.name+' '+c.level}).join(' / ');
   return {
@@ -550,7 +593,7 @@ Ch.compute=function(input){
     saves:saves,skills:skills,proficiencies:proficiencies,rollStates:rollStates,
     equipment:eq,loadout:{mainAttack:mainAttack,hands:{mainhand:eq.mainhand?eq.mainhand.id:null,offhand:eq.offhand?eq.offhand.id:null,body:eq.body?eq.body.id:null},lightPair:lightPair,twoHanded:!!eq.mainhand&&(twoHanded(eq.mainhand)||(!!eq.mainhand.versatile&&offHandEmpty))},
     inventory:inventory,currency:{coins:Object.assign({},coins),totalCp:totalCp,text:Fable.money.format(totalCp)},carrying:carrying,
-    attacks:attacks,masteries:masteries,features:features,feats:feats,resources:resources,actions:actions,handlers:handlers,onRest:onRest,
+    attacks:attacks,masteries:masteries,visuals:visuals,loadouts:loadouts,features:features,feats:feats,resources:resources,actions:actions,handlers:handlers,onRest:onRest,
     summary:{name:rec.name,classLine:classLine,ac:ac.value,hp:hpMax.value,initiative:initiative.value,proficiencyBonus:pb.value,speed:speed.value,
       mainAttack:main?{name:main.name,bonus:main.bonus.value,damage:main.damage.expression,damageType:main.damage.type}:null}
   };

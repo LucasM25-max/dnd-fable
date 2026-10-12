@@ -8,12 +8,17 @@ Fable.createGameScene=function(encounter){
   var cam=new THREE.PerspectiveCamera(45,1,.5,1900),inp=Fable.input,tgt=new THREE.Vector3(),want=new THREE.Vector3(),look=new THREE.Vector3();
   var characterId=encounter.playerCharacter||'human-fighter';
   var fg=Fable.content.characters.create(characterId);
-  /* The hero's rules state: the premade build and the sheet computed from it (implementation plan, section 11.7).
-     Combat, the HUD and the stats panels read this; the model above is only what is drawn. */
-  var heroDef=Fable.content.characters.get(characterId),hero=null;
+  /* The hero's rules state: the working build from the roster (the premade build, or whatever loadout swaps changed) and
+     the sheet computed from it (implementation plan, section 11.7). Combat, the HUD and the stats panels read this; the
+     model above is only what is drawn, and its gear is drawn from sheet.visuals. A ?loadout=<id> address picks a loadout. */
+  var heroDef=Fable.content.characters.get(characterId),hero=null,gear=null;
   if(heroDef&&heroDef.build){
-    hero={id:characterId,build:heroDef.build,sheet:Fable.character.compute(heroDef.build)};
+    var want=new URLSearchParams(location.search).get('loadout');
+    if(want){var sw=Fable.character.roster.swap(characterId,want,{});if(!sw.ok)console.warn('Loadout "'+want+'": '+sw.reasons.join('; '))}
+    var build=Fable.character.roster.build(characterId);
+    hero={id:characterId,build:build,sheet:Fable.character.compute(build)};
     hero.sheet.issues.forEach(function(i){console[i.severity==='error'?'error':'warn']('Character "'+characterId+'": '+i.message)});
+    if(fg.rig&&Fable.createEquipmentView)gear=Fable.createEquipmentView(fg.rig).apply(hero.sheet.visuals);
   }
   S.add(fg.root);
   var P=Fable.createPlayer(world,fg);
@@ -40,6 +45,8 @@ Fable.createGameScene=function(encounter){
       var m=Fable.content.monsters.create(group.monster),p=formationPosition(zone,i,group.count,group.formation,rnd);
       m.root.position.set(p.x,0,p.z);
       m.root.rotation.y=Math.atan2(world.spawn.x-p.x,world.spawn.z-p.z);
+      var mdef=Fable.content.monsters.get(group.monster);
+      if(m.rig&&Fable.createEquipmentView&&mdef&&(mdef.equipment||mdef.wielding))m.gear=Fable.createEquipmentView(m.rig).apply(Fable.equipmentVisualsFor(mdef));
       S.add(m.root);
       spawned.push({instance:m,position:p});
     }
@@ -102,6 +109,7 @@ Fable.createGameScene=function(encounter){
   return {scene:S,camera:cam,
     encounter:encounter,
     hero:hero,
+    gear:gear,
     enter:function(){inp.attach(Fable.canvas)},
     exit:function(){inp.detach()},
     resize:function(w,h){cam.aspect=w/h;cam.updateProjectionMatrix()},

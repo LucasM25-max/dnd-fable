@@ -19,6 +19,9 @@
      inventory     [{item, qty}]
      equipped      {body, mainhand, offhand}: slot -> an item id that is in the inventory
      currency      {gp, sp, cp ...} coins carried
+     loadouts      [{id, name, equipped}]  saved equipment sets (Phase 4). equipped maps a slot to an item id, or to null for
+                   "empty this slot"; a slot that is not listed is left as it is, so a weapon loadout never undresses the
+                   armor. Applying one is Fable.character.inventory.applyLoadout.
      resources     current values of limited pools, keyed by resource id. A pool that is not listed starts full, unless it
                    has no recharge of its own (Heroic Inspiration), which starts empty.
      hitDiceUsed   {<class id>: number} spent hit dice (short rests spend them, Phase 6)
@@ -87,6 +90,9 @@ Ch.migrate=function(record){
   if(Array.isArray(rec.classLevels))rec.classLevels.forEach(function(c){if(isObj(c)&&typeof c.class==='string')c.class=renamed('classes',c.class)});
   if(Array.isArray(rec.inventory))rec.inventory.forEach(function(e){if(isObj(e)&&typeof e.item==='string')e.item=renamed('items',e.item)});
   if(isObj(rec.equipped))Object.keys(rec.equipped).forEach(function(k){if(typeof rec.equipped[k]==='string')rec.equipped[k]=renamed('items',rec.equipped[k])});
+  if(Array.isArray(rec.loadouts))rec.loadouts.forEach(function(l){
+    if(isObj(l)&&isObj(l.equipped))Object.keys(l.equipped).forEach(function(k){if(typeof l.equipped[k]==='string')l.equipped[k]=renamed('items',l.equipped[k])});
+  });
   return rec;
 };
 
@@ -109,6 +115,7 @@ Ch.normalize=function(input){
   rec.inventory.forEach(function(e){if(isObj(e)&&e.qty===undefined)e.qty=1});
   if(!isObj(rec.equipped))rec.equipped={};
   if(!isObj(rec.currency))rec.currency={};
+  if(!Array.isArray(rec.loadouts))rec.loadouts=[];
   if(!isObj(rec.resources))rec.resources={};
   if(!isObj(rec.hitDiceUsed))rec.hitDiceUsed={};
   if(rec.hpCurrent===undefined)rec.hpCurrent=null;
@@ -131,6 +138,7 @@ Ch.create=function(opts){
     inventory:opts.inventory||[],
     equipped:opts.equipped||{},
     currency:opts.currency||{},
+    loadouts:opts.loadouts||[],
     resources:opts.resources||{},
     hitDiceUsed:opts.hitDiceUsed||{},
     hpCurrent:opts.hpCurrent===undefined?null:opts.hpCurrent
@@ -148,7 +156,7 @@ Ch.parse=function(text){
 
 /* ---------- shape check ---------- */
 
-var KNOWN_FIELDS=['v','name','species','background','classLevels','abilityScores','backgroundAsi','choices','inventory','equipped','currency','resources','hitDiceUsed','hpCurrent'];
+var KNOWN_FIELDS=['v','name','species','background','classLevels','abilityScores','backgroundAsi','choices','inventory','equipped','currency','loadouts','resources','hitDiceUsed','hpCurrent'];
 
 /* Checks the shape of a normalized record without looking at content. Returns issues
    [{severity:'error'|'warning', code, message, path}]. An empty list means the record is well formed. */
@@ -201,6 +209,20 @@ Ch.checkRecord=function(rec){
     var id=rec.equipped[slot];
     if(Ch.SLOTS.indexOf(slot)<0)bad('unknown-slot',Ch.RESERVED_SLOTS.indexOf(slot)>=0?'The slot "'+slot+'" is reserved for later and no content uses it yet':'Unknown equipment slot "'+slot+'" (known: '+Ch.SLOTS.join(', ')+')','equipped.'+slot);
     else if(typeof id!=='string'||!ID_RE.test(id))bad('bad-equipped','equipped.'+slot+' must be an item id','equipped.'+slot);
+  });
+  var loadoutIds={};
+  rec.loadouts.forEach(function(l,i){
+    var p='loadouts['+i+']';
+    if(!isObj(l)||!isText(l.id)||!ID_RE.test(l.id)){bad('bad-loadout','Each loadout needs an id made of lowercase words',p+'.id');return}
+    if(loadoutIds[l.id])bad('duplicate-loadout','The loadout "'+l.id+'" is listed twice',p+'.id');
+    loadoutIds[l.id]=1;
+    if(!isText(l.name))bad('bad-loadout','The loadout "'+l.id+'" needs a name',p+'.name');
+    if(!isObj(l.equipped)){bad('bad-loadout','The loadout "'+l.id+'" needs an equipped object',p+'.equipped');return}
+    Object.keys(l.equipped).forEach(function(slot){
+      var v=l.equipped[slot];
+      if(Ch.SLOTS.indexOf(slot)<0)bad('unknown-slot','The loadout "'+l.id+'" uses an unknown slot "'+slot+'"',p+'.equipped.'+slot);
+      else if(v!==null&&(typeof v!=='string'||!ID_RE.test(v)))bad('bad-loadout','The loadout "'+l.id+'" must give an item id or null for '+slot,p+'.equipped.'+slot);
+    });
   });
   Object.keys(rec.currency).forEach(function(c){
     if(!isInt(rec.currency[c])||rec.currency[c]<0)bad('bad-currency','The "'+c+'" coin count must be a whole number of 0 or more','currency.'+c);

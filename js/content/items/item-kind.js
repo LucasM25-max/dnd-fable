@@ -15,6 +15,11 @@
    type 'pack'    description, contents [{item, qty}] (gear only), weight (the SRD's total, checked against the contents)
    type 'tool'    tool (tools id); cost and weight come from the tool, see tool-items.js
 
+   Any item may carry a `visual` (Phase 4): {model, params?, palette?, stow?}. model is a row of the itemModels kind
+   (items/item-models.js: family, params, palette, mount, stow); params and palette override that row, which is how
+   cosmetics will restyle an item without touching its rules. stow says where the item hangs on the body while it is
+   carried but not held (see STOW_POINTS), or null to draw nothing. Items without a visual simply are not drawn.
+
    Dex rules for armor: 'full' adds the whole Dexterity modifier (Light), 'cap' adds it up to dexCap (Medium, +2),
    'none' ignores Dexterity altogether (Heavy), so a negative Dexterity modifier never lowers Heavy armor. */
 (function(){
@@ -24,6 +29,14 @@ var TYPES=['weapon','armor','gear','pack','tool'];
 var DEX_RULES=['full','cap','none'];
 var EPS=1e-9;
 
+var MOUNTS=['hand','forearm','body'];
+var STOW_POINTS=['hip','belt','back-flat','back-diag'];
+function isColor(n){return typeof n==='number'&&Math.floor(n)===n&&n>=0&&n<=0xffffff}
+function checkPalette(p,fail){
+  if(p===undefined)return;
+  if(!p||typeof p!=='object'||Array.isArray(p)||Object.keys(p).some(function(k){return !isColor(p[k])}))fail('palette must be an object of colors written as numbers such as 0xaab4c0');
+}
+function checkStow(s,fail){if(s!==undefined&&s!==null&&STOW_POINTS.indexOf(s)<0)fail('stow must be null or one of '+STOW_POINTS.join(', '))}
 function isInt(n){return typeof n==='number'&&isFinite(n)&&Math.floor(n)===n}
 function isText(s){return typeof s==='string'&&s.length>0}
 function isDonDoff(v){
@@ -116,6 +129,20 @@ function validatePack(def,fail){
   });
 }
 
+/* Presentation presets for items: one row per look. Pure data; the builders are in js/engine/gear-models.js. */
+C.defineKind('itemModels',{
+  label:'Item model',
+  sourced:false,
+  required:['family','mount'],
+  validate:function(def,fail){
+    if(!isText(def.family))fail('family must be the name of a model family');
+    if(MOUNTS.indexOf(def.mount)<0)fail('mount must be one of '+MOUNTS.join(', '));
+    if(def.params!==undefined&&(!def.params||typeof def.params!=='object'||Array.isArray(def.params)))fail('params must be an object');
+    checkPalette(def.palette,fail);
+    checkStow(def.stow,fail);
+  }
+});
+
 C.defineKind('items',{
   label:'Item',
   required:['type','cost','weight'],
@@ -126,7 +153,8 @@ C.defineKind('items',{
     {path:'mastery',kind:'weaponMasteries'},
     {path:'storage',kind:'items'},
     {path:'contents.*.item',kind:'items'},
-    {path:'tool',kind:'tools'}
+    {path:'tool',kind:'tools'},
+    {path:'visual.model',kind:'itemModels'}
   ],
   normalize:function(def){
     if(M.isCost(def.cost))def.costCp=M.toCp(def.cost);
@@ -142,6 +170,16 @@ C.defineKind('items',{
   },
   validate:function(def,fail){
     if(TYPES.indexOf(def.type)<0)fail('type must be one of '+TYPES.join(', '));
+    if(def.visual!==undefined){
+      var v=def.visual;
+      if(!v||typeof v!=='object'||Array.isArray(v)||!isText(v.model))fail('visual needs {model: an item model id}');
+      else{
+        if(v.params!==undefined&&(!v.params||typeof v.params!=='object'||Array.isArray(v.params)))fail('visual.params must be an object');
+        checkPalette(v.palette,fail);checkStow(v.stow,fail);
+        var extra=Object.keys(v).filter(function(k){return ['model','params','palette','stow'].indexOf(k)<0});
+        if(extra.length)fail('visual has an unknown field "'+extra[0]+'"');
+      }
+    }
     var why=M.checkCost(def.cost);
     if(why)fail(why);
     if(typeof def.weight!=='number'||!isFinite(def.weight)||def.weight<0)fail('weight must be a number of pounds, 0 or more');

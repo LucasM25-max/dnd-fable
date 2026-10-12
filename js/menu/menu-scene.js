@@ -12,7 +12,12 @@ var fireL=new THREE.PointLight(0xff7a22,1.5,70);fireL.position.set(0,6,-24);S.ad
 
 
 var tav=Fable.buildTavern(S),T=tav.T,flames=tav.flames;
-var fg=Fable.createHumanFighter(),F=fg.root,H=fg.H,C=fg.C,AL=fg.AL,AR=fg.AR;
+var heroId='human-fighter';
+var fg=Fable.content.characters.create(heroId),F=fg.root,H=fg.H,C=fg.C,AL=fg.AL,AR=fg.AR;
+/* the hero wears and carries what the roster's sheet says; a loadout change in the hub redraws the gear */
+var gear=Fable.createEquipmentView(fg.rig);
+gear.apply(Fable.character.roster.sheet(heroId).visuals);
+Fable.character.roster.onChange(function(id,sheet){if(id===heroId)gear.apply(sheet.visuals)});
 F.position.set(0,2.05,6);S.add(F);
 function disc(R,y,h,c,lo,hi,g){for(var x=-R;x<=R;x++)for(var z=-R;z<=R;z++){var d=Math.sqrt(x*x+z*z);if(d<=hi&&d>=lo)b(T,x,y,6+z,1,h,1,c,2,g)}}
 disc(10,.9,1.8,0x2d1b55,0,10.3);disc(8,1.9,.3,0x6a4ad8,0,8.3);disc(10,1.95,.3,0xffd23f,8.4,9.3,1);

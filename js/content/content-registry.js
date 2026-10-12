@@ -276,6 +276,11 @@ var BUILTIN_REFS=[
     {path:'map',kind:'maps'},
     {path:'playerCharacter',kind:'characters'},
     {path:'enemies.*.monster',kind:'monsters'}
+  ]},
+  {kind:'monsters',label:'Monster',refs:[
+    {path:'equipment.*.item',kind:'items',ifKind:true},
+    {path:'wielding.mainhand',kind:'items',ifKind:true},
+    {path:'wielding.offhand',kind:'items',ifKind:true}
   ]}
 ];
 
@@ -314,7 +319,9 @@ C.validate=function(){
   BUILTIN_REFS.forEach(function(b){
     var r=registryOf(b.kind);
     if(!r)return;
-    r.list().forEach(function(def){checkRefs(b.label+' "'+def.id+'"',def,b.refs,errors,reported)});
+    /* a ref marked ifKind is only checked when that kind is defined (a game that loads no items has no equipment to check) */
+    var refs=b.refs.filter(function(x){return !x.ifKind||registryOf(x.kind)});
+    r.list().forEach(function(def){checkRefs(b.label+' "'+def.id+'"',def,refs,errors,reported)});
   });
   validators.forEach(function(v){
     try{

@@ -97,3 +97,10 @@ Kinds for character options are defined in `js/content/feats/` (see the header c
 - `rules-core/standard-actions.js` defines the 12 standard actions every sheet lists. Feature actions come from the features themselves.
 - Effects with `type:'modifier'` feed the sheet through `stat` (`ac`, `speed`, `initiative`, `hp-max`, `hp-per-level`, `proficiency-bonus`, `passive-perception`, `attack`, `damage`, `ability:<id>`, `save:<id>`, `skill:<id>`). New feats and features change the sheet with data alone.
 
+
+## Items, visuals and loadouts (Phase 4)
+
+- An item's looks come from a row in `items/item-models.js` (`family`, `mount`, `params`, `palette`, `stow`). Weapons and armor point at the row with their own id by default; set `visual:{model:'...', params:{...}}` to share or tweak one.
+- A model factory (character or monster) returns `rig:{gearScale, joints, sockets, stow}` next to its meshes. Item models are then drawn by `Fable.createEquipmentView(rig).apply(visuals)`.
+- A monster that carries items lists `equipment:[{item,qty}]` and `wielding:{mainhand,offhand}`; the ids are checked by `validateAll()`.
+- A character build lists `loadouts:[{id,name,equipped:{body?,mainhand,offhand}}]`.

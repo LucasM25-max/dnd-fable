@@ -66,7 +66,7 @@ js/content/
   characters/
     human-fighter/
       index.js
-      model.js
+      model.js      (a rig with joints, sockets and stow points)
       definition.js
   encounters/
     tutorial-goblin-ambush/
@@ -108,6 +108,13 @@ The fighter and player remain as before: 3D voxel character, camera tour, and mo
 - Problems are reported in `sheet.issues` and unfinished decisions in `sheet.pendingChoices`; `compute` does not throw for bad data.
 - The premade `human-fighter` is a build in `js/content/characters/human-fighter/definition.js`. `validateAll()` fails at startup if a premade hero's build does not compute cleanly.
 - `Fable.stats` (`js/rules/stats.js`) is the stat pipeline used by the sheet.
+
+## Inventory, equipment and visible gear (implementation plan, Phase 4)
+
+- `Fable.character.inventory` holds the equip, loadout, stock and money operations. Each returns a new build plus the cost of the change (Utilize actions, free weapon changes, minutes) or the reasons it was refused.
+- A premade hero can list `loadouts`. The hub shows a button per loadout; switching changes AC, the attack in the stat strip and the model on screen.
+- Item looks are data: `js/content/items/item-models.js` and an item's `visual` field. Model families are in `js/engine/gear-models.js`; `js/engine/equipment.js` mounts a sheet's `visuals` on the sockets of a model's `rig`.
+- Try `?loadout=b` on the address to start the game scene with the dagger pair.
 
 ## Tests
 
