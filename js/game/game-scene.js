@@ -13,8 +13,8 @@ Fable.createGameScene=function(encounter){
      model above is only what is drawn, and its gear is drawn from sheet.visuals. A ?loadout=<id> address picks a loadout. */
   var heroDef=Fable.content.characters.get(characterId),hero=null,gear=null;
   if(heroDef&&heroDef.build){
-    var want=new URLSearchParams(location.search).get('loadout');
-    if(want){var sw=Fable.character.roster.swap(characterId,want,{});if(!sw.ok)console.warn('Loadout "'+want+'": '+sw.reasons.join('; '))}
+    var loadoutId=new URLSearchParams(location.search).get('loadout');
+    if(loadoutId){var sw=Fable.character.roster.swap(characterId,loadoutId,{});if(!sw.ok)console.warn('Loadout "'+loadoutId+'": '+sw.reasons.join('; '))}
     var build=Fable.character.roster.build(characterId);
     hero={id:characterId,build:build,sheet:Fable.character.compute(build)};
     hero.sheet.issues.forEach(function(i){console[i.severity==='error'?'error':'warn']('Character "'+characterId+'": '+i.message)});
