@@ -119,8 +119,13 @@ Fable.createEquipmentView=function(rig){
         place(g,w.place.parent,w.place.pos,w.place.rot);
         mounted[key]={sig:sig,objs:[g]};
       });
+      /* A rig may react to what is stowed on its back (the Human Fighter's cape drapes over it instead of cutting through). */
+      if(typeof rig.onStow==='function'){
+        rig.onStow(Object.keys(want).filter(function(k){return want[k].kind.indexOf('back')===0&&mounted['stow:'+k]})
+          .map(function(k){return mounted['stow:'+k].objs[0]}));
+      }
     },
-    clear:function(){Object.keys(mounted).forEach(release);return view},
+    clear:function(){Object.keys(mounted).forEach(release);if(rig&&typeof rig.onStow==='function')rig.onStow([]);return view},
     mounted:function(){return Object.keys(mounted).sort()}
   };
   return view;

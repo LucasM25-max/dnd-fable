@@ -40,13 +40,41 @@ var stow={
   hip:[{parent:HP,pos:[5.8,.5,-.5],rot:[-2.0,0,-.15]},{parent:HP,pos:[-5.8,.5,-.5],rot:[-2.0,0,.15]}],
   belt:[{parent:HP,pos:[3.8,.2,3.7],rot:[0,0,Math.PI+.25]},{parent:HP,pos:[-3.8,.2,3.7],rot:[0,0,Math.PI-.25]}],
   'back-flat':[{parent:TO,pos:[0,3.5,-4.8],rot:[0,Math.PI,0]}],
-  'back-diag':[{parent:TO,pos:[-1.5,3.6,-4.2],rot:[0,0,.55]},{parent:TO,pos:[-.5,3.6,-4.6],rot:[0,0,.55]},{parent:TO,pos:[.5,3.6,-5],rot:[0,0,.55]},{parent:TO,pos:[1.5,3.6,-5.4],rot:[0,0,.55]}]
+  'back-diag':[{parent:TO,pos:[-1.5,3.6,-4.2],rot:[0,0,.55]},{parent:TO,pos:[-.5,3.6,-4.3],rot:[0,0,.55]},{parent:TO,pos:[.5,3.6,-4.4],rot:[0,0,.55]},{parent:TO,pos:[1.5,3.6,-4.5],rot:[0,0,.55]}]
 };
+/* The cape hangs from the neck and swings out behind him as he moves, so anything slung on his back would be cut through by
+   it. Instead the cape drapes over whatever is stowed there: after the stowed items are placed, the equipment view calls
+   rig.onStow with the ones on the back, and the cape is moved back just far enough to clear the outermost of them. With
+   nothing on his back it sits where it was built. The swing only ever carries the cape further out, never back in. */
+var CAPE_Z=C.position.z,CAPE_FRONT=.97,CAPE_GAP=.1;
+function backmostZ(objs){
+  var inv=new THREE.Matrix4().copy(TO.matrixWorld).invert(),m=new THREE.Matrix4(),v=new THREE.Vector3(),zmin=Infinity;
+  objs.forEach(function(root){
+    root.traverse(function(o){
+      if(o.isInstancedMesh){
+        o.geometry.computeBoundingBox();var half=o.geometry.boundingBox.max.z;
+        for(var i=0;i<o.count;i++){o.getMatrixAt(i,m);v.setFromMatrixPosition(m).applyMatrix4(o.matrixWorld).applyMatrix4(inv);zmin=Math.min(zmin,v.z-half)}
+      }else if(o.isMesh){
+        for(var c=0;c<8;c++){v.set(c&1?.5:-.5,c&2?.5:-.5,c&4?.5:-.5).applyMatrix4(o.matrixWorld).applyMatrix4(inv);zmin=Math.min(zmin,v.z)}
+      }
+    });
+  });
+  return zmin;
+}
+function clearCape(backObjs){
+  C.position.z=CAPE_Z;
+  if(!backObjs||!backObjs.length)return;
+  F.updateMatrixWorld(true);
+  var zmin=backmostZ(backObjs);
+  if(zmin===Infinity)return;
+  C.position.z=CAPE_Z+Math.min(0,(zmin-CAPE_GAP)-(CAPE_Z+CAPE_FRONT));
+}
 var rig={
   gearScale:1,
   joints:{root:F,hips:HP,torso:TO,head:H,armL:AL,armR:AR,legL:LL,legR:LR,cape:C},
   sockets:{mainHand:mainHand,offHand:offHand,forearmOff:forearm},
-  stow:stow
+  stow:stow,
+  onStow:clearCape
 };
 return {root:F,H:H,C:C,AL:AL,AR:AR,LL:LL,LR:LR,rig:rig};
 };

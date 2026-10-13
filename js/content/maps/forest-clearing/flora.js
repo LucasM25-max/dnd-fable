@@ -3,7 +3,7 @@
 var FC=Fable.forestClearing;
 FC.buildFlora=function(ctx){
   var r=ctx.rnd,S=ctx.solid,B=ctx.B;
-  var bark=[0x5a3d22,0x4e3320,0x654529],leaf=[0x3f7a34,0x4c8c3c,0x2f6a2c,0x5a9a44],pine=[0x2a5a34,0x23502d,0x31683b];
+  var bark=[0x5a3d22,0x4e3320,0x654529],leaf=[0x3f6d3a,0x4c7d43,0x315f31,0x588a4b],pine=[0x2e5137,0x274830,0x355e3f];
   function pick(a){return a[(r()*a.length)|0]}
   function trunk(x,z,w,H,flare){for(var y=0;y<H;y+=4){var ww=(y<4&&flare)?w+2:w;S.add(x,y,z,ww,4,ww,pick(bark))}}
   function oak(x,z,solid,extra){
@@ -28,7 +28,7 @@ FC.buildFlora=function(ctx){
   }
   function bush(x,z){var c=pick(leaf),c2=pick(leaf);
     S.add(x,0,z,7,5,7,c);S.add(x+4,0,z+2,5,4,5,c2);S.add(x-3,3,z-1,5,4,5,c);
-    if(r()<.25)S.add(x+1,5,z+3.6,1,1,1,0xc0392b);
+    if(r()<.25)S.add(x+1,5,z+3.6,1,1,1,0xaf4035);
     ctx.addCollider(x,z,6,6,5);
   }
   var placed=[];
