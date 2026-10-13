@@ -6,7 +6,7 @@ FC.buildProps=function(ctx){
   function rock(x,z,s){
     var w=14*s,h=5*s,y=0;
     [[w,h,w*.9],[w*.74,h*.9,w*.66],[w*.46,h*.8,w*.4]].forEach(function(L,i){
-      S.add(x+(r()-.5)*s*2,y,z+(r()-.5)*s*2,L[0],L[1],L[2],i===2&&r()<.5?0x5f7a4a:greys[(r()*4)|0]);y+=L[1]});
+      S.add(x+(r()-.5)*s*2,y,z+(r()-.5)*s*2,L[0],L[1],L[2],i===2&&r()<.5?0x5a704d:greys[(r()*4)|0]);y+=L[1]});
     ctx.addCollider(x,z,w*.9,w*.8,h*1.9);
   }
   function log(x,z,len,ax,y0){

@@ -10,7 +10,7 @@ FC.buildOutpost=function(base){
   ctx.addCollider=function(x,z,w,d,top){base.addCollider(x+ox,z+oz,w,d,top)};
   ctx.scene={add:function(o){o.position.x+=ox;o.position.z+=oz;base.scene.add(o)}};
   var r=ctx.rnd,S=ctx.solid,D=ctx.deco;
-  var st=[0x6a6258,0x5b544b,0x776e62,0x504a42],moss=[0x5f7a4a,0x6b8a52],wood=[0x8a5a2e,0x6a4426,0x4a2f19];
+  var st=[0x6a6258,0x5b544b,0x776e62,0x504a42],moss=[0x5a704d,0x657e55],wood=[0x8a5a2e,0x6a4426,0x4a2f19];
   function stone(){return r()<.14?moss[(r()*2)|0]:st[(r()*4)|0]}
   function rubble(x,z,n,sp){for(var i=0;i<n;i++){var s=1.4+r()*2.6;S.add(x+(r()-.5)*sp,0,z+(r()-.5)*sp,s,s*(.5+r()*.5),s*(.8+r()*.4),stone())}}
   /* wall: columns of 6 units, prof[i] = courses (4 high) standing in column i; odd courses are offset half a block */
