@@ -225,7 +225,7 @@ module.exports=function({suite,test}){
       const C=setup();
       const enc=(over)=>Object.assign({id:'e',name:'E',map:'m',playerCharacter:'hero',enemies:[{monster:'gob',spawnZone:'z',count:1}]},over);
       C.maps.register({id:'m',name:'M',environments:['forest'],bounds:{x:50,z:50},seed:1,build(){},playerSpawn:{x:0,z:20,w:5,d:5},enemySpawns:[{id:'z',x:0,z:-20,w:5,d:5}]});
-      C.monsters.register({id:'gob',name:'Gob',factory(){}});
+      C.monsters.register({id:'gob',name:'Gob',factory(){},size:'Small',creatureType:'Fey',abilities:{str:10,dex:10,con:10,int:10,wis:10,cha:10},ac:{value:12},hp:{average:7,dice:'2d6'},speed:{walk:30},initiative:{bonus:0},challenge:{cr:'1/8',xp:25,pb:2}});
       C.characters.register({id:'hero',name:'Hero',factory(){}});
       C.encounters.register(enc());
       assert.ok(C.validate().ok);

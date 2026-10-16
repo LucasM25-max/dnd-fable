@@ -205,6 +205,25 @@ function checkResources(list,fail){
     }
   });
 }
+/* A monster (or hero) attack action: attack {bonus, modes:[{mode:'melee'|'ranged', reach?, range?:{normal,long}, thrown?}]}
+   plus hit {damage, type}. choose lists the ids of the attack modes the player picks between (Utilize-style options). */
+function checkAttackShape(a,fail,w){
+  if(a.choose!==undefined&&(!Array.isArray(a.choose)||!a.choose.length||a.choose.some(function(x){return !isText(x)})))fail(w+'.choose must be a non-empty list of ids');
+  if(a.attack===undefined){if(a.hit!==undefined)fail(w+'.hit needs an attack');return}
+  if(!isObj(a.attack)){fail(w+'.attack must be an object');return}
+  if(!isInt(a.attack.bonus))fail(w+'.attack.bonus must be a whole number');
+  if(!Array.isArray(a.attack.modes)||!a.attack.modes.length)fail(w+'.attack.modes needs at least one mode');
+  else a.attack.modes.forEach(function(m,i){
+    var mw=w+'.attack.modes['+i+']';
+    if(!isObj(m)||['melee','ranged'].indexOf(m.mode)<0){fail(mw+'.mode must be melee or ranged');return}
+    if(m.mode==='melee'&&m.reach!==undefined&&(!isInt(m.reach)||m.reach<5))fail(mw+'.reach must be a whole number of feet, 5 or more');
+    if(m.mode==='ranged'||m.thrown){
+      if(!isObj(m.range)||!isInt(m.range.normal)||!isInt(m.range.long)||m.range.long<m.range.normal)fail(mw+'.range needs {normal, long} in feet');
+    }
+  });
+  if(!isObj(a.hit)||!isText(a.hit.type))fail(w+'.hit needs {damage, type}');
+  else checkDice(a.hit.damage,fail,w+'.hit.damage');
+}
 function checkActions(list,fail){
   if(list===undefined)return;
   if(!Array.isArray(list)||!list.length){fail('actions must be a non-empty list');return}
@@ -229,7 +248,11 @@ function checkActions(list,fail){
         if(a.ui.hotkey!==undefined&&a.ui.hotkey!==null&&!isText(a.ui.hotkey))fail(w+'.ui.hotkey must be text or null');
       }
     }
-    if(!Array.isArray(a.effects)||!a.effects.length)fail(w+'.effects needs at least one effect');
+    checkAttackShape(a,fail,w);
+    /* an attack or a choice between options is an action in its own right; everything else needs effects */
+    var standalone=a.attack!==undefined||a.choose!==undefined;
+    if(a.effects===undefined&&standalone){/* resolved by the combat rules in a later phase */}
+    else if(!Array.isArray(a.effects)||!a.effects.length)fail(w+'.effects needs at least one effect');
     else checkEffects(a.effects,fail,w+'.effects');
   });
 }
@@ -298,7 +321,8 @@ var BODY_REFS=[
   {path:'effects.*.when.wearing',kind:'armorCategories'},
   {path:'actions.*.effects.*.when.wearing',kind:'armorCategories'},
   {path:'effects.*.damageType',kind:'damageTypes'},
-  {path:'actions.*.effects.*.damageType',kind:'damageTypes'}
+  {path:'actions.*.effects.*.damageType',kind:'damageTypes'},
+  {path:'actions.*.hit.type',kind:'damageTypes'}
 ];
 
 /* Resource ids are global: the sheet keeps current values under the bare id, so two sources cannot share one. */

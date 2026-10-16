@@ -71,6 +71,8 @@ function clearCape(backObjs){
 }
 var rig={
   gearScale:1,
+  /* resting pose of the joints the walk cycle drives: the sword arm forward, the shield arm held across the body */
+  idle:{armL:-.3,armR:-.9,cape:.1},
   joints:{root:F,hips:HP,torso:TO,head:H,armL:AL,armR:AR,legL:LL,legR:LR,cape:C},
   sockets:{mainHand:mainHand,offHand:offHand,forearmOff:forearm},
   stow:stow,

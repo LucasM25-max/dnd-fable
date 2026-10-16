@@ -7,6 +7,21 @@ Fable.content.characters.register({
   name:'Human Fighter',
   description:'The default tutorial hero.',
   factory:Fable.createHumanFighter,
+  /* The face the initiative ribbon draws: a tiny voxel style picture, as data, so a new hero brings their own. */
+  portrait:{width:12,rows:[
+    '.....rr.....',
+    '....rrrr....',
+    '...ssssss...',
+    '..ssssssss..',
+    '..sddddddd..',
+    '..skkkkkks..',
+    '..skekkeks..',
+    '..skkkkkks..',
+    '..skkbbkks..',
+    '..dskkkksd..',
+    '.dddssssddd.',
+    'dddddddddddd'
+  ],palette:{r:'#a8322b',s:'#9aa6b4',d:'#5c6672',k:'#e3b08a',e:'#1a1410',b:'#6b4a2a'}},
   build:{
     v:1,
     name:'Aldric',

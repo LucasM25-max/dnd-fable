@@ -17,7 +17,9 @@ Examples:
 The engine is deliberately separated from game content:
 
 js/core/               renderer and voxel primitives
-js/rules/              pure rules code (seeded rng, formulas, dice, money, tables); no DOM and no Three.js
+js/rules/              pure rules code (seeded rng, formulas, dice, money, tables, grid, stat blocks, creatures, combat, enemy turns); no DOM and no Three.js
+js/hud/                combat HUD modules (view only) and their pure view models
+css/hud.css            HUD tokens and styles, matching the menu
 js/engine/             generic world building and instanced block batching
 js/game/               player input, movement and scene runner
 js/menu/               hub UI and scene
@@ -122,3 +124,12 @@ The fighter and player remain as before: 3D voxel character, camera tour, and mo
 For an extra test that loads every real content package, run `npm i three@0.128.0 --no-save` once first.
 
 Scale: 1 world unit = 10cm.
+
+## Turn based combat and the HUD (implementation plan, Phase 5)
+
+The game opens straight into combat: a short camera tour (click or any key skips it), then initiative is rolled and the hero and the goblins take turns on a grid of 5 ft squares.
+
+- Hover a square on your turn to see the blue arc and the distance in feet; it turns red and says why when the move is denied (too far, occupied, no path, blocked). Click to move. Space or the End turn button ends the turn. Drag orbits the camera, the wheel zooms, Escape or the menu button returns to the menu.
+- `?seed=N` makes the dice reproducible. `Fable.currentScene().combat.state` is the live fight for the debug console.
+- Rules live in `js/rules` (`Fable.grid`, `Fable.statblock`, `Fable.creature`, `Fable.combat`, `Fable.combatAI`) and are tested in Node (`node tests/run.js phase 5`). The HUD only reads the state and sends intents.
+- Monsters carry a stat block next to their model (see `js/rules/statblock.js` for the vocabulary); numbers that can be derived are checked at load time.
