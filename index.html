@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700;800&family=Alegreya+Sans:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/menu.css">
+<link rel="stylesheet" href="css/hud.css">
 </head>
 <body>
 <canvas id="c" aria-label="Dicebound 3D view"></canvas>
@@ -46,6 +47,7 @@
   </footer>
 </div>
 </div>
+<div id="hud-layer" hidden></div>
 <div id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="js/core/renderer.js"></script>
@@ -56,6 +58,7 @@
 <script src="js/rules/money.js"></script>
 <script src="js/rules/tables.js"></script>
 <script src="js/rules/stats.js"></script>
+<script src="js/rules/grid.js"></script>
 <script src="js/engine/block-batch.js"></script>
 <script src="js/engine/world.js"></script>
 <script src="js/engine/gear-models.js"></script>
@@ -65,6 +68,10 @@
 <script src="js/character/choices.js"></script>
 <script src="js/character/inventory.js"></script>
 <script src="js/character/sheet.js"></script>
+<script src="js/rules/statblock.js"></script>
+<script src="js/rules/creature.js"></script>
+<script src="js/rules/combat.js"></script>
+<script src="js/rules/combat-ai.js"></script>
 <script src="js/character/roster.js"></script>
 <script src="js/content/content-manifest.js"></script>
 <script src="js/content/content-groups.js"></script>
@@ -73,7 +80,17 @@
 <script src="js/menu/menu-ui.js"></script>
 <script src="js/menu/menu-scene.js"></script>
 <script src="js/game/input.js"></script>
-<script src="js/game/player.js"></script>
+<script src="js/hud/models.js"></script>
+<script src="js/hud/hud.js"></script>
+<script src="js/hud/health-bar.js"></script>
+<script src="js/hud/initiative-ribbon.js"></script>
+<script src="js/hud/action-economy.js"></script>
+<script src="js/hud/end-turn.js"></script>
+<script src="js/hud/controls.js"></script>
+<script src="js/hud/move-preview.js"></script>
+<script src="js/hud/world-marks.js"></script>
+<script src="js/game/walker.js"></script>
+<script src="js/game/combat-controller.js"></script>
 <script src="js/game/game-scene.js"></script>
 <script src="js/main.js"></script>
 </body>

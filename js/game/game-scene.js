@@ -1,4 +1,5 @@
-/* Generic game scene: loads the selected encounter, map, character and monsters by content ID. */
+/* Generic game scene: loads the selected encounter, map, character and monsters by content ID, plays the short camera tour
+   and then hands the fight to the combat controller (implementation plan, Phase 5: the game opens straight into combat). */
 (function(){
 Fable.createGameScene=function(encounter){
   if(!encounter)throw new Error('No encounter selected');
@@ -21,8 +22,7 @@ Fable.createGameScene=function(encounter){
     if(fg.rig&&Fable.createEquipmentView)gear=Fable.createEquipmentView(fg.rig).apply(hero.sheet.visuals);
   }
   S.add(fg.root);
-  var P=Fable.createPlayer(world,fg);
-  var stationaryInput={keys:{},cam:inp.cam},spawned=[];
+  var spawned=[],combat=null;
 
   function formationPosition(zone,index,count,formation,rnd){
     formation=formation||{};
@@ -48,10 +48,13 @@ Fable.createGameScene=function(encounter){
       var mdef=Fable.content.monsters.get(group.monster);
       if(m.rig&&Fable.createEquipmentView&&mdef&&(mdef.equipment||mdef.wielding))m.gear=Fable.createEquipmentView(m.rig).apply(Fable.equipmentVisualsFor(mdef));
       S.add(m.root);
-      spawned.push({instance:m,position:p});
+      spawned.push({instance:m,position:p,monsterId:group.monster});
     }
   });
 
+  /* The tour is filmed close up. The fight is played from further back, so a 5 ft square (15 world units) is easy to hit and
+     the whole movement range is on screen: the camera distance range is widened once the tour ends. */
+  var COMBAT={pitch:.95,dist:150,min:70,max:260};
   inp.cam.yaw=world.spawn.facing-Math.PI;
   var homeYaw=inp.cam.yaw,homePitch=inp.cam.pitch,homeDist=inp.cam.dist;
   var homeTarget=new THREE.Vector3(world.spawn.x,12,world.spawn.z),homePosition=new THREE.Vector3();
@@ -62,7 +65,7 @@ Fable.createGameScene=function(encounter){
   }
   cameraPosition(homeTarget,homeYaw,homePitch,homeDist,homePosition);
 
-  var introActive=spawned.length>0,introTime=0;
+  var introActive=spawned.length>0,introTime=0,settle=1.2;
   if(introActive){
     var ex=0,ez=0;
     spawned.forEach(function(e){ex+=e.position.x;ez+=e.position.z});
@@ -75,9 +78,11 @@ Fable.createGameScene=function(encounter){
 
   function place(dt){
     var c=inp.cam,cp=Math.cos(c.pitch);
-    tgt.set(P.x,P.y+12,P.z);
+    var f=combat.focus();
+    tgt.set(f.x,6,f.z);
     want.set(tgt.x+Math.sin(c.yaw)*cp*c.dist,Math.max(3,tgt.y+Math.sin(c.pitch)*c.dist),tgt.z+Math.cos(c.yaw)*cp*c.dist);
-    var a=dt?1-Math.exp(-12*dt):1;cam.position.lerp(want,a);look.lerp(tgt,a);cam.lookAt(look);
+    /* the first second after the tour eases the camera out to the fight view; afterwards it follows the active creature */
+    var rate=3+9*Math.min(1,settle/1.2),a=dt?1-Math.exp(-rate*dt):1;cam.position.lerp(want,a);look.lerp(tgt,a);cam.lookAt(look);
   }
   function eased(v){v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)}
   function orbit(target,yaw,pitch,dist){
@@ -88,8 +93,10 @@ Fable.createGameScene=function(encounter){
     cam.position.copy(want);cam.lookAt(look);
   }
   function returnToControl(){
-    introActive=false;inp.cam.yaw=homeYaw;inp.cam.pitch=homePitch;inp.cam.dist=homeDist;
-    cam.position.copy(homePosition);look.copy(homeTarget);cam.lookAt(look);
+    introActive=false;settle=0;
+    inp.cam.yaw=homeYaw;inp.cam.pitch=COMBAT.pitch;inp.cam.dist=COMBAT.dist;inp.cam.minDist=COMBAT.min;inp.cam.maxDist=COMBAT.max;
+    /* the camera stays where the tour left it (or where a skipped tour was); place() then eases it out to the fight view */
+    combat.begin();
   }
   function updateIntro(dt){
     introTime+=dt;var t=introTime,tau=Math.PI*2;
@@ -105,20 +112,35 @@ Fable.createGameScene=function(encounter){
       moveBetween(enemyTarget,enemyPosition,homeTarget,homePosition,(t-playerOrbit-travel-enemyOrbit)/returnTravel);
     }else returnToControl();
   }
-  P.update(0,stationaryInput,0);place(0);
+  var seedParam=new URLSearchParams(location.search).get('seed');
+  combat=Fable.createCombatController({world:world,scene:S,camera:cam,encounter:encounter,hero:hero,heroModel:fg,spawned:spawned,
+    seed:seedParam!==null&&seedParam!==''&&isFinite(+seedParam)?+seedParam:undefined});
+  if(!introActive){cam.position.copy(homePosition);look.copy(homeTarget);cam.lookAt(look)}
+  if(!introActive){inp.cam.pitch=COMBAT.pitch;inp.cam.dist=COMBAT.dist;inp.cam.minDist=COMBAT.min;inp.cam.maxDist=COMBAT.max}
+  else{cam.position.copy(homePosition);look.copy(homeTarget);cam.lookAt(look)}
   return {scene:S,camera:cam,
     encounter:encounter,
     hero:hero,
     gear:gear,
-    enter:function(){inp.attach(Fable.canvas)},
-    exit:function(){inp.detach()},
+    combat:combat,
+    enter:function(){
+      inp.attach(Fable.canvas);
+      /* a click or a key press skips the tour */
+      var fight=inp.handlers;
+      var click=fight.click,key=fight.key;
+      fight.click=function(e){if(introActive){returnToControl();return}if(click)click(e)};
+      fight.key=function(e){if(introActive&&e.code!=='Escape'){returnToControl();return true}return key?key(e):false};
+      if(!introActive)combat.begin();
+    },
+    exit:function(){inp.detach();combat.dispose()},
     resize:function(w,h){cam.aspect=w/h;cam.updateProjectionMatrix()},
     update:function(ms,dt){
       var t=ms/1000,k=inp.keys;
       if(!introActive)inp.cam.yaw+=((k.KeyQ?1:0)-(k.KeyE?1:0))*1.8*dt;
-      P.update(dt,encounter.allowMovement?{keys:k,cam:inp.cam}:stationaryInput,t);
-      world.followSun(P.x,P.z);world.animated.forEach(function(f){f(t)});
-      if(introActive)updateIntro(dt);else place(dt);
+      combat.update(ms,dt);
+      var f=combat.focus();
+      world.followSun(f.x,f.z);world.animated.forEach(function(fn){fn(t)});
+      if(introActive)updateIntro(dt);else{settle=Math.min(1.2,settle+dt);place(dt)}
     }};
 };
 })();

@@ -20,6 +20,9 @@ function pickEncounter(requestedId){
   return Fable.content.encounters.get(Fable.content.encounters.defaultId)||Fable.content.encounters.list()[0]||null;
 }
 
+/* The scene on screen, for the debug console and the browser tests (Fable.currentScene().combat is the fight). */
+Fable.currentScene=function(){return cur};
+
 Fable.enterMenu=function(){
   menuLayer.hidden=false;
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);

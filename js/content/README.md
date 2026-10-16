@@ -12,7 +12,7 @@ Game content lives under js/content/. Core and engine files should not contain i
 
 ## Add a monster
 
-1. Copy js/content/monsters/goblin-minion/ to js/content/monsters/<new-id>/.
+1. Copy js/content/monsters/goblin-minion/ to js/content/monsters/<new-id>/. A monster an encounter spawns needs a stat block (abilities, ac, hp, speed, initiative, challenge, actions...) and its actions are features, as in goblin-minion/features.js. See the header of js/rules/statblock.js; wrong derived numbers fail at load. A `portrait` (small voxel picture as data) is what the initiative ribbon draws.
 2. Put the visual factory in model.js.
 3. Put the rules/metadata in definition.js.
 4. Update content-manifest.js by adding the monster ID to monsters.
