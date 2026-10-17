@@ -219,7 +219,7 @@ function attackEntries(fe,action,mods,pb){
     ]);
     var dmgBonus=Fable.stats.reduce([{label:ABILITY_NAMES[abil]+' modifier',op:'base',value:parts.flat}]);
     out.push({
-      id:action.id+':'+mode,item:null,name:action.name,mode:mode,hand:null,equipped:true,available:true,reason:'',
+      id:action.id+':'+mode,item:(action.requires&&action.requires.item)||null,name:action.name,mode:mode,hand:null,equipped:true,available:true,reason:'',
       ability:abil,proficient:true,bonus:bonus,
       damage:{dice:parts.dice,bonus:dmgBonus,expression:h.damage,type:h.type,stats:Fable.dice.stats(h.damage)},
       versatile:null,

@@ -14,18 +14,26 @@
      Fable.combat.dash(s, c)                                      spends the Action to add the speed to the movement budget
      Fable.combat.interact(s, c)                                  one free object interaction per turn, then Utilize (an Action)
      Fable.combat.endTurn(s)                                      next creature; a new round after the last one
-     Fable.combat.on(s, fn)                                       fn(event) for start, turnstart, turnend, round, move, dash, interact, over
+     Fable.combat.on(s, fn)                                       fn(event) for start, turnstart, turnend, round, move, dash, interact, over,
+                                                                  and from Phase 6: attack, heal, action, deathsave, status, down, dead, loadout
+     Fable.combat.checkOver(s)                                    ends the fight when one side has nobody left
+
+   Phase 6 adds attacks, damage, death saving throws, conditions with durations, actions and Opportunity Attacks in attack.js and
+   actions.js, which extend this object. A creature that drops to 0 hit points is `down`: a monster is defeated (alive false), a hero
+   is unconscious and makes death saving throws (alive stays true until a third failure).
 
    Movement: a creature walks through squares its allies stand in, never through an enemy, and never ends in an occupied
    square. A square costs 5 ft, 10 ft when it is difficult terrain, and a diagonal step costs 5 ft (the plan's rule), with no
-   cutting corners (handled by the grid). The budget is the speed, plus the speed again for each Dash. Attacks, damage and
-   Opportunity Attacks are resolved by the Phase 6 rules; nothing here rolls anything but initiative. */
+   cutting corners (handled by the grid). The budget is the speed, plus the speed again for each Dash. Leaving an enemy's reach
+   without having taken the Disengage action provokes an Opportunity Attack: the move is walked one square at a time and the
+   enemy's attack is resolved at the moment the mover steps out of reach, so a hero who falls stops where he stood. */
 (function(G){
 G.Fable=G.Fable||{};
 var Fable=G.Fable;
 var Cb=Fable.combat={};
 var Grid=function(){return Fable.grid};
 var Cr=function(){return Fable.creature};
+var St=function(){return Fable.status};
 
 var DENIALS={
   'not-active':'Not your turn',
@@ -36,7 +44,9 @@ var DENIALS={
   'too-far':'Too far',
   'same':'Already here',
   'down':'Cannot move',
-  'over':'The fight is over'
+  'over':'The fight is over',
+  'pending':'Finish the current roll first',
+  'incapacitated':'Cannot act'
 };
 Cb.DENIALS=DENIALS;
 
@@ -46,6 +56,7 @@ function emit(s,e){
   s.listeners.slice().forEach(function(fn){fn(e)});
   return e;
 }
+Cb.emit=emit;
 
 Cb.create=function(opts){
   opts=opts||{};
@@ -53,7 +64,7 @@ Cb.create=function(opts){
   var s={
     grid:opts.grid,creatures:[],byId:{},order:[],turn:-1,round:0,phase:'setup',winner:null,
     rng:Fable.rng(typeof opts.seed==='number'?opts.seed:Fable.rng.hash(String(opts.seed||'combat'))),
-    log:[],listeners:[],initiativeRolls:[]
+    log:[],listeners:[],initiativeRolls:[],pending:null
   };
   (opts.creatures||[]).forEach(function(c){Cb.add(s,c)});
   return s;
@@ -106,54 +117,79 @@ function compare(a,b,s){
   return a.index-b.index;
 }
 
-Cb.start=function(s){
+/* opts.swap(creature, candidateIds) may return the id of an ally to swap Initiative with (the Alert feat); without it nobody swaps. */
+Cb.start=function(s,opts){
+  opts=opts||{};
   if(s.phase!=='setup')throw new Error('Combat: start can only be called once');
   s.creatures.forEach(function(c){
     if(!c.cell)throw new Error('Combat: '+c.name+' has not been placed');
   });
   var rolls=s.creatures.map(function(c,i){return rollInitiative(s,c,i)});
+  var swaps=[];
+  if(typeof opts.swap==='function'&&Fable.handlers){
+    s.creatures.forEach(function(c){
+      var fired=Fable.handlers.fire(s,c,'onInitiative',{rolls:rolls});
+      fired.forEach(function(f){
+        var cands=(f.result.candidates||[]).filter(function(id){return id!==c.id});
+        var pick=cands.length?opts.swap(c,cands.slice()):null;
+        if(!pick||cands.indexOf(pick)<0)return;
+        var a=rolls.filter(function(r){return r.id===c.id})[0],b=rolls.filter(function(r){return r.id===pick})[0];
+        var t=a.total;a.total=b.total;b.total=t;a.swapped=b.swapped=true;
+        swaps.push({a:c.id,b:pick});
+      });
+    });
+  }
   rolls.sort(function(a,b){return compare(a,b,s)});
   s.initiativeRolls=rolls;
   s.order=rolls.map(function(r){return r.id});
   s.phase='running';s.round=1;s.turn=-1;
-  emit(s,{type:'start',order:s.order.slice(),rolls:rolls.map(function(r){return Object.assign({},r)})});
+  emit(s,{type:'start',order:s.order.slice(),swaps:swaps,rolls:rolls.map(function(r){return Object.assign({},r)})});
   beginTurn(s,0);
   return s;
 };
 
+/* A team is still in the fight while any of its creatures is alive. A hero at 0 hit points is alive until the third failed death
+   saving throw, so the fight goes on around a dying hero; a monster at 0 is defeated at once. */
 function livingTeams(s){
   var t={};
-  s.creatures.forEach(function(c){if(c.alive&&!c.down)t[c.team]=1});
+  s.creatures.forEach(function(c){if(c.alive)t[c.team]=1});
   return Object.keys(t);
 }
 function checkOver(s){
+  if(s.phase!=='running')return false;
   var teams=livingTeams(s);
   if(teams.length<=1){
-    s.phase='over';s.winner=teams[0]||null;s.turn=-1;
+    s.phase='over';s.winner=teams[0]||null;s.turn=-1;s.pending=null;
     emit(s,{type:'over',winner:s.winner});
     return true;
   }
   return false;
 }
+Cb.checkOver=function(s){return checkOver(s)};
 
 function beginTurn(s,index){
   s.turn=index;
   var c=s.byId[s.order[index]];
+  /* what lasts "until the start of your next turn" ends first, then the turn's new budget is worked out */
+  if(St())St().expire(s,c.id,'turnstart');
+  if(Cr().rechargeTurn)Cr().rechargeTurn(c);
   c.economy=Cr().newEconomy(c);
   emit(s,{type:'turnstart',id:c.id,index:index});
+  if(c.alive&&c.down&&c.death&&c.kind==='hero'&&!c.death.stable&&Cb.startDeathSave)Cb.startDeathSave(s,c);
 }
 
 Cb.endTurn=function(s){
   if(s.phase!=='running')return {ok:false,reason:DENIALS.over};
+  if(s.pending&&Cb.resolvePending)Cb.resolvePending(s,{});
   var cur=Cb.active(s);
+  if(St())St().expire(s,cur.id,'turnend');
   emit(s,{type:'turnend',id:cur.id,index:s.turn});
   if(checkOver(s))return {ok:true,over:true};
   var n=s.order.length,i=s.turn,wrapped=false;
   for(var guard=0;guard<=n;guard++){
     i++;
     if(i>=n){i=0;wrapped=true}
-    var c=s.byId[s.order[i]];
-    if(c.alive&&!c.down)break;
+    if(s.byId[s.order[i]].alive)break;
   }
   if(wrapped){s.round++;emit(s,{type:'round',round:s.round})}
   beginTurn(s,i);
@@ -169,7 +205,8 @@ function enterRule(s,c){
 }
 
 /* What moving the creature to a square would do. Never changes the state.
-   {ok, reason, code, path, costFt, leftFt (movement left before), afterFt (after the move), squares}
+   {ok, reason, code, path, costFt, leftFt (movement left before), afterFt (after the move), squares,
+    provokes: [{id, name, team, step, from, to}]  the Opportunity Attacks the path would give enemies (see provokersAlong)}
    When the destination is too far, costFt is still the real cost of the cheapest path, so the preview can say "40 ft". */
 Cb.planMove=function(s,c,cell,opts){
   opts=opts||{};
@@ -177,7 +214,9 @@ Cb.planMove=function(s,c,cell,opts){
   function deny(code){out.code=code;out.reason=DENIALS[code];return out}
   if(s.phase!=='running')return deny('over');
   if(!opts.ignoreTurn&&Cb.active(s)!==c)return deny('not-active');
+  if(s.pending&&!opts.ignoreTurn)return deny('pending');
   if(c.down||!c.alive)return deny('down');
+  if(St()&&!St().canAct(c)&&!opts.ignoreTurn)return deny('incapacitated');
   out.leftFt=Cr().movementLeftFt(c);
   if(!cell||!Grid().inBounds(g,cell.c,cell.r)||Grid().isBlocked(g,cell.c,cell.r))return deny('blocked');
   if(Grid().same(c.cell,cell))return deny('same');
@@ -185,11 +224,35 @@ Cb.planMove=function(s,c,cell,opts){
   var res=Grid().findPath(g,c.cell,cell,{enter:enterRule(s,c)});
   if(!res.found)return deny('no-path');
   out.path=res.path;out.costFt=res.cost;out.squares=res.squares;
+  out.provokes=provokersAlong(s,c,res.path);
   if(out.leftFt<=0)return deny('no-movement');
   if(res.cost>out.leftFt)return deny('too-far');
   out.ok=true;out.afterFt=out.leftFt-res.cost;
   return out;
 };
+
+/* The enemies that could make an Opportunity Attack as this path leaves their reach: one entry per enemy, at the first step that
+   takes the mover from inside their reach to outside it. Nobody provokes after taking the Disengage action, and an enemy needs
+   its Reaction, a way to act, and a melee attack. step is the index in the path of the square the mover steps to. */
+function provokersAlong(s,c,path){
+  var out=[];
+  if(!path||path.length<2)return out;
+  if(St()&&St().has(c,'disengaged'))return out;
+  s.creatures.forEach(function(h){
+    if(h===c||!h.alive||h.down||!h.cell||!Cb.isHostile(c,h))return;
+    if(h.economy&&h.economy.reaction)return;
+    if(St()&&!St().canReact(h))return;
+    if(Cb.opportunityAttackFor&&!Cb.opportunityAttackFor(s,h))return;
+    for(var i=1;i<path.length;i++){
+      if(Grid().inReach(h.cell,path[i-1],h.reachFt)&&!Grid().inReach(h.cell,path[i],h.reachFt)){
+        out.push({id:h.id,name:h.name,team:h.team,step:i,from:{c:path[i-1].c,r:path[i-1].r},to:{c:path[i].c,r:path[i].r}});
+        break;
+      }
+    }
+  });
+  return out.sort(function(a,b){return a.step-b.step});
+}
+Cb.provokersAlong=provokersAlong;
 
 /* Every square the creature can still walk to this turn, [{c, r, ft}], excluding its own square and occupied squares. */
 Cb.reachable=function(s,c){
@@ -201,23 +264,52 @@ Cb.reachable=function(s,c){
   });
 };
 
-Cb.move=function(s,c,cell){
-  var plan=Cb.planMove(s,c,cell);
+/* Walks the planned path one square at a time. opts.reactions {<creature id>: true|false} says whether each enemy that could make an
+   Opportunity Attack does; an enemy that is not listed does when it is on the enemy side (the AI always takes it) and does not when
+   it is on the player's side (the player is asked first, see the combat controller). An attack that downs the mover stops it on
+   the square it was leaving. Returns the plan plus {path (what was walked), reactions:[{step, by, result}], interrupted}. */
+Cb.move=function(s,c,cell,opts){
+  opts=opts||{};
+  var plan=Cb.planMove(s,c,cell,opts);
   if(!plan.ok)return plan;
-  var from={c:c.cell.c,r:c.cell.r};
-  c.cell={c:cell.c,r:cell.r};
-  c.economy.movedFt+=plan.costFt;
-  if(plan.path.length>1){
-    var a=plan.path[plan.path.length-2],b=plan.path[plan.path.length-1];
+  var from={c:c.cell.c,r:c.cell.r},path=plan.path,walked=[path[0]],cost=0,reactions=[],interrupted=false;
+  for(var i=1;i<path.length;i++){
+    var here=path[i-1];
+    plan.provokes.filter(function(p){return p.step===i}).forEach(function(p){
+      var h=s.byId[p.id];
+      if(!h||!h.alive||h.down||h.economy.reaction||(St()&&!St().canReact(h)))return;
+      var take=opts.reactions&&opts.reactions[h.id]!==undefined?!!opts.reactions[h.id]:h.team==='enemy';
+      if(!take||!Cb.opportunityAttack)return;
+      c.cell={c:here.c,r:here.r};
+      var r=Cb.opportunityAttack(s,h,c,{silent:true});
+      if(r&&r.ok)reactions.push({step:i-1,by:h.id,result:r});
+    });
+    if(c.down||!c.alive){interrupted=true;break}
+    walked.push(path[i]);
+    cost+=Grid().stepCost(s.grid,path[i].c,path[i].r)*Grid().FEET_PER_CELL;
+    c.cell={c:path[i].c,r:path[i].r};
+  }
+  var end=walked[walked.length-1];
+  c.cell={c:end.c,r:end.r};
+  c.economy.movedFt+=cost;
+  if(walked.length>1){
+    var a=walked[walked.length-2],b=walked[walked.length-1];
     var p=Grid().center(s.grid,a.c,a.r),q=Grid().center(s.grid,b.c,b.r);
     c.facing=Math.atan2(q.x-p.x,q.z-p.z);
   }
-  emit(s,{type:'move',id:c.id,from:from,to:{c:cell.c,r:cell.r},path:plan.path,costFt:plan.costFt,leftFt:Cr().movementLeftFt(c)});
-  return plan;
+  var out=Object.assign({},plan,{path:walked,costFt:cost,reactions:reactions,interrupted:interrupted,to:{c:end.c,r:end.r}});
+  emit(s,{type:'move',id:c.id,from:from,to:{c:end.c,r:end.r},path:walked,costFt:cost,leftFt:Cr().movementLeftFt(c),interrupted:interrupted,
+    reactions:reactions.map(function(r){return {step:r.step,by:r.by,result:r.result}})});
+  reactions.forEach(function(r){if(Cb.followUps)Cb.followUps(s,r.result)});
+  checkOver(s);
+  return out;
 };
 
 /* ---------- action economy ---------- */
-function mine(s,c){return s.phase==='running'&&Cb.active(s)===c}
+function mine(s,c){
+  return s.phase==='running'&&Cb.active(s)===c&&!s.pending&&c.alive&&!c.down&&(!St()||St().canAct(c));
+}
+Cb.mine=mine;
 
 Cb.dash=function(s,c){
   if(!mine(s,c))return {ok:false,reason:DENIALS['not-active']};
