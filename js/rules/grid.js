@@ -100,6 +100,26 @@ Grid.distanceFt=function(a,b){return Grid.chebyshev(a,b)*Grid.FEET_PER_CELL};
 /* Is b within reach (feet) of a? Reach ignores walls: it is about what a creature can touch, not where it can walk. */
 Grid.inReach=function(a,b,reachFt){return Grid.distanceFt(a,b)<=reachFt};
 
+/* The squares a straight line from the middle of one square to the middle of another passes through, in order, without the two
+   end squares. Used for line of sight: a ranged attack is blocked when any of them is solid ground (a tree, a wall). */
+Grid.lineCells=function(g,a,b){
+  var p=Grid.center(g,a.c,a.r),q=Grid.center(g,b.c,b.r),out=[],seen={};
+  var dist=Math.hypot(q.x-p.x,q.z-p.z),n=Math.max(1,Math.ceil(dist/(g.cell/8)));
+  for(var i=1;i<n;i++){
+    var t=i/n,cell=Grid.cellAt(g,p.x+(q.x-p.x)*t,p.z+(q.z-p.z)*t);
+    if(!cell||Grid.same(cell,a)||Grid.same(cell,b))continue;
+    var k=cell.r*g.cols+cell.c;
+    if(seen[k])continue;
+    seen[k]=1;out.push(cell);
+  }
+  return out;
+};
+/* True when no solid square lies between the two squares. Neighbouring squares are always clear. */
+Grid.lineClear=function(g,a,b){
+  if(Grid.chebyshev(a,b)<=1)return true;
+  return !Grid.lineCells(g,a,b).some(function(c){return Grid.isBlocked(g,c.c,c.r)});
+};
+
 /* ---------- search ---------- */
 
 var STEPS=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];

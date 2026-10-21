@@ -1,8 +1,13 @@
 /* Combat HUD shell (implementation plan, section 13). Mounts #hud-layer and wires the modules.
 
    The HUD is view only. It reads the combat state (through the view models in models.js) and sends intents:
-     Fable.createHud({intents:{endTurn(), menu()}})  -> hud
-     hud.update(s, {preview, busy})   draw the state; preview is {costFt, ok} while the pointer is over a destination
+     Fable.createHud({intents:{endTurn(), menu(), slot(id), denied(reason), sheet(), help(), log()}})  -> hud
+     hud.update(s, {preview, busy, waiting, targeting:{attackId, hoverId}})   draw the state; preview is {costFt, ok} while the
+                                      pointer is over a destination, targeting is the armed attack and the hovered creature
+     hud.rollFeed(result)             show the dice card for an attack result
+     hud.logEvent(event, s)           add the combat log line for a combat event
+     hud.prompt({title, body, choices}) / hud.promptKey(e) / hud.promptActive()   a question the game waits on
+     hud.openOverlay('sheet'|'help', s) / hud.closeOverlay() / hud.overlayOpen()
      hud.banner(text, team)           the turn and round banner ('player' or 'enemy')
      hud.announce(text)               polite screen reader line
      hud.show() / hud.hide() / hud.destroy()
@@ -16,7 +21,7 @@ function plate(inner,cls,attrs){
   return '<div class="plate'+(cls?' '+cls:'')+'"'+(attrs||'')+'><span class="edge"><span class="in">'+inner+'</span></span></div>';
 }
 
-var MODULE_ORDER=['initiativeRibbon','healthBar','actionEconomy','endTurn','controls'];
+var MODULE_ORDER=['initiativeRibbon','targetPanel','healthBar','actionBar','actionEconomy','endTurn','controls','combatLog','rollFeed','tutorialCoach','prompts','overlays'];
 
 Fable.createHud=function(opts){
   opts=opts||{};
@@ -35,9 +40,23 @@ Fable.createHud=function(opts){
     if(f)hud.mods[name]=f(hud);
   });
   hud.update=function(s,ctx){
-    ctx=ctx||{};
+    ctx=ctx||{};hud.state=s;
     Object.keys(hud.mods).forEach(function(k){hud.mods[k].update(s,ctx)});
   };
+  hud.rollFeed=function(result){var m=hud.mods.rollFeed;if(m)m.show(M.rollCard(result,hud.state))};
+  hud.logEvent=function(e,s){var m=hud.mods.combatLog,entry=M.logEntry(e,s);if(m&&entry)m.push(entry);return entry};
+  hud.coach=function(kind){var m=hud.mods.tutorialCoach;if(m)m.event(kind)};
+  function applySettings(){
+    var S=Fable.hudSettings;
+    /* the HUD also shrinks on small windows so every plate fits (a phone held sideways, a small laptop window) */
+    var fit=Math.max(.6,Math.min(1,Math.min(window.innerHeight/720,window.innerWidth/1100)));
+    root.style.setProperty('--hud-scale',String(Math.round(S.get('scale')*fit*100)/100));
+    root.classList.toggle('contrast',!!S.get('contrast'));
+    root.classList.toggle('calm',S.reducedMotion());
+  }
+  var offSettings=Fable.hudSettings.onChange(applySettings);
+  applySettings();
+  window.addEventListener('resize',applySettings);
   hud.banner=function(text,team){
     bannerText.textContent=text;
     bannerWrap.className='banner'+(team==='enemy'?' enemy':'');
@@ -49,7 +68,7 @@ Fable.createHud=function(opts){
   hud.announce=function(text){live.textContent='';setTimeout(function(){live.textContent=text},30)};
   hud.show=function(){root.hidden=false;void root.offsetWidth;root.classList.add('on')};
   hud.hide=function(){root.classList.remove('on')};
-  hud.destroy=function(){clearTimeout(bannerTimer);root.classList.remove('on');root.hidden=true;root.innerHTML=''};
+  hud.destroy=function(){clearTimeout(bannerTimer);offSettings();window.removeEventListener('resize',applySettings);root.classList.remove('on');root.hidden=true;root.innerHTML=''};
   return hud;
 };
 })();

@@ -17,7 +17,10 @@ Fable.createGameScene=function(encounter){
     var loadoutId=new URLSearchParams(location.search).get('loadout');
     if(loadoutId){var sw=Fable.character.roster.swap(characterId,loadoutId,{});if(!sw.ok)console.warn('Loadout "'+loadoutId+'": '+sw.reasons.join('; '))}
     var build=Fable.character.roster.build(characterId);
-    hero={id:characterId,build:build,sheet:Fable.character.compute(build)};
+    /* a fight starts after a night's rest: pools are full and a Human has Heroic Inspiration (Resourceful). The roster keeps the
+       build between fights; this copy is only the fight's. */
+    var rested=Fable.character.rest.apply(build,'long');
+    hero={id:characterId,build:rested.build,sheet:Fable.character.compute(rested.build)};
     hero.sheet.issues.forEach(function(i){console[i.severity==='error'?'error':'warn']('Character "'+characterId+'": '+i.message)});
     if(fg.rig&&Fable.createEquipmentView)gear=Fable.createEquipmentView(fg.rig).apply(hero.sheet.visuals);
   }
@@ -113,7 +116,7 @@ Fable.createGameScene=function(encounter){
     }else returnToControl();
   }
   var seedParam=new URLSearchParams(location.search).get('seed');
-  combat=Fable.createCombatController({world:world,scene:S,camera:cam,encounter:encounter,hero:hero,heroModel:fg,spawned:spawned,
+  combat=Fable.createCombatController({world:world,scene:S,camera:cam,encounter:encounter,hero:hero,heroModel:fg,gear:gear,spawned:spawned,
     seed:seedParam!==null&&seedParam!==''&&isFinite(+seedParam)?+seedParam:undefined});
   if(!introActive){cam.position.copy(homePosition);look.copy(homeTarget);cam.lookAt(look)}
   if(!introActive){inp.cam.pitch=COMBAT.pitch;inp.cam.dist=COMBAT.dist;inp.cam.minDist=COMBAT.min;inp.cam.maxDist=COMBAT.max}

@@ -125,6 +125,15 @@ For an extra test that loads every real content package, run `npm i three@0.128.
 
 Scale: 1 world unit = 10cm.
 
+## Attacks, abilities and the full HUD (implementation plan, Phase 6)
+
+Combat is now playable start to finish from the HUD. The rules layer resolves attacks (`js/rules/attack.js`), actions (`actions.js`), conditions (`status.js`), masteries and feat handlers (`handlers.js`) and rests (`js/character/rest.js`), all pure and tested in Node.
+
+- Keys: 1 to 9 and 0 pick action bar slots, Space ends the turn, C opens the character sheet, L the combat log, H or / the controls and settings, Esc closes the top layer.
+- Enemy AC and HP stay hidden unless the encounter reveals them (the tutorial does).
+- Accessibility settings (scale, numbers, nameplates, log, feed, motion, contrast, end-turn confirmation) are stored in localStorage.
+- Tests: `node tests/run.js "phase 6"`.
+
 ## Turn based combat and the HUD (implementation plan, Phase 5)
 
 The game opens straight into combat: a short camera tour (click or any key skips it), then initiative is rolled and the hero and the goblins take turns on a grid of 5 ft squares.

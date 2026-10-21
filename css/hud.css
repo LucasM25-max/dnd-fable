@@ -78,8 +78,12 @@
 .chip:focus-visible{outline:2px solid var(--hud-text);outline-offset:4px}
 
 /* ---------- top centre: health ---------- */
-.hb{position:absolute;left:50%;top:var(--hud-safe);transform:translateX(-50%) scale(var(--hud-scale));transform-origin:top center;width:clamp(300px,38vw,580px);display:flex;flex-direction:column;align-items:center}
-.hb-name{font:800 21px/1.1 var(--serif);color:var(--hud-gold);text-shadow:0 2px 0 #3a1f08,0 0 16px rgba(0,0,0,.8);letter-spacing:.01em;margin-bottom:6px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.hb{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));width:clamp(290px,23vw,400px);transform-origin:bottom left;transform:scale(var(--hud-scale))}
+.hb .plate>.edge>.in{display:flex;align-items:stretch;gap:14px;padding:12px 16px 13px 12px}
+.hb-port{flex:none;width:72px;height:84px;align-self:center;background:radial-gradient(circle at 50% 35%,#4a3216,#1a1009 75%);border:2px solid var(--hud-brass);box-shadow:inset 0 0 0 2px #000a,0 3px 0 var(--hud-shadow);display:grid;place-items:center;overflow:hidden}
+.hb-port svg{width:62px;height:62px}
+.hb-main{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.hb-name{display:flex;align-items:center;font:800 20px/1.1 var(--serif);color:var(--hud-gold);text-shadow:0 2px 0 #3a1f08;letter-spacing:.01em;margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hb-name i{font-style:normal;font-weight:500;font-size:16px;color:var(--hud-muted);margin-left:8px}
 .hb-row{display:flex;align-items:center;width:100%;gap:0}
 .hb-ac{position:relative;flex:none;width:58px;height:66px;margin-right:-8px;z-index:2;display:grid;place-items:center;filter:drop-shadow(0 4px 0 var(--hud-shadow));outline-offset:2px}
@@ -102,12 +106,8 @@
 .hb-notch::before{top:0;clip-path:polygon(0 0,100% 0,50% 100%)}.hb-notch::after{bottom:0;clip-path:polygon(50% 0,100% 100%,0 100%)}
 .hb-num{position:absolute;inset:0;z-index:4;display:grid;place-items:center;font:800 20px/1 var(--serif);color:#fff;text-shadow:0 2px 0 #000,0 0 6px #000;letter-spacing:.04em}
 .hb-num em{font-style:normal;font-weight:500;color:var(--hud-steel);margin-left:6px;font-size:16px}
-.hb-star{position:relative;flex:none;width:44px;height:44px;margin-left:-6px;display:grid;place-items:center;filter:drop-shadow(0 4px 0 var(--hud-shadow))}
-.hb-star svg{width:36px;height:36px}
-.hb-star .shape{fill:#2e2012;stroke:var(--hud-edge);stroke-width:1.6}
-.hb-star.lit .shape{fill:var(--hud-gold);stroke:#7a5010}
-.hb-star.lit{filter:drop-shadow(0 4px 0 var(--hud-shadow)) drop-shadow(0 0 10px rgba(240,185,77,.55))}
-.hb-cond{display:flex;gap:6px;margin-top:9px;min-height:0;flex-wrap:wrap;justify-content:center}
+.hb-cond{display:flex;gap:6px;margin-top:8px;min-height:0;flex-wrap:wrap}
+.hb-cond:empty,.hb-pools:empty{display:none}
 .cond{display:flex;align-items:center;gap:6px;padding:3px 10px 3px 6px;background:var(--hud-wood);border:2px solid var(--hud-edge);box-shadow:0 3px 0 var(--hud-shadow);font:700 14px/1.1 var(--serif);color:var(--hud-text)}
 .cond i{width:12px;height:12px;background:var(--hud-reaction);transform:rotate(45deg) scale(.85)}
 
@@ -173,9 +173,6 @@
 #hud-layer .sysb:active{transform:translateY(2px)}
 
 /* ---------- bottom left: controls ---------- */
-.keys{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;transform-origin:bottom left;transform:scale(var(--hud-scale))}
-.keys .plate>.edge>.in{padding:9px 14px;display:flex;flex-direction:column;gap:6px}
-.keys div{display:flex;align-items:center;gap:9px;font:500 14px/1 var(--serif);color:var(--hud-muted);white-space:nowrap}
 kbd{display:inline-block;min-width:22px;padding:2px 6px 3px;text-align:center;font:700 12px/1 var(--sans);color:var(--hud-text);background:var(--hud-wood-3);border:2px solid var(--hud-edge);box-shadow:0 2px 0 #000a}
 
 /* ---------- movement preview label (world space, placed by projection) ---------- */
@@ -195,12 +192,11 @@ kbd{display:inline-block;min-width:22px;padding:2px 6px 3px;text-align:center;fo
 
 /* ---------- smaller screens ---------- */
 @media (max-width:980px){
-  .keys{display:none}
   .eco .plate>.edge>.in{gap:14px;padding:10px 16px 11px}.move{min-width:150px}.slots{gap:9px}
 }
 @media (max-width:760px){
   .end{right:12px}.end button{min-width:0;padding:10px 18px 11px;font-size:22px}#hud-layer .end button small{display:none}
-  .eco{left:12px;transform:none;bottom:74px;transform-origin:bottom left}
+  .eco{left:12px;transform:scale(var(--hud-scale));bottom:74px;transform-origin:bottom left}
   .hb{top:max(70px,calc(var(--hud-safe) + 56px));width:min(92vw,420px)}
   .hb-name i{display:none}
   .ini{gap:8px}.round{min-width:64px}.round.plate>.edge>.in{padding:5px 8px 6px}.round b{font-size:22px}
@@ -208,7 +204,7 @@ kbd{display:inline-block;min-width:22px;padding:2px 6px 3px;text-align:center;fo
   .sys{gap:6px}#hud-layer .sysb{width:40px;height:40px}
   .banner{top:30vh}.banner span{padding:8px 26px 10px}
 }
-@media (max-width:480px){.slot{min-width:48px}.slot .lab{font-size:11px;letter-spacing:.06em}.move{min-width:120px}.hb-star{display:none}}
+@media (max-width:480px){.slot{min-width:48px}.slot .lab{font-size:11px;letter-spacing:.06em}.move{min-width:120px}}
 
 @media (prefers-reduced-motion:reduce){
   #hud-layer,.chip,.hb-fill,.hb-chip,.hb-temp,.slot svg,.seg,.end button,.sysb,.mv-label,[data-tip]::after{transition:none}

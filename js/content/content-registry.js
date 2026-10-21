@@ -113,6 +113,14 @@ C.encounters={
       if(typeof group.spawnZone!=='string')fail('Encounter',id,'enemies['+i+'] needs a spawnZone id');
       if(!num(group.count)||group.count<1||Math.floor(group.count)!==group.count)fail('Encounter',id,'enemies['+i+'] needs a positive integer count');
     });
+    if(def.tutorial!==undefined){
+      var WHEN=['move','attack','second-wind','endturn'];
+      if(!Array.isArray(def.tutorial))fail('Encounter',id,'tutorial must be an array');
+      def.tutorial.forEach(function(st,i){
+        if(!st||typeof st.id!=='string'||typeof st.text!=='string'||!st.text)fail('Encounter',id,'tutorial['+i+'] needs an id and text');
+        if(WHEN.indexOf(st.when)<0)fail('Encounter',id,'tutorial['+i+'].when must be one of '+WHEN.join(', '));
+      });
+    }
     if(def.enabled===undefined)def.enabled=true;
     encounters[id]=def;encounterOrder.push(id);
     if(def.enabled&&C.encounters.defaultId===null)C.encounters.defaultId=id;

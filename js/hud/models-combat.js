@@ -1,0 +1,197 @@
+/* HUD view models for the Phase 6 combat parts (implementation plan, sections 13.5 to 13.13). Pure functions from the combat
+   state and the rule results to plain data, so what the HUD shows can be tested in Node with no DOM. They add to
+   Fable.hudModels (models.js) and never change the state.
+
+   Fable.hudModels.actionBar(s, hero)         the ability slots: attacks, feature actions, standard actions, loadout swaps
+   Fable.hudModels.targetCard(s, hero, target, attack)   the target plate and the attack preview for a hover or a locked target
+   Fable.hudModels.rollCard(result)           the dice feed for an attack result
+   Fable.hudModels.logEntry(e, s)             one combat log line for a combat event, or null when it has none
+   Fable.hudModels.statusChips(c, s)          conditions and effects with their tooltips
+   Fable.hudModels.deathPips(c)               death saving throw pips for a hero at 0 hit points
+   Fable.hudModels.sheetView(c)               the character sheet overlay */
+(function(G){
+G.Fable=G.Fable||{};
+var Fable=G.Fable,M=Fable.hudModels;
+function Cb(){return Fable.combat}
+function sgn(n){return (n<0?'-':'+')+Math.abs(n)}
+
+var ICONS={
+  longsword:'sword',dagger:'dagger',javelin:'javelin','unarmed-strike':'fist',
+  'second-wind':'heart',dash:'boots',disengage:'step',dodge:'guard','swap':'swap'
+};
+function iconFor(a){
+  if(a.mode==='thrown')return a.item==='dagger'?'throw-dagger':'throw-javelin';
+  return ICONS[a.item||a.id.split(':')[0]]||'sword';
+}
+function weaponName(a){return a.name}
+
+/* ---------- ability slots ---------- */
+M.COST_LABEL={action:'Action',bonus:'Bonus Action',reaction:'Reaction',free:'Free',object:'Free interaction'};
+
+M.actionBar=function(s,hero,selectedAttackId){
+  var slots=[],mine=Cb().active(s)===hero&&s.phase==='running'&&!s.pending;
+  var hasWeapon=(hero.attacks||[]).some(function(a){return a.equipped&&a.item&&a.mode!=='thrown'});
+  (hero.attacks||[]).forEach(function(a){
+    if(a.mode==='thrown'){if(!a.item||((hero.stock[a.item]||0)-(hero.thrown[a.item]||0))<1)return}
+    else if(!a.equipped)return;
+    if(a.id==='unarmed-strike:melee'&&hasWeapon)return;
+    var st=Cb().attackState(s,hero,a,{});
+    var reason=!mine&&!st.ok&&st.reason?st.reason:st.reason;
+    if(!mine&&Cb().active(s)!==hero)reason='Not your turn';
+    var tip=a.damage.expression+' '+a.damage.type+', '+sgn(a.bonus.value)+' to hit';
+    if(a.mode==='thrown')tip+='\nRange '+a.range.normal+'/'+a.range.long+' ft';
+    else tip+='\nReach '+(a.reach||5)+' ft';
+    if(a.mastery&&a.mastery.usable)tip+='\nMastery: '+a.mastery.name;
+    slots.push({id:'attack:'+a.id,kind:'attack',attackId:a.id,name:a.mode==='light-extra'?a.name+' (off-hand)':a.mode==='thrown'?a.name+' (thrown)':weaponName(a),
+      sub:a.damage.expression+' '+a.damage.type,icon:iconFor(a),cost:st.cost||(a.mode==='light-extra'?'bonus':'action'),group:'attack',
+      ok:st.ok&&mine,reason:st.ok&&mine?'':reason,selected:selectedAttackId===a.id,tip:tip,mastery:a.mastery&&a.mastery.usable?a.mastery.name:null});
+  });
+  (hero.actions||[]).forEach(function(a){
+    if(a.kind!=='feature'||a.id==='heroic-inspiration-reroll')return;
+    var st=Cb().actionState(s,hero,a.id),r=a.consumes?hero.resources[a.consumes.resource]:null;
+    slots.push({id:'action:'+a.id,kind:'action',actionId:a.id,name:a.name,sub:r?r.current+' / '+r.max+' left':'',icon:ICONS[a.id]||'star',cost:a.cost,group:'ability',
+      ok:st.ok&&mine,reason:st.ok&&mine?'':(mine?st.reason:'Not your turn'),selected:false,uses:r?{current:r.current,max:r.max}:null,
+      tip:(a.description||'')});
+  });
+  ['dash','disengage','dodge'].forEach(function(id){
+    var a=Cb().findAction(hero,id);if(!a)return;
+    var st=Cb().actionState(s,hero,id);
+    slots.push({id:'action:'+id,kind:'action',actionId:id,name:a.name,sub:'',icon:ICONS[id],cost:'action',group:'standard',
+      ok:st.ok&&mine,reason:st.ok&&mine?'':(mine?st.reason:'Not your turn'),selected:false,tip:a.description});
+  });
+  var loadouts=(hero.sheet&&hero.sheet.loadouts)||[];
+  loadouts.forEach(function(l){
+    if(l.active)return;
+    var st=Cb().swapState(s,hero,l.id);
+    slots.push({id:'swap:'+l.id,kind:'swap',loadoutId:l.id,name:l.name,sub:'Swap gear',icon:'swap',cost:st.cost||'object',group:'swap',
+      ok:st.ok&&mine,reason:st.ok&&mine?'':(mine?st.reason:'Not your turn'),selected:false,
+      tip:'Change what you hold and wear.\n'+(st.cost==='action'?'Costs your Action (a Shield is donned or doffed)':'Costs your free object interaction')});
+  });
+  slots.forEach(function(x,i){x.hotkey=i<9?String(i+1):i===9?'0':null;x.costLabel=M.COST_LABEL[x.cost]||x.cost});
+  return slots;
+};
+
+/* ---------- statuses ---------- */
+M.statusChips=function(c,s){
+  return (c.conditions||[]).map(function(e){
+    var tip=Fable.status.describe?Fable.status.describe(s,c,e):e.name;
+    return {id:e.id,name:e.name,kind:e.kind||'condition',tip:tip};
+  });
+};
+
+/* ---------- target plate and attack preview ---------- */
+function pct(n){return Math.round(n*100)}
+/* The knowledge policy (plan section 13.9): what the player is allowed to read about a creature. A creature that carries
+   `reveal` ({ac, hp}) shows only what it lists; the tutorial reveals both, other fights hide them until a bestiary unlocks them. */
+M.knows=function(c){
+  var r=c&&c.reveal;
+  return {ac:!r||r.ac!==false,hp:!r||r.hp!==false};
+};
+M.targetCard=function(s,hero,target,attack){
+  var h=M.health(target),know=M.knows(target);
+  var card={id:target.id,name:target.name,subtitle:target.subtitle||'',ac:know.ac?target.ac.value:'?',acKnown:know.ac,hpKnown:know.hp,
+    acTip:know.ac?M.acTip(target):'Armor Class: not yet known',hp:h,
+    bloodied:h.bloodied,defeated:!target.alive||target.down,statuses:M.statusChips(target,s),
+    distanceFt:hero.cell&&target.cell?Fable.grid.distanceFt(hero.cell,target.cell):null,preview:null};
+  if(attack&&hero&&target.alive){
+    var p=Cb().previewAttack(s,hero,attack,target,{});
+    card.preview=pv(p);
+    if(!know.ac&&card.preview.roll){card.preview.roll.hit='?';card.preview.roll.crit=5;card.preview.roll.need=null;card.preview.roll.acHidden=true}
+  }
+  return card;
+};
+function pv(p){
+  var out={ok:p.ok,reason:p.reason||'',attack:p.attack.name,cost:p.cost,costLabel:M.COST_LABEL[p.cost]||'',band:p.band,distanceFt:p.distanceFt,roll:null,damage:null,mastery:p.mastery,notes:p.notes};
+  if(p.roll){
+    var r=p.roll;
+    out.roll={bonus:r.bonus,bonusText:sgn(r.bonus),ac:r.ac,hit:pct(r.hit),crit:pct(r.crit),state:r.state,advantage:r.advantage,disadvantage:r.disadvantage,autoCrit:r.autoCrit,need:r.need,
+      stateText:r.state==='advantage'?'Advantage':r.state==='disadvantage'?'Disadvantage':'',
+      sources:r.advantage.map(function(x){return '+ '+x}).concat(r.disadvantage.map(function(x){return '- '+x}))};
+  }
+  if(p.damage){
+    var d=p.damage;
+    out.damage={expression:d.expression,type:d.type,min:d.min,max:d.max,average:Math.round(d.average*10)/10,critMin:d.critMin,critMax:d.critMax,
+      text:d.min===d.max?String(d.min):d.min+'-'+d.max,critText:d.critMin+'-'+d.critMax};
+  }
+  return out;
+}
+
+/* ---------- dice feed ---------- */
+M.rollCard=function(r,s){
+  if(!r||r.type!=='attack')return null;
+  var hideAc=!!(s&&s.byId[r.target.id]&&!M.knows(s.byId[r.target.id]).ac);
+  var ro=r.roll,kept=ro.natural,adv=ro.mode==='advantage',dis=ro.mode==='disadvantage';
+  var outcome=!r.hit?(ro.natural===1?'Critical miss':'Miss'):r.crit?'Critical hit':'Hit';
+  var card={
+    title:r.attacker.name+' attacks '+r.target.name,sub:r.attack.name+(r.reaction?' (Opportunity Attack)':''),
+    team:r.attacker.team,d20:{rolls:ro.rolls.slice(),kept:kept,mode:ro.mode,advText:adv?'Advantage':dis?'Disadvantage':'',bonus:ro.bonus,bonusText:sgn(ro.bonus),total:ro.total,ac:hideAc?'?':r.ac,
+      rerolled:ro.rerolled,sources:ro.advantage.map(function(x){return '+ '+x}).concat(ro.disadvantage.map(function(x){return '- '+x}))},
+    outcome:outcome,hit:r.hit,crit:r.crit,damage:null,effects:r.effects.map(function(e){return e.name+': '+e.text})
+  };
+  if(r.damage){
+    var d=r.damage;
+    card.damage={total:d.total,type:d.type,expression:d.expression,crit:d.crit,savage:d.savage,first:d.first,second:d.second,
+      absorbed:d.applied&&d.applied.absorbed||0,text:d.total+' '+d.type};
+  }
+  return card;
+};
+
+/* ---------- combat log ---------- */
+function nm(s,id){var c=s.byId[id];return c?c.name:id}
+M.attackLine=function(r,hideAc){
+  var ro=r.roll,pieces='d20 '+(ro.rolls.length>1?'['+ro.rolls.join(', ')+'] ':'')+ro.natural+' '+sgn(ro.bonus)+' = '+ro.total+(hideAc?'':' vs AC '+r.ac);
+  var t=r.attacker.name+' '+(r.reaction?'makes an Opportunity Attack on ':'attacks ')+r.target.name+' with '+r.attack.name+': '+pieces+'. ';
+  if(ro.rerolled)t=t.replace('d20 ','d20 (rerolled from '+ro.rerolled.from+') ');
+  if(!r.hit)return t+(ro.natural===1?'Natural 1, miss.':'Miss.');
+  t+=(r.crit?'Critical hit! ':'Hit. ')+r.damage.total+' '+r.damage.type+' damage'+(r.damage.savage?' (Savage Attacker: '+r.damage.first+' and '+r.damage.second+')':'')+'.';
+  if(r.damage.applied&&r.damage.applied.absorbed)t+=' '+r.damage.applied.absorbed+' absorbed by temporary hit points.';
+  return t;
+};
+M.logEntry=function(e,s){
+  switch(e.type){
+    case 'start':return {tone:'round',text:'The fight begins.'};
+    case 'round':return {tone:'round',text:'Round '+e.round};
+    case 'turnstart':{var c=s.byId[e.id];return c?{tone:c.team==='player'?'turn':'turn enemy',text:c.team==='player'?'Your turn.':c.name+"'s turn."}:null}
+    case 'attack':{
+      var r=e.result;
+      var hide=!!(s.byId[r.target.id]&&!M.knows(s.byId[r.target.id]).ac);
+      return {tone:!r.hit?'miss':r.crit?'crit':'hit',text:M.attackLine(r,hide),team:r.attacker.team,r:r};
+    }
+    case 'action':{
+      var a=e.result;
+      return {tone:a.heal?'heal':'info',text:a.creature.name+' uses '+a.name+(a.text?': '+a.text+'.':'.')};
+    }
+    case 'swap':return {tone:'info',text:e.result.creature.name+' changes gear.'};
+    case 'status':return e.change==='added'&&e.status?{tone:'info',text:nm(s,e.id)+' is '+e.status.name+'.'}:null;
+    case 'down':{var d=s.byId[e.id];return d?(d.kind==='hero'?{tone:'crit',text:d.name+' falls unconscious.'}:{tone:'dead',text:d.name+' is defeated.'}):null}
+    case 'dead':return {tone:'dead',text:nm(s,e.id)+' dies.'};
+    case 'deathsave':{
+      var x=e.result,t=x.creature.name+' rolls a death saving throw: '+x.roll+'. ';
+      t+=x.outcome==='revive'?'A natural 20: back on their feet with 1 hit point!':x.outcome==='success'?'Success.':x.outcome==='fail'?'Failure.':x.outcome==='fail2'?'Natural 1: two failures.':x.outcome==='stable'?'Stable.':'Dead.';
+      return {tone:x.outcome==='success'||x.outcome==='stable'||x.outcome==='revive'?'heal':'miss',text:t};
+    }
+    case 'over':return {tone:e.winner==='player'?'heal':'dead',text:e.winner==='player'?'Victory!':'Defeat.'};
+    case 'move':return e.reactions&&e.reactions.length?null:null;
+    default:return null;
+  }
+};
+
+/* ---------- death saves ---------- */
+M.deathPips=function(c){
+  if(!c.down||!c.death||c.kind!=='hero')return null;
+  return {successes:c.death.successes,failures:c.death.failures,stable:c.death.stable,dead:c.death.dead};
+};
+
+/* ---------- character sheet ---------- */
+M.sheetView=function(c){
+  var sh=c.sheet;if(!sh)return null;
+  var ab=['str','dex','con','int','wis','cha'].map(function(k){var a=sh.abilities[k];return {id:k,name:k.toUpperCase(),score:a.score,mod:sgn(a.mod!==undefined?a.mod:a.modifier)}});
+  var attacks=(sh.attacks||[]).filter(function(a){return a.equipped||a.mode==='thrown'}).map(function(a){
+    return {name:a.name+(a.mode==='thrown'?' (thrown)':''),bonus:sgn(a.bonus.value),damage:a.damage.expression+' '+a.damage.type,mastery:a.mastery&&a.mastery.usable?a.mastery.name:''};
+  });
+  return {name:sh.identity&&sh.identity.name||c.name,abilities:ab,ac:c.ac.value,hp:c.hp.current+' / '+c.hp.max,speed:c.speedFt+' ft',attacks:attacks,
+    features:(sh.features||[]).map(function(f){return {name:f.name,description:f.description}}),
+    resources:Object.keys(c.resources||{}).filter(function(k){return k!=='heroic-inspiration'}).map(function(k){var r=c.resources[k];return {name:r.label,current:r.current,max:r.max}}),
+    inspiration:!!c.inspiration};
+};
+})(typeof window!=='undefined'?window:typeof self!=='undefined'?self:globalThis);
