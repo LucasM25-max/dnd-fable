@@ -1,6 +1,6 @@
 # Fable: Character and Ability Implementation Plan
 
-Status: v4, with review decisions applied (see section 23 for the decisions log). Phases 0, 1, 2, 3 and 4 are implemented (see section 20). Scope: how D&D 5.5e (2024 rules) characters, species, backgrounds, classes, feats, items and abilities are represented, computed and used in the game, starting with the tutorial Human Fighter.
+Status: v4, with review decisions applied (see section 23 for the decisions log). Phases 0, 1, 2, 3, 4, 5 and 6 are implemented (see section 20). Scope: how D&D 5.5e (2024 rules) characters, species, backgrounds, classes, feats, items and abilities are represented, computed and used in the game, starting with the tutorial Human Fighter.
 
 This plan builds on the existing content-first architecture (`js/content/`, registries, manifest, package loader) described in `README.md` and `js/content/README.md`, and serves the goals in `plan.md` (sections 3, 4, 5 and 8).
 
@@ -1422,6 +1422,12 @@ Each phase ends in something verifiable. Combat is turn based from the start, an
 - Heroic Inspiration reroll (a low priority part of this phase): the Human trait's reroll prompt after a roll.
 - The rules layer emits result logs and presentation cues, and placeholder animations play so combat is fully playable before the final presentation work.
 - Done when: a scripted resolution test covers hit, miss, crit and each of the three tutorial masteries, and the tutorial fight is playable start to finish using only the HUD.
+
+  Status: done.
+  - Rules (pure, tested in Node): `js/rules/attack.js` (two-phase `beginAttack`/`completeAttack` so the Heroic Inspiration reroll can be prompted, preview, damage, temp HP, crits, death and dying), `actions.js` (Dash, Disengage, Dodge, Second Wind, loadout swaps, death saves), `status.js` (conditions with durations), `handlers.js` (Sap, Nick, Slow, Savage Attacker, Alert initiative swap, reroll), `js/character/rest.js` (short and long rests), Opportunity Attacks on stepwise movement.
+  - HUD: action bar, targeting with attack preview, character panel, target panel with the knowledge policy (enemy AC and HP hidden unless the encounter reveals them; the tutorial does), roll feed, combat log, prompts (Opportunity Attack, reroll, end-turn confirmation), death save pips, world nameplates and floating numbers, tutorial coach, character sheet, controls and accessibility settings (`css/hud-combat.css`, `js/hud/`). `js/game/director.js` plays placeholder animations.
+  - Tests: `tests/suites/phase6-rules.test.js` and `phase6-hud.test.js`.
+  - Deferred: ground item pickup and thrown weapon recovery, damage die rerolls, the Nimble Escape coach step, bestiary unlock persistence, final animation (Phase 7), the enemy planner (Phase 8).
 
 **Phase 7: Presentation (animation, VFX, audio, camera)**
 - Presentation director, cue timeline, animation system (rig joints on the voxel models, clips, state machine, layers), VFX toolkit (voxel particles, trails, projectiles, dissolve), camera direction, audio mixer (section 15).

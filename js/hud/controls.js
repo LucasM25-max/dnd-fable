@@ -1,16 +1,15 @@
-/* Top right menu button and the bottom left control hints. */
+/* Top right: sheet, log, help and menu buttons. */
 (function(){
 Fable.hudModules.controls=function(hud){
   var sys=document.createElement('div');
   sys.className='sys';
-  sys.innerHTML='<button class="sysb" type="button" aria-label="Menu (Esc)" data-tip="Menu (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v3H3zm0 5.500h18v3H3zM3 16h18v3H3z"/></svg></button>';
+  function btn(id,icon,label,tip){return '<button class="sysb" type="button" data-act="'+id+'" aria-label="'+label+'" data-tip="'+tip+'">'+Fable.hudIcons.svg(icon)+'</button>'}
+  sys.innerHTML=btn('sheet','book','Character sheet (C)','Character sheet (C)')+btn('log','scroll','Combat log (L)','Combat log (L)')+btn('help','help','Controls and settings (H)','Controls and settings (H)')+btn('menu','menu','Menu (Esc)','Menu (Esc)');
   hud.root.appendChild(sys);
-  sys.firstChild.addEventListener('click',function(){if(hud.intents.menu)hud.intents.menu()});
-  var keys=document.createElement('div');
-  keys.className='keys';
-  keys.innerHTML=hud.plate(
-    '<div><kbd>Hover</kbd>Preview a move</div><div><kbd>Click</kbd>Move there</div><div><kbd>Space</kbd>End turn</div><div><kbd>Drag</kbd>Orbit camera</div><div><kbd>Wheel</kbd>Zoom</div>','sm');
-  hud.root.appendChild(keys);
+  sys.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('.sysb');if(!b)return;
+    var f=hud.intents[b.getAttribute('data-act')];if(f)f();
+  });
   return {update:function(){}};
 };
 })();
