@@ -148,9 +148,16 @@
 .cond.effect i{background:var(--hud-gold)}
 
 /* ---------- prompts ---------- */
-.prm{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(var(--hud-scale));width:min(440px,calc(100vw - 36px));animation:hud-pop .22s both}
-.prm.big{width:min(520px,calc(100vw - 36px))}
+/* The prompt is centred by layout, never by a transform: a full screen flex box puts the plate in the middle of the window. An
+   earlier version centred it with translate(-50%,-50%) and also ran an entrance animation whose last keyframe was "transform:none";
+   the animation's end state replaced the translate, which left the plate's top left corner at the middle of the screen and the
+   whole plate hanging down and to the right (the Victory screen showed at the bottom right). Only the plate animates now, and its
+   keyframes carry the HUD scale themselves. */
+.prm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;pointer-events:none;box-sizing:border-box}
+.prm>.plate{width:min(440px,100%);transform:scale(var(--hud-scale));transform-origin:center;animation:hud-prompt-in .22s both}
+.prm.big>.plate{width:min(520px,100%)}
 .prm[hidden]{display:none}
+@keyframes hud-prompt-in{0%{transform:scale(calc(var(--hud-scale) * .8));opacity:0}100%{transform:scale(var(--hud-scale));opacity:1}}
 .prm .plate>.edge>.in{padding:20px 24px 22px;text-align:center}
 .prm h2{margin:0;font:800 26px/1.15 var(--serif);color:var(--hud-gold);text-shadow:0 2px 0 #3a1f08}
 .prm.big h2{font-size:44px;letter-spacing:.03em}
@@ -253,5 +260,5 @@
 }
 @media (max-width:480px){.fl{font-size:24px}.prm .plate>.edge>.in{padding:16px 14px 18px}.pbs{gap:8px}#hud-layer .pb{padding:9px 14px 10px;font-size:16px}}
 @media (prefers-reduced-motion:reduce){
-  .slotb,.slotb .frame,.feed,.die,.fd-out,.fd-dmg,.prm,.tg-bar i{transition:none;animation:none}
+  .slotb,.slotb .frame,.feed,.die,.fd-out,.fd-dmg,.prm>.plate,.tg-bar i{transition:none;animation:none}
 }
