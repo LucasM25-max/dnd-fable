@@ -1,62 +1,79 @@
-/* Walks a creature model along a path and plays the walk cycle (implementation plan, section 15, placeholder animation for
-   Phase 5). The rules decide where a creature goes; the walker only draws it getting there, so it works the same for the hero
-   and for every monster. It drives the joints a model lists in rig.joints (legL, legR, armL, armR, cape, head) and keeps
-   the model's own resting pose from rig.idle (for example the fighter's arms held in front of the body).
+/* Walks a creature along a path (implementation plan, section 15). The rules decide where a creature goes; the walker only moves it
+   there: it follows the points, turns to face the way it goes (and turns in place when told to face something), and tells the
+   animator how it is moving, so the walk and run cycles, the lean into turns and the footsteps all come from the animation system.
+   The walker never writes a joint. The animator owns the pose and writes the model once per frame (Fable.anim).
 
-   var w = Fable.createWalker({root, rig})
-   w.walk([{x, z}, ...], onDone)    follow the points, then call onDone
-   w.turnTo(x, z)                    face a point
-   w.update(dt, t)                   every frame
-   w.busy()                          true while walking */
+   var w = Fable.createWalker(entry, {animator, speed: function(){ return 1 }})
+   w.walk([{x, z}, ...], onDone, {run})   follow the points, then call onDone (at once when speed is Infinity: Instant)
+   w.turnTo(x, z, snap)                    face a point (snap: now, no turn)
+   w.update(dt)                            every frame, before the animator
+   w.busy(), w.position(), w.facing(), w.cancel(), w.teleport(x, z) */
 (function(){
-var SPEED=56; /* world units per second: about 3.7 squares a second */
+var SPEED=56;   /* world units per second: about 3.7 squares a second */
 function wrap(a){return Math.atan2(Math.sin(a),Math.cos(a))}
 
-Fable.createWalker=function(entry){
-  var root=entry.root,rig=entry.rig||{},J=rig.joints||{},idle=rig.idle||{};
-  var base={};
-  ['legL','legR','armL','armR','cape'].forEach(function(k){if(J[k])base[k]=idle[k]!==undefined?idle[k]:J[k].rotation.x});
-  var st={path:[],i:0,k:0,phase:0,face:root.rotation.y,x:root.position.x,z:root.position.z,done:null,bob:0};
+Fable.createWalker=function(entry,opts){
+  opts=opts||{};
+  var root=entry.root,anim=opts.animator||null,speedOf=opts.speed||function(){return 1};
+  var st={path:[],i:0,face:root.rotation.y,want:root.rotation.y,x:root.position.x,z:root.position.z,done:null,run:false,yawRate:0};
 
-  function pose(t){
-    var w=Math.sin(st.phase)*st.k;
-    if(J.legL)J.legL.rotation.x=w*.8;
-    if(J.legR)J.legR.rotation.x=-w*.8;
-    if(J.armL)J.armL.rotation.x=base.armL+w*.5;
-    if(J.armR)J.armR.rotation.x=base.armR-w*.2;
-    if(J.cape)J.cape.rotation.x=base.cape+st.k*.3+Math.sin(t*1.3)*.05;
-    if(J.head){J.head.rotation.x=0;J.head.rotation.y=0}
-    st.bob=Math.abs(Math.sin(st.phase))*.5*st.k;
+  function finish(){
+    var cb=st.done;st.done=null;st.path=[];st.i=0;
+    if(cb)cb();
   }
-  function place(){root.position.set(st.x,st.bob,st.z);root.rotation.y=st.face}
-
   var api={
-    walk:function(points,done){
-      st.path=points.slice();st.i=0;st.done=done||null;
-      if(!st.path.length&&st.done){var d=st.done;st.done=null;d()}
+    walk:function(points,done,o){
+      st.path=points.slice();st.i=0;st.done=done||null;st.run=!!(o&&o.run);
+      if(!st.path.length){finish();return}
+      if(speedOf()===Infinity){
+        var last=st.path[st.path.length-1];
+        if(st.path.length>1){var pv=st.path[st.path.length-2];st.face=st.want=Math.atan2(last.x-pv.x,last.z-pv.z)}
+        st.x=last.x;st.z=last.z;finish();
+      }
     },
-    turnTo:function(x,z){st.face=Math.atan2(x-st.x,z-st.z)},
+    turnTo:function(x,z,snap){
+      if(Math.hypot(x-st.x,z-st.z)<.01)return;
+      st.want=Math.atan2(x-st.x,z-st.z);
+      if(snap)st.face=st.want;
+    },
+    teleport:function(x,z){st.x=x;st.z=z},
+    cancel:function(){st.path=[];st.i=0;st.done=null},
     busy:function(){return st.i<st.path.length},
     position:function(){return {x:st.x,z:st.z}},
-    update:function(dt,t){
-      var moving=st.i<st.path.length;
+    facing:function(){return st.face},
+    update:function(dt){
+      var moving=st.i<st.path.length,dist=0,sp=speedOf();
+      if(!isFinite(sp))sp=1;
+      var before=st.face;
       if(moving){
-        var step=SPEED*dt;
+        var step=SPEED*(st.run?1.35:1)*sp*dt;
         while(step>0&&st.i<st.path.length){
           var p=st.path[st.i],dx=p.x-st.x,dz=p.z-st.z,d=Math.hypot(dx,dz);
-          if(d>.001)st.face+=wrap(Math.atan2(dx,dz)-st.face)*Math.min(1,dt*16);
-          if(d<=step){st.x=p.x;st.z=p.z;step-=d;st.i++}
-          else{st.x+=dx/d*step;st.z+=dz/d*step;step=0}
+          if(d>.001)st.want=Math.atan2(dx,dz);
+          /* start along the path once roughly facing it, so a turn does not slide sideways */
+          var off=Math.abs(wrap(st.want-st.face));
+          var scale=off>1.2?.25:1;
+          st.face+=wrap(st.want-st.face)*Math.min(1,dt*16*sp);
+          var go=Math.min(step*scale,d);
+          if(d<=step*scale){st.x=p.x;st.z=p.z;step-=d/scale;st.i++;dist+=d}
+          else{st.x+=dx/d*go;st.z+=dz/d*go;step=0;dist+=go}
         }
-        st.phase+=dt*11;
+      }else{
+        /* turning in place */
+        var diff=wrap(st.want-st.face);
+        if(Math.abs(diff)>.004)st.face+=diff*Math.min(1,dt*11*sp);else st.face=st.want;
       }
-      st.k+=((moving?1:0)-st.k)*Math.min(1,dt*10);
-      if(!moving&&st.k<.02){st.k=0;st.phase=0}
-      pose(t);place();
-      if(!moving&&st.done&&st.path.length){var cb=st.done;st.done=null;st.path=[];st.i=0;cb()}
+      st.yawRate=dt>0?wrap(st.face-before)/dt:0;
+      if(anim){
+        anim.setRoot(st.x,st.z,st.face);
+        anim.locomotion({moving:moving,running:moving&&st.run,dist:dist,yawRate:moving?st.yawRate:0});
+      }else{
+        root.position.set(st.x,0,st.z);root.rotation.y=st.face;
+      }
+      if(moving&&st.i>=st.path.length)finish();
     }
   };
-  pose(0);place();
+  if(anim)anim.setRoot(st.x,st.z,st.face);
   return api;
 };
 })();

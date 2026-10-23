@@ -85,12 +85,18 @@ Fable.createGoblinMinion=function(){
   bh(1.65,16.2,-.45,1.6,.85,1.5,hair);
 
   // At this scale the goblin is about 62% of the fighter's height (Small beside Medium).
+  /* the body above the hips is one joint, so clips can lean and twist the goblin (the legs stay on the root) */
+  var TORSO_Y=5.7,TO=pivot(0,TORSO_Y,0);
+  G.children.slice().forEach(function(c){
+    if(c===TO||c===legs[-1]||c===legs[1])return;
+    G.remove(c);c.position.y-=TORSO_Y;TO.add(c);
+  });
   G.scale.setScalar(.68);G.updateMatrixWorld(true);
-  voxelize(G,true);[HD,arms[-1],arms[1],legs[-1],legs[1]].forEach(function(p){voxelize(p,false)});
+  voxelize(TO,true);[HD,arms[-1],arms[1],legs[-1],legs[1]].forEach(function(p){voxelize(p,false)});
   /* item models are drawn at the fighter's scale (0.75), so gearScale sizes them for this smaller creature */
   var rig={
     gearScale:.8,
-    joints:{root:G,head:HD,armL:arms[1],armR:arms[-1],legL:legs[-1],legR:legs[1]},
+    joints:{root:G,torso:TO,head:HD,armL:arms[1],armR:arms[-1],legL:legs[-1],legR:legs[1]},
     sockets:{mainHand:hands[-1],offHand:hands[1]},
     stow:{belt:[{parent:G,pos:[2.4,4.4,2.85],rot:[0,0,-.32]}]}
   };

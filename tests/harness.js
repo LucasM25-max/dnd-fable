@@ -38,10 +38,13 @@ function dirUrl(dir){return pathToFileURL(path.resolve(dir)+path.sep)}
 async function loadData(opts){
   opts=opts||{};
   fresh();loadRules();loadRegistry();
+  if(opts.presentation)['ease','anim','timeline','camera','planner'].forEach(f=>runFile('js/presentation/'+f+'.js'));
   if(opts.sources)Fable.content.setAllowedSources(opts.sources);
   runFile('js/content/content-manifest.js');
   const m=Fable.content.manifest;
   m.maps=[];m.encounters=[];
+  /* animation, effect and sound rows are presentation content: tests of the rules leave them out unless asked (opts.presentation) */
+  if(!opts.presentation)m.presentation=[];
   /* opts.heroes and opts.monsters bring in the premade hero and the monsters, with stand in model factories (no Three.js here) */
   if(!opts.monsters)m.monsters=[];
   if(!opts.heroes)m.characters=[];
