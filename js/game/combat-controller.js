@@ -4,7 +4,7 @@
    turns pointer input into intents (hover to preview a move, click to move, Space to end the turn), walks the models along
    the paths the rules produce, and lets the goblins take their turns. Phase 6 adds the player's attacks, abilities and
    loadout swaps, aiming and the attack preview, the Heroic Inspiration and Opportunity Attack questions, the dice card, the
-   combat log, floating numbers, the placeholder animations and the end of the fight. The rules layer decides everything; this
+   combat log, floating numbers, the presentation (Phase 7) and the end of the fight. The rules layer decides everything; this
    file only animates and forwards. Rule events are queued and played one at a time, so the HUD shows an attack when it lands
    rather than before. The HUD it mounts is view only and sends intents back through here.
 
@@ -21,7 +21,7 @@ Fable.createCombatController=function(o){
   var world=o.world,scene=o.scene,camera=o.camera,inp=Fable.input;
   var grid=G().fromMap(world.B,world.colliders);
   var creatures=[],entries={};
-  var director=Fable.createDirector();
+  var pres=null;
 
   /* ---------- creatures ---------- */
   var heroDef=o.hero&&Fable.content.characters.get(o.hero.id);
@@ -65,11 +65,10 @@ Fable.createCombatController=function(o){
     var e=entries[c.id],foes=creatures.filter(function(k){return k.team!==c.team}),fx=0,fz=0;
     foes.forEach(function(k){var p=G().center(grid,k.cell.c,k.cell.r);fx+=p.x;fz+=p.z});
     if(foes.length){fx/=foes.length;fz/=foes.length;e.root.rotation.y=Math.atan2(fx-e.root.position.x,fz-e.root.position.z)}
-    e.walker=Fable.createWalker({root:e.root,rig:e.rig});
   });
 
   /* ---------- HUD and overlays ---------- */
-  var ctrl={state:s,grid:grid,hero:hero,entries:entries,active:false,seed:seed,director:director};
+  var ctrl={state:s,grid:grid,hero:hero,entries:entries,active:false,seed:seed,pres:null};
   var hud=Fable.createHud({intents:{
     endTurn:function(){endHeroTurn()},
     menu:function(){Fable.enterMenu()},
@@ -80,19 +79,31 @@ Fable.createCombatController=function(o){
     log:function(){Fable.hudSettings.set('log',!Fable.hudSettings.get('log'))}
   }});
   ctrl.hud=hud;
+  /* the presentation director (Phase 7): animation, effects, sound and camera. The hooks are what the HUD and the world do at the cue
+     that causes them, so a result shows when the blow lands and a skip still ends with the right state. */
+  var hooks={start:function(e){say(e)},round:function(e){roundChanged=true;say(e)},turnstart:onTurnStart,attack:onAttack,action:onAction,swap:onSwap,
+    status:function(e){say(e);dirty=true},down:onDown,dead:function(e){say(e);dirty=true},deathsave:onDeathSave,over:onOver};
+  pres=Fable.createPresentation({scene:scene,camera:camera,hud:hud,state:function(){return s},hooks:hooks,seed:seed,settings:Fable.hudSettings});
+  ctrl.pres=pres;
+  creatures.forEach(function(c){var a=pres.addActor(c,entries[c.id]);entries[c.id].walker=a.walker});
+  function loadoutIdle(){
+    var id=hero.sheet&&hero.sheet.loadout&&hero.sheet.loadout.mainAttack,a=id&&Cb().findAttack(hero,id);
+    return a&&a.item==='dagger'?'idleDagger':'idle';
+  }
+  pres.setIdle(hero.id,loadoutIdle());
   var marks=Fable.createWorldMarks({scene:scene,grid:grid});
   var mp=Fable.createMovePreview({scene:scene,camera:camera,grid:grid,hud:hud});
   var labels=Fable.createWorldLabels({camera:camera,hud:hud,anchor:function(c){var w=entryOf(c).walker.position();return {x:w.x,y:c.kind==='hero'?19:14,z:w.z}}});
   if(o.encounter&&o.encounter.tutorial&&hud.mods.tutorialCoach)hud.mods.tutorialCoach.setSteps(o.encounter.tutorial);
 
-  var busy=false,dirty=true,hold=false,pointer=null,previewCell=null,ai={stage:'idle',t:0},clock=0,roundChanged=false;
-  var targeting={attackId:null,hoverId:null},script=[],playing=false,autoEnd=-1,overShown=false;
+  var busy=false,dirty=true,pointer=null,previewCell=null,ai={stage:'idle',t:0},clock=0,roundChanged=false;
+  var targeting={attackId:null,hoverId:null},script=[],autoEnd=-1,overShown=false;
   var raycaster=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();
 
   function entryOf(c){return entries[c.id]}
   function heroTurn(){var a=Cb().active(s);return !!a&&a===hero}
   function worldOf(cell){return G().center(grid,cell.c,cell.r)}
-  function settled(){return !playing&&!script.length&&!director.busy()}
+  function settled(){return !script.length&&!pres.busy()}
   /* the player cannot act while something is playing, walking, being asked, or it is not their turn */
   function locked(){return busy||!settled()||hud.promptActive()||!!s.pending||!ctrl.active||s.phase!=='running'}
   function pick(e){
@@ -143,107 +154,90 @@ Fable.createCombatController=function(o){
   }
 
   /* ---------- playing the rule events ---------- */
+  /* A rule event is handed to the presentation director, which plans it into a timeline of cues and plays it. What the HUD and the world
+     show as true changes in the hooks below, at the cue that causes it (the blow landing, the potion going down), and a skip still runs
+     every one of them. Only one rule event is handed over at a time, so the queue never runs ahead of the fight. */
+  var holds=0;
   Cb().on(s,function(e){script.push(e)});
 
   function say(e){hud.logEvent(e,s)}
-  function face(a,b){var p=entryOf(b).walker.position();entryOf(a).walker.turnTo(p.x,p.z)}
-  function impact(r,quiet){
-    var a=s.byId[r.attacker.id],t=s.byId[r.target.id];
+  function onAttack(e){
+    var r=e.result,a=s.byId[r.attacker.id],t=s.byId[r.target.id];
     say({type:'attack',result:r});
     hud.rollFeed(r);
-    if(r.hit){
-      labels.float(t,r.crit?r.damage.total+'!':String(r.damage.total),r.crit?'crit':'hit');
-      director.hurt(entryOf(t),entryOf(a));
-    }else{
-      labels.float(t,'Miss','miss');
-      director.dodge(entryOf(t),entryOf(a));
-    }
+    if(r.hit)labels.float(t,r.crit?r.damage.total+'!':String(r.damage.total),r.crit?'crit':'hit');
+    else labels.float(t,'Miss','miss');
     if(a===hero)hud.coach('attack');
-    hold=false;dirty=true;
+    holds=Math.max(0,holds-1);dirty=true;
   }
-  function playAttack(r,done){
-    var a=s.byId[r.attacker.id],t=s.byId[r.target.id];
-    face(a,t);face(t,a);
-    playing=true;hold=true;
-    director.attack(entryOf(a),entryOf(t),{hit:r.hit,onImpact:function(){impact(r)}},function(){playing=false;if(done)done()});
+  function onTurnStart(e){
+    var c=s.byId[e.id];
+    marks.setActive(c.cell,c.team);
+    var w=entryOf(c).walker.position();marks.follow(w.x,w.z);
+    hud.banner((roundChanged||(e.index===0&&s.round===1)?'Round '+s.round+'  -  ':'')+Fable.hudModels.turnText(s,c),c.team==='player'?'player':'enemy');
+    hud.announce((roundChanged?'Round '+s.round+'. ':'')+Fable.hudModels.turnText(s,c));
+    roundChanged=false;say(e);
+    ai={stage:'think',t:0};targeting.attackId=null;
+    autoEnd=-1;
+    if(c===hero&&c.down)autoEnd=0;
+    refreshReach();dirty=true;
   }
-  function walkPath(c,path,done){
-    var e=entryOf(c),pts=path.slice(1).map(worldOf);
-    if(!pts.length){if(done)done();return}
-    busy=true;playing=true;mp.setReachable([]);dirty=true;
-    e.walker.walk(pts,function(){
-      busy=false;playing=false;
-      if(Cb().active(s)===c)marks.setActive(c.cell,c.team);
-      refreshReach();dirty=true;
-      if(done)done();
-    });
+  function onAction(e){
+    var r=e.result,who=s.byId[r.creature.id];
+    say(e);
+    if(r.heal)labels.float(who,'+'+r.heal.applied,'heal');
+    else labels.float(who,r.name,'info');
+    if(who===hero&&r.id==='second-wind')hud.coach('second-wind');
+    dirty=true;
   }
+  function onSwap(e){
+    say(e);
+    if(o.gear&&e.result.visuals)o.gear.apply(e.result.visuals);
+    pres.setIdle(hero.id,loadoutIdle());
+    dirty=true;
+  }
+  function onDown(e){
+    var d=s.byId[e.id];say(e);
+    if(d.kind==='monster')labels.float(d,'Defeated','info');
+    dirty=true;
+  }
+  function onDeathSave(e){
+    var x=e.result,h=s.byId[e.id];say(e);
+    var words={success:'Death save: success',fail:'Death save: failure',fail2:'Death save: two failures',stable:'Stable',dead:'Dead',revive:'Back on your feet'};
+    labels.float(h,words[x.outcome]||'Death save','info');
+    hud.banner((words[x.outcome]||'Death save')+'  ('+x.roll+')',x.outcome==='success'||x.outcome==='stable'||x.outcome==='revive'?'player':'enemy');
+    dirty=true;
+  }
+  function onOver(e){say(e);dirty=true;overShown=false;ai={stage:'idle',t:0};targeting.attackId=null;mp.setReachable([]);holds=0}
+
   function handle(e){
     switch(e.type){
-      case 'start':say(e);break;
-      case 'round':roundChanged=true;say(e);break;
-      case 'turnstart':{
-        var c=s.byId[e.id];
-        marks.setActive(c.cell,c.team);
-        var w=entryOf(c).walker.position();marks.follow(w.x,w.z);
-        hud.banner((roundChanged||(e.index===0&&s.round===1)?'Round '+s.round+'  -  ':'')+Fable.hudModels.turnText(s,c),c.team==='player'?'player':'enemy');
-        hud.announce((roundChanged?'Round '+s.round+'. ':'')+Fable.hudModels.turnText(s,c));
-        roundChanged=false;say(e);
-        ai={stage:'think',t:0};targeting.attackId=null;
-        autoEnd=-1;
-        if(c===hero&&c.down)autoEnd=0;
-        refreshReach();dirty=true;
-        break;
-      }
       case 'attack':
-        if(e.result.reaction)say({type:'attack',result:e.result});
-        playAttack(e.result);break;
+        holds++;
+        pres.enqueue(e);
+        break;
       case 'move':{
-        var mover=s.byId[e.id],steps=(e.reactions||[]).slice();
-        var next=function(){
-          var rr=steps.shift();
-          if(rr){playAttack(rr.result,next);return}
-          walkPath(mover,e.path);
-        };
+        var mover=s.byId[e.id],pts=e.path.slice(1).map(worldOf);
         if(mover===hero)hud.coach('move');
-        next();
+        /* the attacks of opportunity the move provokes play first, then the walk */
+        (e.reactions||[]).forEach(function(rr){holds++;pres.enqueue({type:'attack',result:rr.result})});
+        if(!pts.length)break;
+        pres.enqueueWalk(mover.id,pts,{run:mover.kind==='monster'||(e.costFt||0)>30,
+          onStart:function(){busy=true;mp.setReachable([]);dirty=true},
+          onDone:function(){
+            busy=false;
+            if(Cb().active(s)===mover)marks.setActive(mover.cell,mover.team);
+            refreshReach();dirty=true;
+          }});
         break;
       }
-      case 'action':{
-        var r=e.result,who=s.byId[r.creature.id];
-        say(e);
-        if(r.heal){labels.float(who,'+'+r.heal.applied,'heal');director.cheer(entryOf(who))}
-        else labels.float(who,r.name,'info');
-        if(who===hero&&r.id==='second-wind')hud.coach('second-wind');
-        dirty=true;break;
-      }
-      case 'swap':{
-        say(e);
-        if(o.gear&&e.result.visuals)o.gear.apply(e.result.visuals);
-        dirty=true;break;
-      }
-      case 'status':say(e);dirty=true;break;
-      case 'down':{
-        var d=s.byId[e.id];say(e);
-        director.setDown(entryOf(d),true);
-        if(d.kind==='monster')labels.float(d,'Defeated','info');
-        dirty=true;break;
-      }
-      case 'dead':say(e);dirty=true;break;
-      case 'deathsave':{
-        var x=e.result,h=s.byId[e.id];say(e);
-        var words={success:'Death save: success',fail:'Death save: failure',fail2:'Death save: two failures',stable:'Stable',dead:'Dead',revive:'Back on your feet'};
-        labels.float(h,words[x.outcome]||'Death save','info');
-        hud.banner((words[x.outcome]||'Death save')+'  ('+x.roll+')',x.outcome==='success'||x.outcome==='stable'||x.outcome==='revive'?'player':'enemy');
-        if(x.revived)director.setDown(entryOf(h),false);
-        dirty=true;break;
-      }
-      case 'over':say(e);dirty=true;overShown=false;ai={stage:'idle',t:0};targeting.attackId=null;mp.setReachable([]);break;
+      default:
+        pres.enqueue(e);
     }
   }
   function pump(){
     var guard=0;
-    while(!playing&&!director.busy()&&script.length&&guard++<50)handle(script.shift());
+    while(!pres.busy()&&script.length&&guard++<50)handle(script.shift());
   }
 
   /* ---------- the player's choices ---------- */
@@ -290,7 +284,7 @@ Fable.createCombatController=function(o){
     if(!b.ok){hud.announce(b.reason);labels.float(hero,b.reason,'info');return}
     targeting.attackId=null;
     var p=b.pending;
-    var finish=function(reroll){Cb().completeAttack(s,p,{reroll:reroll});dirty=true};
+    var finish=function(reroll){if(reroll)pres.reroll(hero.id);Cb().completeAttack(s,p,{reroll:reroll});dirty=true};
     if(p.canReroll){
       dirty=true;
       var keptHit=p.roll.natural!==1&&(p.roll.natural===20||p.roll.total>=p.ac);
@@ -345,7 +339,7 @@ Fable.createCombatController=function(o){
     if(autoEnd>1.5&&heroTurn()&&s.phase==='running'){autoEnd=-1;Cb().endTurn(s);dirty=true}
   }
   function showOutcome(){
-    overShown=true;
+    overShown=true;hud.root.classList.add('outcome');
     var win=s.winner==='player',rw=o.encounter&&o.encounter.rewards;
     var rows=[['Rounds',String(s.round)],['Hit points left',hero.hp.current+' / '+hero.hp.max]];
     if(win&&rw){
@@ -369,6 +363,7 @@ Fable.createCombatController=function(o){
   };
   inp.handlers.leave=function(){pointer=null;previewCell=null;targeting.hoverId=null;dirty=true};
   inp.handlers.click=function(e){
+    if(ctrl.active&&pres.busy()&&!hud.promptActive()){pres.skip();return}
     if(!ctrl.active||locked()||!heroTurn())return;
     var cell=pick(e);
     if(!cell)return;
@@ -395,6 +390,12 @@ Fable.createCombatController=function(o){
     if((e.code==='KeyH'||e.code==='Slash')&&!e.repeat){hud.openOverlay('help',s);return true}
     if(e.code==='KeyL'&&!e.repeat){Fable.hudSettings.set('log',!Fable.hudSettings.get('log'));return true}
     if(hud.overlayOpen())return false;
+    if(e.code==='Enter'&&!e.repeat&&pres.busy()){pres.skip();return true}
+    if(e.code==='KeyF'&&!e.repeat){
+      var order=['normal','fast','instant'],cur=Fable.hudSettings.get('speed'),nx=order[(order.indexOf(cur)+1)%3];
+      Fable.hudSettings.set('speed',nx);hud.announce('Playback speed: '+nx);return true;
+    }
+    if(e.code==='KeyM'&&!e.repeat){Fable.hudSettings.set('mute',!Fable.hudSettings.get('mute'));hud.announce(Fable.hudSettings.get('mute')?'Sound off':'Sound on');return true}
     if(e.code==='Space'){if(!e.repeat)endHeroTurn();return true}
     var m=/^(Digit|Numpad)(\d)$/.exec(e.code);
     if(m&&!e.repeat){
@@ -413,11 +414,13 @@ Fable.createCombatController=function(o){
 
   /* ---------- lifecycle ---------- */
   /* true when nothing is playing, walking or being asked (for the browser tests) */
-  ctrl.idle=function(){return !busy&&settled()&&!hud.promptActive()&&!s.pending&&!hold};
-  ctrl.debug=function(){return {targeting:JSON.stringify(targeting),locked:locked(),busy:busy,playing:playing,hold:hold,queued:script.length,tweens:director.busy(),prompt:hud.promptActive(),pending:!!s.pending,heroTurn:heroTurn(),previewCell:previewCell}};
+  ctrl.idle=function(){return !busy&&settled()&&!hud.promptActive()&&!s.pending&&holds===0};
+  ctrl.debug=function(){return {targeting:JSON.stringify(targeting),locked:locked(),busy:busy,hold:holds,queued:script.length,presenting:pres.busy(),prompt:hud.promptActive(),pending:!!s.pending,heroTurn:heroTurn(),previewCell:previewCell}};
   ctrl.begin=function(){
     if(ctrl.active)return;
     ctrl.active=true;
+    /* the goblins spring their ambush before the first turn */
+    pres.ambush(creatures.filter(function(c){return c.team!=='player'}).map(function(c){return c.id}));
     Cb().start(s);
     hud.show();dirty=true;
   };
@@ -427,15 +430,14 @@ Fable.createCombatController=function(o){
   };
   ctrl.update=function(ms,dt){
     clock=ms/1000;
-    creatures.forEach(function(c){entryOf(c).walker.update(dt,clock)});
-    director.update(dt);
+    pres.update(dt,window.innerWidth,window.innerHeight);
     if(ctrl.active){
       pump();
       runEnemy(dt);runDowned(dt);
-      if(s.phase==='over'&&!overShown&&settled()&&!hud.promptActive()){overShown=true;setTimeout(function(){if(ctrl.active)showOutcome()},1100)}
+      if(s.phase==='over'&&!overShown&&settled()&&!hud.promptActive()){overShown=true;setTimeout(function(){if(ctrl.active)showOutcome()},450)}
       var a=Cb().active(s);
       if(a&&busy){var w=entryOf(a).walker.position();marks.follow(w.x,w.z)}
-      if(dirty&&!hold)redraw();
+      if(dirty&&holds===0)redraw();
       marks.update(clock);
       mp.update(clock,window.innerWidth,window.innerHeight);
       labels.update(s,window.innerWidth,window.innerHeight,dt);
@@ -443,7 +445,7 @@ Fable.createCombatController=function(o){
   };
   ctrl.dispose=function(){
     inp.handlers.hover=inp.handlers.leave=inp.handlers.click=inp.handlers.context=inp.handlers.key=inp.handlers.escape=null;
-    mp.dispose();marks.dispose();labels.dispose();hud.destroy();
+    pres.dispose();mp.dispose();marks.dispose();labels.dispose();hud.destroy();
   };
   return ctrl;
 };

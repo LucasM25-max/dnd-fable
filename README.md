@@ -125,6 +125,18 @@ For an extra test that loads every real content package, run `npm i three@0.128.
 
 Scale: 1 world unit = 10cm.
 
+## Presentation: animation, effects, audio and camera (implementation plan, Phase 7)
+
+The rules still resolve everything at once; `js/presentation` only plays the result back. `Fable.createPresentation` (the director) plans each rule event into a timeline of cues with `Fable.createPlanner`, and plays the timelines one after another: animation, effects, sound, camera moves, screen effects, speech bubbles and the HUD hooks. The HUD changes at the cue that causes it (the health bar drains when the blade lands), and a skip still runs every essential cue, so the state shown is never wrong.
+
+- Animation (`anim.js`): rigs with named joints, keyframe clips as content data (`js/content/presentation/anim-*.js`), base, upper and additive layers, crossfades, look-at, aim, lean and foot planting. The walker now only moves the creature and tells the animator how.
+- Effects (`vfx.js`): instanced voxel particles, sweeping blade arcs, ground rings, hit flashes, projectiles with trails and pooled lights, all from recipes (`effects.js`), scaled by a quality tier.
+- Audio (`audio.js`): everything is synthesised with Web Audio from recipes (`sounds.js`): a mixer with master, music, effects and voice buses, ducking, a voice cap, a combat bed whose intensity follows how the fight is going, and stingers. No audio files ship.
+- Camera (`camera.js`): pushes in on blows, slow motion and hit stop on critical hits, an orbit round the winner. Dragging, the wheel or Q and E hands the camera back at once.
+- Content: a creature is dressed by a presentation profile (`profiles.js`) that picks its clips, effects and sounds per item, mode and damage type; barks (`barks.js`) are short lines shown in speech bubbles with a synthesised voice.
+- Settings (H): playback speed (Normal, Fast, Instant), effects quality (Auto adapts to the frame rate), four volumes, mute, camera shake, speech bubbles. Keys: Enter skips what is playing, F cycles speed, M mutes.
+- Tests: `node tests/run.js "phase 7"`.
+
 ## Attacks, abilities and the full HUD (implementation plan, Phase 6)
 
 Combat is now playable start to finish from the HUD. The rules layer resolves attacks (`js/rules/attack.js`), actions (`actions.js`), conditions (`status.js`), masteries and feat handlers (`handlers.js`) and rests (`js/character/rest.js`), all pure and tested in Node.

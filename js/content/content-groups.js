@@ -14,7 +14,8 @@ var order=[
   {key:'maps',dir:'maps',mode:'package'},
   {key:'monsters',dir:'monsters',mode:'package'},
   {key:'characters',dir:'characters',mode:'package'},
-  {key:'encounters',dir:'encounters',mode:'package'}
+  {key:'encounters',dir:'encounters',mode:'package'},
+  {key:'presentation',dir:'presentation',mode:'file'}
 ];
 C.groups={
   order:order,

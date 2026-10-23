@@ -5,7 +5,7 @@
 var KEYMAP=[
   ['Hover a square','Preview a move'],['Click','Move there, or attack the target you aimed at'],['1-9, 0','Use that ability slot'],
   ['Space','End turn'],['Esc','Cancel aiming, close a panel, then the menu'],['C','Character sheet'],['L','Combat log'],['H or ?','Controls and settings'],
-  ['R / Enter','Reroll with Heroic Inspiration, when asked'],['K','Keep the roll, when asked'],['Q / E','Turn the camera'],['Drag, wheel','Orbit and zoom']
+  ['R / Enter','Reroll with Heroic Inspiration, when asked'],['K','Keep the roll, when asked'],['Q / E','Turn the camera'],['Drag, wheel','Orbit and zoom'],['Enter','Skip the action that is playing'],['F','Cycle playback speed'],['M','Mute or unmute']
 ];
 function plateHtml(hud,inner){return hud.plate(inner,'ov-p')}
 Fable.hudModules.overlays=function(hud){
@@ -27,11 +27,18 @@ Fable.hudModules.overlays=function(hud){
   }
   function settingsHtml(){
     var S=Fable.hudSettings,a=S.all();
+    function opt(cur,rows){return rows.map(function(r){return '<option value="'+r[0]+'"'+(cur===r[0]?' selected':'')+'>'+r[1]+'</option>'}).join('')}
+    function rng(k,label,v){return '<label class="shrng"><span>'+label+'</span><input type="range" min="0" max="1" step="0.05" value="'+v+'" data-k="'+k+'"><output>'+Math.round(v*100)+'%</output></label>'}
     function tog(k,label,help){return '<label class="shsw"><input type="checkbox" data-k="'+k+'"'+(a[k]?' checked':'')+'><span>'+label+'</span><small>'+help+'</small></label>'}
     var body='<div class="shset">'+
       '<label class="shrng"><span>HUD size</span><input type="range" min="0.85" max="1.3" step="0.05" value="'+a.scale+'" data-k="scale"><output>'+Math.round(a.scale*100)+'%</output></label>'+
       '<label class="shrng"><span>Dice card time</span><input type="range" min="2" max="8" step="1" value="'+a.feed+'" data-k="feed"><output>'+a.feed+' s</output></label>'+
       '<label class="shrng"><span>Motion</span><select data-k="motion"><option value="auto"'+(a.motion==='auto'?' selected':'')+'>Follow my system</option><option value="reduced"'+(a.motion==='reduced'?' selected':'')+'>Reduced</option><option value="full"'+(a.motion==='full'?' selected':'')+'>Full</option></select></label>'+
+      '<label class="shrng"><span>Playback speed</span><select data-k="speed">'+opt(a.speed,[['normal','Normal'],['fast','Fast'],['instant','Instant (no animation)']])+'</select></label>'+
+      '<label class="shrng"><span>Effects quality</span><select data-k="quality">'+opt(a.quality,[['auto','Auto'],['high','High'],['medium','Medium'],['low','Low']])+'</select></label>'+
+      rng('volMaster','Master volume',a.volMaster)+rng('volMusic','Music',a.volMusic)+rng('volSfx','Effects',a.volSfx)+rng('volVoice','Voices',a.volVoice)+rng('shake','Camera shake',a.shake)+
+      tog('mute','Mute all sound','Silences music, effects and voices.')+
+      tog('barks','Speech bubbles','Creatures call out short lines in a fight.')+
       tog('numbers','Floating damage numbers','Numbers rise over a creature when it is hit.')+
       tog('nameplates','Name plates over creatures','Name and health above each creature.')+
       tog('log','Combat log open','The log can also be folded with L.')+
@@ -56,7 +63,7 @@ Fable.hudModules.overlays=function(hud){
     var v=e.target.type==='checkbox'?e.target.checked:e.target.type==='range'?+e.target.value:e.target.value;
     Fable.hudSettings.set(k,v);
     var out=e.target.nextElementSibling;
-    if(out&&out.tagName==='OUTPUT')out.textContent=k==='scale'?Math.round(v*100)+'%':v+' s';
+    if(out&&out.tagName==='OUTPUT')out.textContent=(k==='scale'||/^vol|^shake/.test(k))?Math.round(v*100)+'%':v+' s';
   });
   hud.openOverlay=function(name,s){
     if(open===name){hud.closeOverlay();return}

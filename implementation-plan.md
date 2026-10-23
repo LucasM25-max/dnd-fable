@@ -1433,6 +1433,7 @@ Each phase ends in something verifiable. Combat is turn based from the start, an
 - Presentation director, cue timeline, animation system (rig joints on the voxel models, clips, state machine, layers), VFX toolkit (voxel particles, trails, projectiles, dissolve), camera direction, audio mixer (section 15).
 - Vertical slice first: one polished longsword hit and miss against a goblin. Then every row of 15.8 to 15.10.
 - Done when: every hero and goblin action in the tutorial has final animation, VFX and sound, the speed settings and skip work, and the frame rate budget in 15.11 holds.
+  - Status: built (`js/presentation`, `js/content/presentation`, tests `phase7-*`). Fixed with it: centred HUD prompts (Victory, Defeat) were drawn bottom right.
 
 **Phase 8: Goblin Minion and enemy AI**
 - Full monster schema and the Goblin Minion stat block (section 14), Hide, Disengage, Search, ground items and thrown weapon recovery, senses and light levels.

@@ -79,13 +79,28 @@ Fable.createGameScene=function(encounter){
   var introDuration=playerOrbit+travel+enemyOrbit+returnTravel,enemyYaw=0,enemyPitch=.34,enemyDist=34;
   if(introActive)cameraPosition(enemyTarget,enemyYaw,enemyPitch,enemyDist,enemyPosition);
 
+  /* The player's own orbit and zoom are the base of the fight camera. The presentation director layers its moves on top (a push in on
+     a blow, an orbit round the winner) and they fade away; the player taking the camera back cancels them at once. Shake is added to
+     the final position only, so it never feeds back into the smoothing. */
+  var shake=new THREE.Vector3(),BASE_FOV=45;
   function place(dt){
-    var c=inp.cam,cp=Math.cos(c.pitch);
+    var c=inp.cam,pd=combat.pres&&combat.pres.camera;
     var f=combat.focus();
-    tgt.set(f.x,6,f.z);
-    want.set(tgt.x+Math.sin(c.yaw)*cp*c.dist,Math.max(3,tgt.y+Math.sin(c.pitch)*c.dist),tgt.z+Math.cos(c.yaw)*cp*c.dist);
+    var view={target:{x:f.x,y:6,z:f.z},yaw:c.yaw,pitch:c.pitch,dist:c.dist};
+    if(pd)view=pd.modify(view);
+    var cp=Math.cos(view.pitch);
+    tgt.set(view.target.x,view.target.y,view.target.z);
+    want.set(tgt.x+Math.sin(view.yaw)*cp*view.dist,Math.max(3,tgt.y+Math.sin(view.pitch)*view.dist),tgt.z+Math.cos(view.yaw)*cp*view.dist);
+    cam.position.sub(shake);
     /* the first second after the tour eases the camera out to the fight view; afterwards it follows the active creature */
-    var rate=3+9*Math.min(1,settle/1.2),a=dt?1-Math.exp(-rate*dt):1;cam.position.lerp(want,a);look.lerp(tgt,a);cam.lookAt(look);
+    var rate=3+9*Math.min(1,settle/1.2),a=dt?1-Math.exp(-rate*dt):1;cam.position.lerp(want,a);look.lerp(tgt,a);
+    if(pd){
+      var o=pd.offset();shake.set(o.x,o.y,o.z);
+      var fv=BASE_FOV+pd.fovAdd()*57.2958;
+      if(Math.abs(cam.fov-fv)>.01){cam.fov=fv;cam.updateProjectionMatrix()}
+    }else shake.set(0,0,0);
+    cam.position.add(shake);
+    look.add(shake);cam.lookAt(look);look.sub(shake);
   }
   function eased(v){v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)}
   function orbit(target,yaw,pitch,dist){
@@ -128,6 +143,7 @@ Fable.createGameScene=function(encounter){
     combat:combat,
     enter:function(){
       inp.attach(Fable.canvas);
+      inp.onCamera=function(){if(!introActive&&combat.pres)combat.pres.camera.cancel()};
       /* a click or a key press skips the tour */
       var fight=inp.handlers;
       var click=fight.click,key=fight.key;
@@ -135,11 +151,15 @@ Fable.createGameScene=function(encounter){
       fight.key=function(e){if(introActive&&e.code!=='Escape'){returnToControl();return true}return key?key(e):false};
       if(!introActive)combat.begin();
     },
-    exit:function(){inp.detach();combat.dispose()},
+    exit:function(){inp.onCamera=null;inp.detach();combat.dispose()},
     resize:function(w,h){cam.aspect=w/h;cam.updateProjectionMatrix()},
     update:function(ms,dt){
       var t=ms/1000,k=inp.keys;
-      if(!introActive)inp.cam.yaw+=((k.KeyQ?1:0)-(k.KeyE?1:0))*1.8*dt;
+      if(!introActive){
+        var turn=(k.KeyQ?1:0)-(k.KeyE?1:0);
+        if(turn&&combat.pres)combat.pres.camera.cancel();
+        inp.cam.yaw+=turn*1.8*dt;
+      }
       combat.update(ms,dt);
       var f=combat.focus();
       world.followSun(f.x,f.z);world.animated.forEach(function(fn){fn(t)});

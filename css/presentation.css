@@ -1,0 +1,19 @@
+/* Screen effects and speech bubbles (js/presentation/screenfx.js). Sits inside the HUD layer, behind the HUD modules. */
+.pfx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pfx-flash,.pfx-vig,.pfx-low{position:absolute;inset:0;opacity:0}
+.pfx-low{background:radial-gradient(ellipse at center,transparent 52%,rgba(120,0,0,.75) 100%)}
+.pfx-bar{position:absolute;left:0;right:0;height:0;background:#000;transition:height .7s cubic-bezier(.2,.7,.2,1)}
+.pfx-bar.top{top:0}.pfx-bar.bot{bottom:0}
+.pfx.cine .pfx-bar{height:7.5vh}
+.pfx-bubbles{position:absolute;inset:0}
+.pfx-bubble{position:absolute;left:0;top:0;max-width:210px;padding:6px 11px 7px;font:700 15px/1.15 var(--serif,Georgia,serif);color:#1c1408;background:linear-gradient(#fbf1d4,#e8d49b);
+  border:2px solid #3a2a12;border-radius:10px;box-shadow:0 3px 0 rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.25) inset;white-space:nowrap;will-change:transform,opacity}
+.pfx-bubble::after{content:'';position:absolute;left:50%;bottom:-8px;width:10px;height:10px;margin-left:-6px;background:#e8d49b;border-right:2px solid #3a2a12;border-bottom:2px solid #3a2a12;transform:rotate(45deg)}
+.pfx-bubble.enemy{background:linear-gradient(#e3efc0,#b9cf80);color:#1b2a08}
+.pfx-bubble.enemy::after{background:#b9cf80}
+.pfx-bubble.player{background:linear-gradient(#fff0c4,#f0c868)}
+.pfx-bubble.player::after{background:#f0c868}
+@media (prefers-reduced-motion:reduce){.pfx-bar{transition:none}}
+/* the fight is over: the combat HUD fades back behind the result */
+#hud-layer.outcome>*:not(.prm):not(.pfx):not(.ovl):not(.wl):not(.hud-vignette):not(.sr-only){opacity:.18;transition:opacity .9s ease}
+@media (prefers-reduced-motion:reduce){#hud-layer.outcome>*{transition:none}}
