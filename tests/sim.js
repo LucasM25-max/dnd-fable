@@ -100,7 +100,7 @@ async function runFight(opts){
   Fable.combat.place(s,hero,{c:3,r:12});
   Fable.combat.place(s,gobs[0],{c:15,r:9});Fable.combat.place(s,gobs[1],{c:15,r:14});
   Fable.combat.start(s);
-  const stats={rounds:0,windUsed:false,fled:0,hidden:0,trace:[]};
+  const stats={rounds:0,windUsed:false,fled:0,hidden:0,escapes:0,fleeTurns:0,passive:0,goblinTurns:0,trace:[]};
   let guard=0;
   while(s.phase==='running'&&guard++<400){
     const c=Fable.combat.active(s);
@@ -109,6 +109,10 @@ async function runFight(opts){
       if(!c.down)POLICIES[opts.policy](s,c);
     }else if(!c.down){
       const r=Fable.ai.takeTurn(s,c,{tier:opts.tier,reactions:{hero:true}});
+      stats.goblinTurns++;
+      if(c.mind&&c.mind.fleeing)stats.fleeTurns++;
+      if(!r.attacked)stats.passive++;
+      r.steps.forEach(x=>{const it=x.intent;if(it.t==='action'&&(it.id==='hide'||it.choice==='hide'))stats.hidden++;if(it.id==='nimble-escape'||it.id==='disengage')stats.escapes++});
       if(opts.trace)stats.trace.push(Fable.ai.explain(r.plans[0].trace));
     }
     if(s.phase==='running')Fable.combat.endTurn(s);
@@ -123,15 +127,16 @@ async function runFight(opts){
 }
 
 async function batch(opts){
-  const n=opts.fights||200,out={fights:n,wins:0,rounds:0,hp:0,wind:0,timeouts:0,downs:0,goblinsLeft:0};
+  const n=opts.fights||200,ex={hidden:0,escapes:0,fleeTurns:0,passive:0,goblinTurns:0},out={fights:n,wins:0,rounds:0,hp:0,wind:0,timeouts:0,downs:0,goblinsLeft:0};
   for(let i=0;i<n;i++){
     const r=await runFight(Object.assign({},opts,{seed:1000+i}));
     if(r.winner==='player')out.wins++;
     else if(r.winner===null||r.winner===undefined)out.timeouts++;
+    Object.keys(ex).forEach(k=>ex[k]+=r[k]);
     out.rounds+=r.rounds;out.hp+=r.heroHpLost;if(r.windUsed)out.wind++;if(r.heroDown)out.downs++;out.goblinsLeft+=r.goblinsLeft;
   }
   return {policy:opts.policy,tier:opts.tier||'default',fights:n,winRate:out.wins/n,avgRounds:out.rounds/n,avgHpLost:out.hp/n,hpLostFrac:out.hp/n/12,
-    secondWindRate:out.wind/n,heroDownRate:out.downs/n,timeoutRate:out.timeouts/n};
+    extra:Object.keys(ex).reduce((o,k)=>(o[k]=+(ex[k]/n).toFixed(2),o),{}),secondWindRate:out.wind/n,heroDownRate:out.downs/n,timeoutRate:out.timeouts/n};
 }
 
 module.exports={init,runFight,batch,POLICIES};
@@ -143,7 +148,7 @@ if(require.main===module){
     for(const p of list){
       const t=Date.now(),r=await batch({fights,policy:p,tier});
       console.log(p.padEnd(8),'win '+(r.winRate*100).toFixed(1)+'%','rounds '+r.avgRounds.toFixed(1),'hp lost '+r.avgHpLost.toFixed(1)+'/12','down '+(r.heroDownRate*100).toFixed(0)+'%',
-        'second wind '+(r.secondWindRate*100).toFixed(0)+'%','timeouts '+(r.timeoutRate*100).toFixed(1)+'%',(Date.now()-t)+'ms');
+        'second wind '+(r.secondWindRate*100).toFixed(0)+'%','timeouts '+(r.timeoutRate*100).toFixed(1)+'%',JSON.stringify(r.extra),(Date.now()-t)+'ms');
     }
   })().catch(e=>{console.error(e);process.exit(1)});
 }
