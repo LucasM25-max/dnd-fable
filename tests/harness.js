@@ -17,7 +17,7 @@ function runFile(file){
 }
 function loadRules(){['js/rules/rng.js','js/rules/formula.js','js/rules/dice.js','js/rules/money.js','js/rules/tables.js','js/rules/stats.js','js/rules/grid.js'].forEach(runFile)}
 /* Same order as index.html: the registry, then the character modules (they register a load-time validator with it), then the loader. */
-function loadRegistry(){['js/content/content-registry.js','js/character/build.js','js/character/choices.js','js/character/inventory.js','js/character/sheet.js','js/character/rest.js','js/rules/statblock.js','js/rules/status.js','js/rules/handlers.js','js/rules/creature.js','js/rules/combat.js','js/rules/attack.js','js/rules/actions.js','js/rules/combat-ai.js','js/content/content-groups.js','js/content/content-loader.js'].forEach(runFile)}
+function loadRegistry(){['js/content/content-registry.js','js/character/build.js','js/character/choices.js','js/character/inventory.js','js/character/sheet.js','js/character/rest.js','js/rules/statblock.js','js/rules/status.js','js/rules/handlers.js','js/rules/senses.js','js/rules/creature.js','js/rules/combat.js','js/rules/attack.js','js/rules/ground.js','js/rules/actions.js','js/rules/combat-ai.js','js/rules/ai-core.js','js/rules/ai-planner.js','js/rules/ai.js','js/content/content-groups.js','js/content/content-loader.js'].forEach(runFile)}
 
 /* Script loader with the same contract as the browser one: runs the file, rejects when it is missing. */
 function nodeLoadScript(url){

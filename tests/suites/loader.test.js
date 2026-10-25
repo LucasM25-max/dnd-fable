@@ -17,7 +17,7 @@ module.exports=function({suite,test,skip}){
     test('order matches the plan (rules, items, feats, then classes, species, backgrounds, then game content)',()=>{
       real();
       assert.deepStrictEqual(Fable.content.groups.order.map(g=>g.key),
-        ['rules','items','feats','species','backgrounds','classes','maps','monsters','characters','encounters','presentation']);
+        ['rules','items','feats','species','backgrounds','classes','maps','aiProfiles','monsters','characters','encounters','presentation']);
     });
     test('paths resolve per mode',()=>{
       const G=real().groups;

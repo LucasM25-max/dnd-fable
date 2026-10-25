@@ -17,6 +17,8 @@
      Fable.combat.on(s, fn)                                       fn(event) for start, turnstart, turnend, round, move, dash, interact, over,
                                                                   and from Phase 6: attack, heal, action, deathsave, status, down, dead, loadout
      Fable.combat.checkOver(s)                                    ends the fight when one side has nobody left
+     Fable.combat.serialize(s) / deserialize(data) / clone(s)     plain data (JSON safe) for the enemy AI worker, and a cheap copy
+                                                                  the planner can play moves on without touching the fight
 
    Phase 6 adds attacks, damage, death saving throws, conditions with durations, actions and Opportunity Attacks in attack.js and
    actions.js, which extend this object. A creature that drops to 0 hit points is `down`: a monster is defeated (alive false), a hero
@@ -61,10 +63,11 @@ Cb.emit=emit;
 Cb.create=function(opts){
   opts=opts||{};
   if(!opts.grid)throw new Error('Combat: create needs a grid');
+  var seed=typeof opts.seed==='number'?opts.seed:Fable.rng.hash(String(opts.seed||'combat'));
   var s={
-    grid:opts.grid,creatures:[],byId:{},order:[],turn:-1,round:0,phase:'setup',winner:null,
-    rng:Fable.rng(typeof opts.seed==='number'?opts.seed:Fable.rng.hash(String(opts.seed||'combat'))),
-    log:[],listeners:[],initiativeRolls:[],pending:null
+    grid:opts.grid,creatures:[],byId:{},order:[],turn:-1,round:0,phase:'setup',winner:null,seed:seed,
+    rng:Fable.rng(seed),
+    log:[],listeners:[],initiativeRolls:[],pending:null,ground:[],groundSeq:0,aiTeam:{}
   };
   (opts.creatures||[]).forEach(function(c){Cb.add(s,c)});
   return s;
@@ -161,6 +164,8 @@ function checkOver(s){
   if(teams.length<=1){
     s.phase='over';s.winner=teams[0]||null;s.turn=-1;s.pending=null;
     emit(s,{type:'over',winner:s.winner});
+    /* every thrown weapon goes back to its owner, picked up or not (plan 12 and 14.3) */
+    if(Cb.recoverThrown)Cb.recoverThrown(s);
     return true;
   }
   return false;
@@ -184,6 +189,8 @@ Cb.endTurn=function(s){
   var cur=Cb.active(s);
   if(St())St().expire(s,cur.id,'turnend');
   emit(s,{type:'turnend',id:cur.id,index:s.turn});
+  /* a Hidden creature that ends its turn where an enemy can see it is found */
+  if(Fable.senses)Fable.senses.revalidate(s,{});
   if(checkOver(s))return {ok:true,over:true};
   var n=s.order.length,i=s.turn,wrapped=false;
   for(var guard=0;guard<=n;guard++){
@@ -301,6 +308,8 @@ Cb.move=function(s,c,cell,opts){
   emit(s,{type:'move',id:c.id,from:from,to:{c:end.c,r:end.r},path:walked,costFt:cost,leftFt:Cr().movementLeftFt(c),interrupted:interrupted,
     reactions:reactions.map(function(r){return {step:r.step,by:r.by,result:r.result}})});
   reactions.forEach(function(r){if(Cb.followUps)Cb.followUps(s,r.result)});
+  /* the mover now sees (and is seen from) a new square: enemies it passes can find what was hiding */
+  if(Fable.senses)Fable.senses.revalidate(s,{except:c.id});
   checkOver(s);
   return out;
 };
@@ -332,6 +341,44 @@ Cb.canInteract=function(s,c){
   if(!c.economy.object)return {ok:true,cost:'free'};
   if(!c.economy.action)return {ok:true,cost:'action'};
   return {ok:false,cost:null};
+};
+
+/* ---------- plain data and cheap copies (Phase 8: the enemy AI plans on a copy, and in a Web Worker) ---------- */
+
+/* The fight as JSON safe data: the grid arrays become plain arrays, creatures lose what the rules never read (the voxel
+   portrait, the full sheet, the build). Cb.deserialize(Cb.serialize(s)) plays exactly like s. */
+Cb.serialize=function(s){
+  var g=s.grid;
+  return {
+    v:1,seed:s.seed,rngState:s.rng.getState(),round:s.round,turn:s.turn,phase:s.phase,winner:s.winner,order:s.order.slice(),
+    initiativeRolls:JSON.parse(JSON.stringify(s.initiativeRolls)),ground:JSON.parse(JSON.stringify(s.ground)),groundSeq:s.groundSeq,aiTeam:JSON.parse(JSON.stringify(s.aiTeam||{})),
+    grid:{cols:g.cols,rows:g.rows,cell:g.cell,x0:g.x0,z0:g.z0,blocked:Array.prototype.slice.call(g.blocked),cost:Array.prototype.slice.call(g.cost),
+      light:g.light?Array.prototype.slice.call(g.light):null},
+    creatures:s.creatures.map(function(c){return Cr().snapshot(c)})
+  };
+};
+Cb.deserialize=function(o){
+  if(!o||o.v!==1)throw new Error('Combat: cannot read this saved fight');
+  var G=Grid(),g=G.create({cols:o.grid.cols,rows:o.grid.rows,cell:o.grid.cell,x0:o.grid.x0,z0:o.grid.z0});
+  g.blocked.set(o.grid.blocked);g.cost.set(o.grid.cost);
+  if(o.grid.light){g.light=new Uint8Array(g.cols*g.rows);g.light.set(o.grid.light)}
+  var s=Cb.create({grid:g,seed:o.seed});
+  s.rng.setState(o.rngState);
+  o.creatures.forEach(function(c){Cb.add(s,JSON.parse(JSON.stringify(c)))});
+  s.round=o.round;s.turn=o.turn;s.phase=o.phase;s.winner=o.winner;s.order=o.order.slice();
+  s.initiativeRolls=JSON.parse(JSON.stringify(o.initiativeRolls));s.ground=JSON.parse(JSON.stringify(o.ground));s.groundSeq=o.groundSeq;s.aiTeam=JSON.parse(JSON.stringify(o.aiTeam||{}));
+  return s;
+};
+/* A copy the planner can change freely: creatures are copied down to what a move or an attack touches, the grid (and the cover
+   cached on it) is shared, and the random stream is a new one, so playing the copy never moves the real fight's dice. */
+Cb.clone=function(s){
+  var n=Object.assign({},s);
+  n.creatures=s.creatures.map(function(c){return Cr().cloneForPlan(c)});
+  n.byId={};n.creatures.forEach(function(c){n.byId[c.id]=c});
+  n.order=s.order.slice();n.log=[];n.listeners=[];n.pending=null;
+  n.ground=s.ground.map(function(g){return Object.assign({},g,{cell:{c:g.cell.c,r:g.cell.r}})});
+  n.rng=Fable.rng(s.seed|0);
+  return n;
 };
 
 /* A one line state for tests and logs. */

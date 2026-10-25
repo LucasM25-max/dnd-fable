@@ -11,6 +11,7 @@ Fable.content.manifest={
   backgrounds:['soldier'],
   classes:['fighter'],
   maps:['forest-clearing'],
+  aiProfiles:['profiles'],
   monsters:['goblin-minion'],
   characters:['human-fighter'],
   encounters:['tutorial-goblin-ambush'],

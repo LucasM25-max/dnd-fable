@@ -288,7 +288,8 @@ var BUILTIN_REFS=[
   {kind:'monsters',label:'Monster',refs:[
     {path:'equipment.*.item',kind:'items',ifKind:true},
     {path:'wielding.mainhand',kind:'items',ifKind:true},
-    {path:'wielding.offhand',kind:'items',ifKind:true}
+    {path:'wielding.offhand',kind:'items',ifKind:true},
+    {path:'ai.profile',kind:'aiProfiles',ifKind:true}
   ]}
 ];
 

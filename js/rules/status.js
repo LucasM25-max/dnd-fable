@@ -2,7 +2,7 @@
    no DOM, no Three.js.
 
    A creature's `conditions` list holds status entries:
-     {id, name, kind:'condition'|'effect', source:{id, name, creature}, expires:{creature, event}|null, note, speedMod?}
+     {id, name, kind:'condition'|'effect', source:{id, name, creature}, expires:{creature, event}|null, note, speedMod?, data?}
    `kind` is 'condition' for the SRD conditions (Prone, Unconscious ...) and 'effect' for what a feature or mastery puts on a
    creature (Sapped, Slowed, Dodging, Disengaged). `expires` says when the entry ends: at the 'turnstart' or the 'turnend' of
    the creature with that id ("until the start of your next turn" is {creature: <the source>, event:'turnstart'}).
@@ -35,6 +35,7 @@ var DEFS={
   slowed:{name:'Slowed',kind:'effect',speedMod:-10,text:'Speed reduced by 10 ft.'},
   dodging:{name:'Dodging',kind:'effect',attackAgainst:'dis',text:'Attack rolls against it have Disadvantage.'},
   disengaged:{name:'Disengaged',kind:'effect',text:'Its movement does not provoke Opportunity Attacks.'},
+  hidden:{name:'Hidden',kind:'effect',attackBy:'adv',consumedOnAttack:true,text:'Unseen by its enemies until it is found, attacks, or ends a turn in plain sight. Its first attack roll has Advantage.'},
   blinded:{name:'Blinded',kind:'condition',attackBy:'dis',attackAgainst:'adv',text:'Its attack rolls have Disadvantage; attack rolls against it have Advantage.'},
   frightened:{name:'Frightened',kind:'condition',attackBy:'dis',text:'Disadvantage on attack rolls while the source of fear is in sight.'},
   grappled:{name:'Grappled',kind:'condition',speed0:true,text:'Speed 0.'},
@@ -99,6 +100,7 @@ St.add=function(s,c,spec){
     note:spec.note||''
   };
   if(spec.speedMod!==undefined)entry.speedMod=spec.speedMod;
+  if(spec.data!==undefined)entry.data=JSON.parse(JSON.stringify(spec.data));
   var old=St.get(c,spec.id);
   if(old){
     /* Slowed never stacks: the reduction stays at its largest, and the end moves to the later of the two */

@@ -21,7 +21,8 @@ Fable.content.monsters.register({
   challenge:{cr:'1/8',xp:25,pb:2},
   actions:['goblin-dagger'],
   bonusActions:['nimble-escape'],
-  ai:{profile:'skirmisher',tier:'cunning'},
+  /* the skirmisher profile (plan 16.8) with the Tempo term tuned by tests/sim.js: a sensible hero wins most fights and loses about 40% of its hit points */
+  ai:{profile:'skirmisher',tier:'cunning',engagement:2},
   treasure:['individual'],
   portrait:{width:12,rows:[
     '..gg....gg..',
