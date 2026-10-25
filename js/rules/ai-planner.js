@@ -224,11 +224,11 @@ function expand(ctx,n){
     act('dodge');
     if(ctx.dashUseful)act('dash');
     if(allowed(ctx,'hit-and-run'))act('disengage');
-    if(allowed(ctx,'hide-then-ambush')||allowed(ctx,'throw-from-cover'))act('hide');
+    if(allowed(ctx,'hide-then-ambush'))act('hide');
   }
   if(!e.bonus&&Cb().findAction(a,'nimble-escape')){
     if(allowed(ctx,'hit-and-run'))act('nimble-escape','disengage');
-    if(allowed(ctx,'hide-then-ambush')||allowed(ctx,'throw-from-cover')||ctx.flee)act('nimble-escape','hide');
+    if(allowed(ctx,'hide-then-ambush')||ctx.flee)act('nimble-escape','hide');
   }
   if(allowed(ctx,'recover-daggers')&&Cb().pickupState(s,a).ok)out.push({t:'pickup'});
   /* moves, at most two per turn and never two in a row (the second would be one longer move) */
@@ -309,7 +309,8 @@ function evaluate(ctx,n){
   }else rep=replyFor(ctx,n,false);
   var deathCost=1.5+0.6*a.hp.max;
   var raw=rep.expected+0.5*rep.allies+rep.pDown*deathCost;
-  t.risk=-w.risk*P.riskAversion*mult('risk')*raw;
+  /* a creature that is pressing the fight (engagement above 1) weighs its own safety less */
+  t.risk=-w.risk*P.riskAversion*mult('risk')*raw/Math.max(0.5,eng);
   if(n.hideTried&&n.hideP<1)t.steps-=(1-n.hideP)*0.8;
   /* position */
   if(ctx.tricks['throw-from-cover']||flee){

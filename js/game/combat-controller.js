@@ -95,10 +95,10 @@ Fable.createCombatController=function(o){
   var items=Fable.createWorldItems({scene:scene,grid:grid});
   var runner=Fable.createAiRunner({base:(function(){try{return new URL('js/',document.baseURI).href}catch(e){return ''}})()});
   var mp=Fable.createMovePreview({scene:scene,camera:camera,grid:grid,hud:hud});
-  var labels=Fable.createWorldLabels({camera:camera,hud:hud,anchor:function(c){var w=entryOf(c).walker.position();return {x:w.x,y:c.kind==='hero'?19:14,z:w.z}},visible:function(c){return shown[c.id]!==false}});
+  var labels=Fable.createWorldLabels({camera:camera,hud:hud,anchor:function(c){var w=entryOf(c).walker.position();return {x:w.x,y:c.kind==='hero'?19:14,z:w.z}}});
   if(o.encounter&&o.encounter.tutorial&&hud.mods.tutorialCoach)hud.mods.tutorialCoach.setSteps(o.encounter.tutorial);
 
-  var shown={},drops=[],busy=false,dirty=true,pointer=null,previewCell=null,ai={stage:'idle',t:0,token:0},clock=0,roundChanged=false;
+  var drops=[],busy=false,dirty=true,pointer=null,previewCell=null,ai={stage:'idle',t:0,token:0},clock=0,roundChanged=false;
   var targeting={attackId:null,hoverId:null},script=[],autoEnd=-1,overShown=false;
   var raycaster=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();
 
@@ -128,6 +128,30 @@ Fable.createCombatController=function(o){
   }
   function targetCtx(){
     return {attackId:currentAttack(),hoverId:targeting.hoverId,armed:targeting.attackId};
+  }
+
+  /* ---------- the target under the pointer ---------- */
+  /* A reticle on the enemy the pointer is on (red when the attack can be made, grey when it cannot), an aim line from the hero, a faint
+     ring on every other enemy the armed attack could hit, and a cursor to match. */
+  var cursorNow='';
+  function setCursor(c){if(c!==cursorNow&&Fable.canvas){cursorNow=c;Fable.canvas.style.cursor=c}}
+  function updateTargetMarks(){
+    var t=targeting.hoverId&&s.byId[targeting.hoverId];
+    if(!ctrl.active||!heroTurn()||locked()||hero.down||!t||!t.alive||!t.cell||t.team===hero.team){
+      marks.setTarget(null);setCursor('');return;
+    }
+    var atkId=currentAttack(),atk=atkId&&Cb().findAttack(hero,atkId);
+    var ok=!!atk&&Cb().attackState(s,hero,atk,{}).ok&&Cb().checkTarget(s,hero,atk,t,{}).ok;
+    var tw=entryOf(t).walker.position(),hw=entryOf(hero).walker.position();
+    var others=[];
+    if(targeting.attackId&&atk){
+      creatures.forEach(function(k){
+        if(k===t||k.team===hero.team||!k.alive||!k.cell)return;
+        if(Cb().checkTarget(s,hero,atk,k,{}).ok){var w=entryOf(k).walker.position();others.push({x:w.x,z:w.z})}
+      });
+    }
+    marks.setTarget({x:tw.x,z:tw.z,fromX:hw.x,fromZ:hw.z,ok:ok,others:others});
+    setCursor(ok?'crosshair':'not-allowed');
   }
 
   /* ---------- previews ---------- */
@@ -403,16 +427,6 @@ Fable.createCombatController=function(o){
       Cb().endTurn(s);dirty=true;
     }
   }
-  /* a goblin the hero cannot see is not drawn, and a goblin that was hiding comes back into view once it has been found */
-  function syncVisibility(){
-    creatures.forEach(function(c){
-      var e=entries[c.id],vis=!(c.team!=='player'&&c.alive&&Fable.senses.isHidden(c));
-      if(shown[c.id]===vis)return;
-      shown[c.id]=vis;
-      if(e&&e.root)e.root.visible=vis;
-      dirty=true;
-    });
-  }
   /* a hero at 0 hit points rolls its death save at the start of the turn and then nothing is left to do */
   function runDowned(dt){
     if(autoEnd<0||!settled()||hud.promptActive())return;
@@ -514,12 +528,12 @@ Fable.createCombatController=function(o){
     pres.update(dt,window.innerWidth,window.innerHeight);
     if(ctrl.active){
       pump();
-      if(settled())syncVisibility();
       runEnemy(dt);runDowned(dt);
       if(s.phase==='over'&&!overShown&&settled()&&!hud.promptActive()){overShown=true;setTimeout(function(){if(ctrl.active)showOutcome()},450)}
       var a=Cb().active(s);
       if(a&&busy){var w=entryOf(a).walker.position();marks.follow(w.x,w.z)}
       if(dirty&&holds===0)redraw();
+      updateTargetMarks();
       marks.update(clock);
       mp.update(clock,window.innerWidth,window.innerHeight);
       labels.update(s,window.innerWidth,window.innerHeight,dt);
@@ -528,7 +542,7 @@ Fable.createCombatController=function(o){
   };
   ctrl.dispose=function(){
     inp.handlers.hover=inp.handlers.leave=inp.handlers.click=inp.handlers.context=inp.handlers.key=inp.handlers.escape=null;
-    ai.token++;runner.dispose();pres.dispose();mp.dispose();marks.dispose();items.dispose();labels.dispose();hud.destroy();
+    setCursor('');ai.token++;runner.dispose();pres.dispose();mp.dispose();marks.dispose();items.dispose();labels.dispose();hud.destroy();
   };
   return ctrl;
 };

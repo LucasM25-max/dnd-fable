@@ -174,9 +174,15 @@ Fable.createPlanner=function(o){
       hud(s);d=s+.55;
     }else if(r.heal){
       cues.push({t:0,type:'vfx',fx:'fx-heal',at:'who',who:W.id,y:0});cues.push({t:0,type:'sfx',id:'sfx-heal',who:W.id});hud(.3);d=.9;
-    }else if(id==='dodge'&&cl.brace){
-      cues.push({t:0,type:'anim',who:W.id,clip:cl.brace,hold:true,tag:'status:dodging'});
-      cues.push({t:.1,type:'sfx',id:'sfx-draw',who:W.id,gain:.6});hud(.15);d=.6;
+    }else if(id==='dodge'&&(cl.guard||cl.brace)){
+      /* a clear guard: the camera moves in, the creature drops into its stance, a bright ring flares and the stance shows until its next turn */
+      cues.push({t:0,type:'camera',op:'shot',who:[W.id],dist:.78,pitch:-.05,in:.25,hold:.9,out:.45,tag:'dodge'});
+      cues.push({t:0,type:'anim',who:W.id,clip:cl.guard||cl.brace,hold:true,tag:'status:dodging'});
+      cues.push({t:.12,type:'sfx',id:'sfx-draw',who:W.id,gain:.7});
+      cues.push({t:.28,type:'vfx',fx:'fx-dodge',at:'who',who:W.id,y:0});
+      cues.push({t:.28,type:'sfx',id:'sfx-block',who:W.id,gain:.55});
+      cues.push({t:.28,type:'call',name:'flash',who:W.id,color:0xbfe3ff,dur:.35,strength:.55});
+      hud(.3);d=.95;
     }else if(id==='disengage'&&cl.disengage){
       cues.push({t:0,type:'anim',who:W.id,clip:cl.disengage});
       cues.push({t:.1,type:'vfx',fx:'fx-skid',at:'who',who:W.id,y:0,dir:'forward'});cues.push({t:.1,type:'sfx',id:'sfx-step',who:W.id});hud(.1);d=.6;

@@ -43,7 +43,12 @@ E.registerAll([
   fx('fx-aura-sapped','Sapped',[{type:'burst',count:1,speed:[4,8],spread:3.2,lift:1,life:[.7,1.1],size:[.7,1.1],end:.3,colors:[0xb4a2e8,0x8a78c8],glow:true,gravity:-6,drag:1,y:20,radius:3,keepColor:true}]),
   fx('fx-aura-slowed','Slowed',[{type:'burst',count:1,speed:[3,6],spread:3.2,lift:.2,life:[.8,1.2],size:[.8,1.2],end:.2,colors:[0x9ad8ff,0xcff0ff],glow:true,gravity:6,drag:1,y:3,radius:4,keepColor:true}]),
   fx('fx-aura-vexed','Vexed',[{type:'burst',count:1,speed:[6,10],spread:3.2,lift:1,life:[.6,.9],size:[.6,1],end:0,colors:[0xff8c8c,0xff5a5a],glow:true,gravity:-8,drag:1,y:22,radius:2,keepColor:true}]),
-  fx('fx-aura-dodging','Dodge stance',[{type:'burst',count:1,speed:[10,16],spread:3.2,lift:.4,life:[.4,.7],size:[.5,.9],end:0,colors:[0xdff2ff,0xffffff],glow:true,gravity:0,drag:2,y:8,radius:6,keepColor:true}]),
+  fx('fx-aura-dodging','Dodge stance',[{type:'burst',count:2,speed:[10,16],spread:3.2,lift:.4,life:[.4,.7],size:[.5,.9],end:0,colors:[0xdff2ff,0xffffff],glow:true,gravity:0,drag:2,y:8,radius:7,keepColor:true},
+    {type:'ring',from:7,to:10,dur:.55,color:0xbfe3ff,opacity:.55}]),
+  fx('fx-dodge','Dodge',[
+    {type:'ring',from:3,to:17,dur:.38,color:0xbfe3ff,opacity:.85},{type:'ring',from:2,to:11,dur:.3,color:0xffffff,opacity:.7,delay:.08},
+    {type:'burst',count:22,speed:[20,52],spread:3.2,lift:1.2,life:[.4,.85],size:[.6,1.2],end:0,colors:[0xdff2ff,0xffffff,0x9ad8ff],glow:true,gravity:-12,drag:1.6,y:3,radius:8,keepColor:true},
+    {type:'light',color:0xbfe3ff,intensity:1.8,dur:.32,y:9}]),
   fx('fx-aura-prone','Prone',[{type:'burst',count:1,speed:[3,6],spread:3.2,lift:.2,life:[.6,1],size:[.6,1],end:1.4,colors:DUST,gravity:-2,drag:1,y:1,radius:6}]),
   fx('fx-aura-hidden','Hidden',[{type:'burst',count:1,speed:[4,8],spread:3.2,lift:.5,life:[.8,1.2],size:[.6,1],end:.2,colors:[0x6a8a58,0x4c6a3e],gravity:-3,drag:1,y:6,radius:5}]),
   fx('fx-victory','Victory motes',[{type:'burst',count:50,speed:[16,48],spread:3.2,lift:1.2,life:[1,2],size:[.7,1.4],end:.3,colors:GOLD,glow:true,gravity:-3,drag:.8,y:6,radius:22,stagger:1.2,keepColor:true},

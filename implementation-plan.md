@@ -1440,7 +1440,7 @@ Each phase ends in something verifiable. Combat is turn based from the start, an
 - Enemy AI: perception, planner, evaluator with lookahead, team coordination, goblin profile, difficulty tiers, explain trace, Web Worker execution (section 16).
 - Headless simulator and scenario tests.
 - Done when: both goblins play the tutorial with the Cunning tier, every scenario test in 16.8 passes, and the simulator shows the hero win rate and HP loss inside the agreed bands.
-  - Status: built (`js/rules/ai*.js`, `senses.js`, `ground.js`, `js/content/ai-profiles`, `js/game/ai-runner.js`, tests `phase8-*`, `tests/sim.js`). Agreed bands: windy hero wins 70 to 95% and loses 15 to 60% of its hit points; hero without healing wins 40 to 85%; kiting hero wins at least 75% with under 8% stalls. Known: a lone fleeing goblin can stall against a hero with no thrown weapons left (about 4% of kiting fights); idle pressure raises its engagement after two idle rounds.
+  - Status: built (`js/rules/ai*.js`, `senses.js`, `ground.js`, `js/content/ai-profiles`, `js/game/ai-runner.js`, tests `phase8-*`, `tests/sim.js`). Agreed bands: fights last 2 to 8 rounds with goblins attacking on at least 85% of their turns (they never run or hide); a hero that fights with Second Wind wins 80 to 100% and loses 10 to 60% of its hit points; a hero without healing wins 50 to 90%; a kiting hero wins at least 80%, under 5% stall. Design rule: every enemy's primary goal is to kill the player quickly and efficiently, and survival, cover and retreat terms stay small.
 
 **Phase 9: Rewards**
 - XP and difficulty tier calculators, gold formula, performance bonuses, coin drops, results screen, first shop purchase with the tutorial gold (section 17).

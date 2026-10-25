@@ -98,6 +98,12 @@ module.exports=function(t){
       const h=plan.event({type:'action',id:'gob',result:{id:'nimble-escape',name:'Nimble Escape',choice:'hide',creature:{id:'gob',name:'Goblin',team:'enemy'}}});
       assert.ok(h.cues.some(c=>c.type==='bark'&&c.situation==='hide'),'hides');
       assert.ok(h.cues.some(c=>c.type==='anim'&&c.tag==='status:hidden'));
+      const dg=plan.event({type:'action',id:'gob',result:{id:'dodge',name:'Dodge',creature:{id:'gob',name:'Goblin',team:'enemy'}}});
+      assert.ok(dg.cues.some(c=>c.type==='anim'&&c.clip==='goblin-guard'&&c.tag==='status:dodging'),'goblin guard stance held');
+      assert.ok(dg.cues.some(c=>c.type==='vfx'&&c.fx==='fx-dodge')&&dg.cues.some(c=>c.type==='camera'),'ring and camera');
+      const dh=plan.event({type:'action',id:'hero',result:{id:'dodge',name:'Dodge',creature:{id:'hero',name:'Aldric',team:'player'}}});
+      assert.ok(dh.cues.some(c=>c.type==='anim'&&c.clip==='fighter-guard'));
+      assert.ok(C.effects.has('fx-dodge')&&C.effects.has('fx-aura-dodging')&&C.animations.has('goblin-guard')&&C.animations.has('fighter-guard'));
       const d=plan.event({type:'action',id:'gob',result:{id:'nimble-escape',name:'Nimble Escape',choice:'disengage',creature:{id:'gob',name:'Goblin',team:'enemy'}}});
       assert.ok(d.cues.some(c=>c.type==='bark'&&c.situation==='flee'));
     });
