@@ -121,6 +121,10 @@ C.encounters={
         if(WHEN.indexOf(st.when)<0)fail('Encounter',id,'tutorial['+i+'].when must be one of '+WHEN.join(', '));
       });
     }
+    if(def.ai!==undefined){
+      if(!def.ai||typeof def.ai!=='object'||Array.isArray(def.ai))fail('Encounter',id,'ai must be an object');
+      else if(C.checkAiBlock)C.checkAiBlock(def.ai,function(m){fail('Encounter',id,'ai: '+m)},'');
+    }
     if(def.enabled===undefined)def.enabled=true;
     encounters[id]=def;encounterOrder.push(id);
     if(def.enabled&&C.encounters.defaultId===null)C.encounters.defaultId=id;

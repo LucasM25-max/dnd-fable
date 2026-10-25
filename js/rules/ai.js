@@ -303,6 +303,7 @@ function diverged(it,res,c){
   if(it.id==='hide'||(it.id==='nimble-escape'&&it.choice==='hide'))return !(res.hide&&res.hide.success);
   return false;
 }
+Ai.diverged=diverged;
 Ai.takeTurn=function(s,c,opts){
   opts=opts||{};
   var out={plans:[],steps:[],attacked:false};

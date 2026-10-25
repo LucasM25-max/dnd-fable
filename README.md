@@ -125,6 +125,17 @@ For an extra test that loads every real content package, run `npm i three@0.128.
 
 Scale: 1 world unit = 10cm.
 
+## Enemy AI, senses and the simulator (implementation plan, Phase 8)
+
+The goblins plan with `Fable.ai` (`js/rules/ai-core.js`, `ai-planner.js`, `ai.js`): an expected-value search over their own turn on cloned states (no dice are rolled while planning), scored by an evaluator with named terms (damage, kills, focus, team, risk, cover, retreat routes, resources, position), with a one-reply lookahead for what the hero could do back. A profile (`js/content/ai-profiles`) sets the weights, tricks and morale; the encounter (or the settings, Controls and settings, Enemy tactics) picks the tier: Instinct, Cunning, Tactician, Mastermind. Fair tiers only know what an observer would: positions they can see, last seen squares, health in quarters and the visible Armor Class.
+
+- Rules added with it: cover (half +2, three-quarters +5, total blocks), light levels and Darkvision, Hide and Search (and Nimble Escape's Hide), the Hidden status, ground items with thrown weapon pickup and recovery after the fight, morale (a seeded Wisdom check).
+- Planning runs on a Web Worker (`js/rules/ai-worker.js`, `js/game/ai-runner.js`) and falls back to the page when workers are not available (a page opened from a file) or are slow. A plan is plain data, so both give the same plan.
+- On the HUD: Hide, Search and Pick up slots, cover in the attack preview, log lines for hiding, drops, pickups and morale, thrown weapons drawn on the ground, hidden goblins not drawn until found, and an Opportunity Attack question when a goblin leaves your reach without Disengaging.
+- `explainAi` in the HUD settings prints each plan and why to the console (`Fable.hudSettings.set('explainAi', true)`); `Fable.currentScene().combat.lastPlan` is the last plan.
+- Simulator: `node tests/sim.js [fights] [policy|all] [tier]` plays whole fights headlessly. The agreed bands (tests/suites/phase8-sim.test.js): a hero that moves and fights with Second Wind wins 70 to 95% and loses 15 to 60% of its hit points; a hero that charges without healing wins 40 to 85%; a kiting hero wins at least 75% with fewer than 8% stalls; Instinct is never harder than Cunning.
+- Scenario tests for plan 16.8 are in `tests/suites/phase8-ai.test.js` (`node tests/run.js "phase 8"`).
+
 ## Presentation: animation, effects, audio and camera (implementation plan, Phase 7)
 
 The rules still resolve everything at once; `js/presentation` only plays the result back. `Fable.createPresentation` (the director) plans each rule event into a timeline of cues with `Fable.createPlanner`, and plays the timelines one after another: animation, effects, sound, camera moves, screen effects, speech bubbles and the HUD hooks. The HUD changes at the cue that causes it (the health bar drains when the blade lands), and a skip still runs every essential cue, so the state shown is never wrong.

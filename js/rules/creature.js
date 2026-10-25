@@ -132,7 +132,7 @@ Cr.fromMonster=function(def,opts){
     portrait:def.portrait||null,subtitle:def.size+' '+def.creatureType,stock:monsterStock(def),senses:Object.assign({},d.senses)
   });
   c.statblock=d;
-  c.ai=Fable.ai&&Fable.ai.resolveProfile?Fable.ai.resolveProfile(def.ai,def):(def.ai||null);
+  c.ai=Fable.ai&&Fable.ai.resolveProfile?Fable.ai.resolveProfile(def.ai,def,opts.ai):(def.ai||null);
   c.economy=Cr.newEconomy(c);
   return c;
 };

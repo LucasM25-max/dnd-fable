@@ -180,6 +180,10 @@ SB.check=function(def){
   if(def.tags!==undefined&&(!Array.isArray(def.tags)||def.tags.some(function(l){return !isText(l)})))err('tags must be a list of text');
   if(def.treasure!==undefined&&(!Array.isArray(def.treasure)||def.treasure.some(function(l){return !isText(l)})))err('treasure must be a list of text');
   ['ai','presentation'].forEach(function(k){if(def[k]!==undefined&&!isObj(def[k]))err(k+' must be an object')});
+  if(isObj(def.ai)&&Fable.content&&Fable.content.checkAiBlock){
+    if(def.ai.profile!==undefined&&!isText(def.ai.profile))err('ai.profile must be an AI profile id');
+    Fable.content.checkAiBlock(def.ai,function(m){err('ai: '+m)},'');
+  }
   ['actions','bonusActions'].forEach(function(k){
     if(def[k]!==undefined&&(!Array.isArray(def[k])||def[k].some(function(l){return !isText(l)})))err(k+' must be a list of feature ids');
   });

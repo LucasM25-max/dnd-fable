@@ -36,7 +36,7 @@ Fable.createCombatController=function(o){
   o.spawned.forEach(function(sp){
     var def=Fable.content.monsters.get(sp.monsterId);
     var idx=seen[sp.monsterId]=(seen[sp.monsterId]||0);seen[sp.monsterId]++;
-    var c=Fable.creature.fromMonster(def,{index:counts[sp.monsterId]>1?idx:undefined,id:sp.monsterId+'-'+(idx+1)});
+    var c=Fable.creature.fromMonster(def,{index:counts[sp.monsterId]>1?idx:undefined,id:sp.monsterId+'-'+(idx+1),ai:o.encounter&&o.encounter.ai});
     c.reveal=Object.assign({ac:false,hp:false},(o.encounter&&o.encounter.reveal)||{});
     creatures.push(c);
     entries[c.id]={creature:c,root:sp.instance.root,rig:sp.instance.rig,start:sp.position};
@@ -82,7 +82,7 @@ Fable.createCombatController=function(o){
   /* the presentation director (Phase 7): animation, effects, sound and camera. The hooks are what the HUD and the world do at the cue
      that causes them, so a result shows when the blow lands and a skip still ends with the right state. */
   var hooks={start:function(e){say(e)},round:function(e){roundChanged=true;say(e)},turnstart:onTurnStart,attack:onAttack,action:onAction,swap:onSwap,
-    status:function(e){say(e);dirty=true},down:onDown,dead:function(e){say(e);dirty=true},deathsave:onDeathSave,over:onOver};
+    status:function(e){say(e);dirty=true},down:onDown,dead:function(e){say(e);dirty=true},deathsave:onDeathSave,over:onOver,pickup:onPickup,morale:onMorale,recovered:onRecovered};
   pres=Fable.createPresentation({scene:scene,camera:camera,hud:hud,state:function(){return s},hooks:hooks,seed:seed,settings:Fable.hudSettings});
   ctrl.pres=pres;
   creatures.forEach(function(c){var a=pres.addActor(c,entries[c.id]);entries[c.id].walker=a.walker});
@@ -92,11 +92,13 @@ Fable.createCombatController=function(o){
   }
   pres.setIdle(hero.id,loadoutIdle());
   var marks=Fable.createWorldMarks({scene:scene,grid:grid});
+  var items=Fable.createWorldItems({scene:scene,grid:grid});
+  var runner=Fable.createAiRunner({base:(function(){try{return new URL('js/',document.baseURI).href}catch(e){return ''}})()});
   var mp=Fable.createMovePreview({scene:scene,camera:camera,grid:grid,hud:hud});
-  var labels=Fable.createWorldLabels({camera:camera,hud:hud,anchor:function(c){var w=entryOf(c).walker.position();return {x:w.x,y:c.kind==='hero'?19:14,z:w.z}}});
+  var labels=Fable.createWorldLabels({camera:camera,hud:hud,anchor:function(c){var w=entryOf(c).walker.position();return {x:w.x,y:c.kind==='hero'?19:14,z:w.z}},visible:function(c){return shown[c.id]!==false}});
   if(o.encounter&&o.encounter.tutorial&&hud.mods.tutorialCoach)hud.mods.tutorialCoach.setSteps(o.encounter.tutorial);
 
-  var busy=false,dirty=true,pointer=null,previewCell=null,ai={stage:'idle',t:0},clock=0,roundChanged=false;
+  var shown={},drops=[],busy=false,dirty=true,pointer=null,previewCell=null,ai={stage:'idle',t:0,token:0},clock=0,roundChanged=false;
   var targeting={attackId:null,hoverId:null},script=[],autoEnd=-1,overShown=false;
   var raycaster=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();
 
@@ -168,8 +170,26 @@ Fable.createCombatController=function(o){
     if(r.hit)labels.float(t,r.crit?r.damage.total+'!':String(r.damage.total),r.crit?'crit':'hit');
     else labels.float(t,'Miss','miss');
     if(a===hero)hud.coach('attack');
+    flushDrops();
     holds=Math.max(0,holds-1);dirty=true;
   }
+  /* a thrown weapon lands when the throw does: the rules report the drop first, so it waits for the attack that threw it */
+  function flushDrops(){
+    while(drops.length){var d=drops.shift();items.add(d.item);say(d)}
+    dirty=true;
+  }
+  function onPickup(e){
+    say(e);
+    (e.result.items||[]).forEach(function(i){items.remove(i.id)});
+    if(e.result.creature.team==='player')labels.float(s.byId[e.result.creature.id],'Picked up','info');
+    dirty=true;
+  }
+  function onMorale(e){
+    var c=s.byId[e.id];say(e);
+    if(c&&e.result==='flee')labels.float(c,'Fleeing!','miss');
+    dirty=true;
+  }
+  function onRecovered(e){say(e);items.sync(s.ground);dirty=true}
   function onTurnStart(e){
     var c=s.byId[e.id];
     marks.setActive(c.cell,c.team);
@@ -177,7 +197,7 @@ Fable.createCombatController=function(o){
     hud.banner((roundChanged||(e.index===0&&s.round===1)?'Round '+s.round+'  -  ':'')+Fable.hudModels.turnText(s,c),c.team==='player'?'player':'enemy');
     hud.announce((roundChanged?'Round '+s.round+'. ':'')+Fable.hudModels.turnText(s,c));
     roundChanged=false;say(e);
-    ai={stage:'think',t:0};targeting.attackId=null;
+    ai={stage:'think',t:0,token:ai.token||0,queue:[],replans:0,attacked:false};targeting.attackId=null;
     autoEnd=-1;
     if(c===hero&&c.down)autoEnd=0;
     refreshReach();dirty=true;
@@ -208,10 +228,13 @@ Fable.createCombatController=function(o){
     hud.banner((words[x.outcome]||'Death save')+'  ('+x.roll+')',x.outcome==='success'||x.outcome==='stable'||x.outcome==='revive'?'player':'enemy');
     dirty=true;
   }
-  function onOver(e){say(e);dirty=true;overShown=false;ai={stage:'idle',t:0};targeting.attackId=null;mp.setReachable([]);holds=0}
+  function onOver(e){say(e);dirty=true;overShown=false;ai={stage:'idle',t:0,token:(ai.token||0)+1};items.sync(s.ground);targeting.attackId=null;mp.setReachable([]);holds=0}
 
   function handle(e){
     switch(e.type){
+      case 'drop':
+        drops.push(e);
+        break;
       case 'attack':
         holds++;
         pres.enqueue(e);
@@ -238,6 +261,7 @@ Fable.createCombatController=function(o){
   function pump(){
     var guard=0;
     while(!pres.busy()&&script.length&&guard++<50)handle(script.shift());
+    if(drops.length&&!script.length&&!pres.busy())flushDrops();
   }
 
   /* ---------- the player's choices ---------- */
@@ -306,7 +330,7 @@ Fable.createCombatController=function(o){
       mp.hide();dirty=true;return;
     }
     targeting.attackId=null;
-    var r=sl.kind==='swap'?Cb().swapLoadout(s,hero,sl.loadoutId):Cb().useAction(s,hero,sl.actionId,{});
+    var r=sl.kind==='pickup'?Cb().pickup(s,hero):sl.kind==='swap'?Cb().swapLoadout(s,hero,sl.loadoutId):Cb().useAction(s,hero,sl.actionId,{});
     if(!r.ok){hud.announce(r.reason);labels.float(hero,r.reason,'info')}
     dirty=true;
   }
@@ -316,21 +340,78 @@ Fable.createCombatController=function(o){
   }
 
   /* ---------- enemy turns ---------- */
+  /* The goblins plan with Fable.ai (plan 14 and 16): a whole turn is planned at once, on a Worker when the browser has one, and then
+     played one step at a time so each step is seen before the next begins. A roll that changes things (an Opportunity Attack, a
+     downed target, a failed Hide) sends the goblin back to planning with what it now knows. */
+  function tierOpts(){
+    var t=Fable.hudSettings.get('tactics');
+    return t&&t!=='auto'?{tier:t}:{};
+  }
+  function requestPlan(c){
+    ai.stage='thinking';
+    var token=++ai.token;
+    runner.plan(s,c,tierOpts(),function(plan,err){
+      if(ai.token!==token||ai.stage!=='thinking'||!ctrl.active||Cb().active(s)!==c)return;
+      if(err||!plan){if(window.console)console.warn('Enemy planning failed: '+(err&&err.message||err));plan={intents:[],trace:null}}
+      Fable.ai.commit(s,c,plan);
+      ai.plan=plan;ai.queue=plan.intents.slice();ctrl.lastPlan=plan;
+      if(plan.trace&&Fable.hudSettings.get('explainAi')&&window.console)console.info(c.name+' ('+plan.tier+')\n'+Fable.ai.explain(plan.trace));
+      ai.stage='step';ai.t=0;ai.gap=.12;
+    });
+  }
+  function replan(c){
+    if(ai.replans>=3){ai.queue=[];return}
+    ai.replans++;requestPlan(c);
+  }
+  function performStep(c,it,reactions){
+    var hpBefore=c.hp.current;
+    var res=Fable.ai.perform(s,c,it,{reactions:reactions});
+    if(it.t==='attack')ai.attacked=true;
+    ai.stage='step';ai.t=0;ai.gap=it.t==='move'?.15:.3;
+    if(!c.alive||c.down||s.phase!=='running'){ai.queue=[];return}
+    if(Fable.ai.diverged(it,res,c)||c.hp.current<hpBefore)replan(c);
+  }
+  function nextStep(c){
+    if(!ai.queue.length||s.phase!=='running'||c.down||!c.alive){
+      Fable.ai.finishTurn(s,c,{attacked:ai.attacked});
+      ai.stage='wait';ai.t=0;return;
+    }
+    var it=ai.queue.shift();
+    if(!Fable.ai.legal(s,c,it).ok){replan(c);return}
+    if(it.t==='move'){
+      /* the player decides whether to take an Opportunity Attack on a goblin that leaves reach without Disengaging */
+      var pm=Cb().planMove(s,c,it.to),mine=(pm.provokes||[]).filter(function(p){return p.id===hero.id});
+      if(mine.length&&!hero.down){
+        ai.stage='ask';
+        hud.prompt({title:'Opportunity Attack',icon:'sword',body:c.name+' leaves your reach without Disengaging.\nMake an Opportunity Attack with your Reaction?',
+          choices:[{id:'hit',label:'Attack',primary:true,key:'a',keyLabel:'A',codes:['Enter']},{id:'no',label:'Let it go',key:'l',keyLabel:'Esc',codes:['Escape']}],
+          onChoose:function(id){var r={};r[hero.id]=id==='hit';performStep(c,it,r);dirty=true}});
+        dirty=true;return;
+      }
+    }
+    performStep(c,it,{});
+  }
   function runEnemy(dt){
     var c=Cb().active(s);
     if(!c||c.team==='player'||s.phase!=='running'||!settled())return;
+    if(ai.stage==='thinking'||ai.stage==='ask'||ai.stage==='idle')return;
     ai.t+=dt;
-    if(ai.stage==='think'&&ai.t>.7){
-      var plan=Fable.combatAI.planTurn(s,c);
-      if(plan.move)Cb().move(s,c,plan.destination);
-      ai={stage:'act',t:0};
-    }else if(ai.stage==='act'&&ai.t>.25){
-      Fable.combatAI.act(s,c);
-      ai={stage:'wait',t:0};
-    }else if(ai.stage==='wait'&&ai.t>.8){
-      ai={stage:'idle',t:0};
+    if(ai.stage==='think'&&ai.t>.7){ai.replans=0;ai.attacked=false;requestPlan(c)}
+    else if(ai.stage==='step'&&ai.t>ai.gap)nextStep(c);
+    else if(ai.stage==='wait'&&ai.t>.7){
+      ai={stage:'idle',t:0,token:ai.token};
       Cb().endTurn(s);dirty=true;
     }
+  }
+  /* a goblin the hero cannot see is not drawn, and a goblin that was hiding comes back into view once it has been found */
+  function syncVisibility(){
+    creatures.forEach(function(c){
+      var e=entries[c.id],vis=!(c.team!=='player'&&c.alive&&Fable.senses.isHidden(c));
+      if(shown[c.id]===vis)return;
+      shown[c.id]=vis;
+      if(e&&e.root)e.root.visible=vis;
+      dirty=true;
+    });
   }
   /* a hero at 0 hit points rolls its death save at the start of the turn and then nothing is left to do */
   function runDowned(dt){
@@ -415,7 +496,7 @@ Fable.createCombatController=function(o){
   /* ---------- lifecycle ---------- */
   /* true when nothing is playing, walking or being asked (for the browser tests) */
   ctrl.idle=function(){return !busy&&settled()&&!hud.promptActive()&&!s.pending&&holds===0};
-  ctrl.debug=function(){return {targeting:JSON.stringify(targeting),locked:locked(),busy:busy,hold:holds,queued:script.length,presenting:pres.busy(),prompt:hud.promptActive(),pending:!!s.pending,heroTurn:heroTurn(),previewCell:previewCell}};
+  ctrl.debug=function(){return {targeting:JSON.stringify(targeting),locked:locked(),busy:busy,hold:holds,queued:script.length,presenting:pres.busy(),prompt:hud.promptActive(),pending:!!s.pending,heroTurn:heroTurn(),previewCell:previewCell,ai:ai.stage,aiQueue:(ai.queue||[]).length,aiMode:runner.mode}};
   ctrl.begin=function(){
     if(ctrl.active)return;
     ctrl.active=true;
@@ -433,6 +514,7 @@ Fable.createCombatController=function(o){
     pres.update(dt,window.innerWidth,window.innerHeight);
     if(ctrl.active){
       pump();
+      if(settled())syncVisibility();
       runEnemy(dt);runDowned(dt);
       if(s.phase==='over'&&!overShown&&settled()&&!hud.promptActive()){overShown=true;setTimeout(function(){if(ctrl.active)showOutcome()},450)}
       var a=Cb().active(s);
@@ -441,11 +523,12 @@ Fable.createCombatController=function(o){
       marks.update(clock);
       mp.update(clock,window.innerWidth,window.innerHeight);
       labels.update(s,window.innerWidth,window.innerHeight,dt);
+      items.update(clock);
     }
   };
   ctrl.dispose=function(){
     inp.handlers.hover=inp.handlers.leave=inp.handlers.click=inp.handlers.context=inp.handlers.key=inp.handlers.escape=null;
-    pres.dispose();mp.dispose();marks.dispose();labels.dispose();hud.destroy();
+    ai.token++;runner.dispose();pres.dispose();mp.dispose();marks.dispose();items.dispose();labels.dispose();hud.destroy();
   };
   return ctrl;
 };

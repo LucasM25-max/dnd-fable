@@ -22,6 +22,9 @@ var P={
   menu:'<path d="M3 5h18v3H3zm0 5.500h18v3H3zM3 16h18v3H3z"/>',
   help:'<path d="M12 2.500a9.500 9.500 0 1 0 0 19 9.500 9.500 0 0 0 0-19zm-1 14v-2h2v2zm3.500-6.800c-.5 1.700-2 1.800-2.500 3.300h-2c.1-2.200 1.500-2.800 2.300-3.700.5-.6.300-1.800-.9-1.800-.9 0-1.400.6-1.600 1.400l-1.900-.5c.4-1.800 1.800-2.900 3.600-2.900 2.700 0 3.800 2.100 3 4.200z"/>',
   close:'<path d="M5 3.500 12 10.500 19 3.500 20.500 5 13.500 12 20.500 19 19 20.500 12 13.500 5 20.500 3.500 19 10.500 12 3.500 5z"/>',
+  hide:'<path d="M12 3c-4 0-7 3-7 7v8l2.500-2 2 2 2.500-2 2.500 2 2-2 2.500 2v-8c0-4-3-7-6-7z"/><path d="M8 10.500h2M14 10.500h2" stroke="#000" stroke-opacity=".6" stroke-width="2" stroke-linecap="square"/>',
+  search:'<circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.600"/><path d="M14.500 14.500 21 21" stroke="currentColor" stroke-width="3" stroke-linecap="square"/>',
+  pickup:'<path d="M12 3v11M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="square"/><path d="M4 19h16v2H4z"/>',
   check:'<path d="M3.500 12.500 9 18 20.500 6.500 19 5 9 15 5 11z"/>'
 };
 Fable.hudIcons={
