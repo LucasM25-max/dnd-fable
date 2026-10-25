@@ -12,6 +12,7 @@ var order=[
   {key:'backgrounds',dir:'backgrounds',mode:'package'},
   {key:'classes',dir:'classes',mode:'package'},
   {key:'maps',dir:'maps',mode:'package'},
+  {key:'aiProfiles',dir:'ai-profiles',mode:'file'},
   {key:'monsters',dir:'monsters',mode:'package'},
   {key:'characters',dir:'characters',mode:'package'},
   {key:'encounters',dir:'encounters',mode:'package'},

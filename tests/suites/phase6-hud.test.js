@@ -29,7 +29,7 @@ module.exports=function(t){
       assert.ok(ids.indexOf('attack:longsword:melee')===0);
       ['action:second-wind','action:dash','action:disengage','action:dodge','swap:b'].forEach(id=>assert.ok(ids.indexOf(id)>=0,id));
       assert.ok(ids.indexOf('action:heroic-inspiration-reroll')<0,'the reroll is a prompt, not a slot');
-      bar.forEach((x,i)=>assert.strictEqual(x.hotkey,String(i+1)));
+      bar.forEach((x,i)=>assert.strictEqual(x.hotkey,i<9?String(i+1):i===9?'0':null));
     });
     test('every slot has an icon the icon set draws, a cost and a reason when it cannot be used',async()=>{
       const C=await world(),{s,hero}=fight(C);

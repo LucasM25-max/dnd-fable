@@ -2,7 +2,7 @@
 (function(){
 Fable.content.barks.registerAll([
 {id:'goblin-barks',name:'Goblin barks',source:'original',profile:'goblin-minion',voices:{a:'voice-goblin-a',b:'voice-goblin-b',cackle:'voice-goblin-cackle'},
- chance:{ambush:1,attack:.4,hit:.35,miss:.45,hurt:.5,down:.8,taunt:1,victory:1,flee:1},
+ chance:{ambush:1,attack:.4,hit:.35,miss:.45,hurt:.5,down:.8,taunt:1,victory:1,flee:1,hide:.7,rally:.8,pickup:.6,throw:.35},
  lines:{
   ambush:['Get him!','Fresh meat!','Kill the shiny one!','Hee hee hee!'],
   attack:['Stab stab stab!','Mine now!','Gut him!','Get over here!','Hah!'],
@@ -11,6 +11,10 @@ Fable.content.barks.registerAll([
   hurt:['Ow ow ow!','Not the face!','Ahh!','That hurt!'],
   down:['Ow...','Boss, no...','Urgh!','Not fair...'],
   flee:['Nope nope nope!','Too scary!','Catch me!'],
+  hide:['Shh... shh...','Gone!','Cannot see me!','Hee... hee...'],
+  rally:['Hold, hold!','Not running!','Back at him!'],
+  pickup:['Mine, mine!','Back in my hand!','Shiny stabber!'],
+  throw:['Catch!','Pointy!','Duck!'],
   victory:['Shiny! Shiny!','He is down! He is down!','We win!'],
   taunt:['Hee hee hee!','Come on then!']}},
 {id:'fighter-barks',name:'Fighter barks',source:'original',profile:'human-fighter',voices:{a:'voice-hero-effort',cheer:'voice-hero-cheer'},

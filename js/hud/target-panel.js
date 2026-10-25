@@ -22,6 +22,7 @@ Fable.hudModules.targetPanel=function(hud){
       h+='<div class="pv-grid"><div class="pv-hit" data-tip="d20 '+hud.escape(r.bonusText)+' against Armor Class '+r.ac+'\nNeeds '+r.need+' or higher"><small>To hit</small><b>'+r.hit+'<em>%</em></b></div>'+
         '<div class="pv-dmg" data-tip="'+hud.escape(p.damage.expression+' '+p.damage.type+'\nCritical hit: '+p.damage.critText)+'"><small>Damage</small><b>'+p.damage.text+'</b></div>'+
         '<div class="pv-crit" data-tip="Chance of a critical hit, which doubles the damage dice"><small>Crit</small><b>'+r.crit+'<em>%</em></b></div></div>';
+      if(r.cover)h+='<div class="pv-note cover" data-tip="The target is partly behind an obstacle"><b>'+hud.escape(r.cover.name)+' cover</b> +'+r.cover.bonus+' AC</div>';
       if(r.stateText)h+='<div class="pv-state '+r.state+'"><span>'+r.stateText+'</span>'+hud.escape(r.sources.join('   '))+'</div>';
       else if(r.sources.length)h+='<div class="pv-state">'+hud.escape(r.sources.join('   '))+'</div>';
       if(r.autoCrit)h+='<div class="pv-note">A hit from this close is a critical hit</div>';

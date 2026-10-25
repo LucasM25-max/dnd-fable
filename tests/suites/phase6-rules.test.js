@@ -238,7 +238,7 @@ module.exports=function(t){
     });
     test('standard actions with nothing to act on are refused with a reason',async()=>{
       const C=await world(),{s,hero}=fight(C);
-      ['help','hide','magic','search','study','utilize','ready','influence'].forEach(id=>{
+      ['help','hide','magic','study','utilize','ready','influence'].forEach(id=>{
         const r=Fable.combat.useAction(s,hero,id);assert.ok(!r.ok&&r.reason,id);
       });
     });

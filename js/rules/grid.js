@@ -14,7 +14,15 @@
      - A diagonal step cannot cut the corner of a blocked square: both squares beside the step must be open.
      - Difficult terrain costs an extra 5 ft per square.
    Paths are the cheapest in feet; among equal cost paths the one nearest the straight line wins, so a move looks like a
-   line and not a staircase. */
+   line and not a staircase.
+
+   Cover (Phase 8, SRD 5.2.1 "Cover"): Fable.grid.coverBetween(g, a, b) works out how much of a target square an attacker's
+   square can reach, with the usual corner method: take the best corner of the attacker's square and trace lines to the four
+   corners of the target's square; a line that passes through a blocked square (a tree, a boulder, a wall) is covered. One or
+   two covered lines is Half Cover (+2 AC), three is Three-Quarters Cover (+5 AC), four is Total Cover (no line at all, so it
+   cannot be targeted and cannot be seen). Squares next to each other never have cover.
+   Light (Phase 8): an optional layer, 0 bright, 1 dim, 2 dark. Squares are bright unless setLight says otherwise.
+   Change terrain with setBlocked once cover has been asked for: it clears the cover cache. */
 (function(G){
 G.Fable=G.Fable||{};
 var Fable=G.Fable;
@@ -75,6 +83,7 @@ Grid.isBlocked=function(g,c,r){return !Grid.inBounds(g,c,r)||g.blocked[r*g.cols+
 Grid.setBlocked=function(g,c,r,v){
   if(!Grid.inBounds(g,c,r))throw new Error('Grid: square ('+c+', '+r+') is outside the grid');
   g.blocked[r*g.cols+c]=v?1:0;
+  g.coverCache=null;g.blockSat=null;
 };
 /* Cost to enter a square, in squares (1 normal, 2 difficult terrain). */
 Grid.stepCost=function(g,c,r){return Grid.inBounds(g,c,r)?g.cost[r*g.cols+c]:0};
@@ -119,6 +128,77 @@ Grid.lineClear=function(g,a,b){
   if(Grid.chebyshev(a,b)<=1)return true;
   return !Grid.lineCells(g,a,b).some(function(c){return Grid.isBlocked(g,c.c,c.r)});
 };
+
+/* ---------- cover ---------- */
+
+Grid.COVER={none:0,half:1,threeQuarters:2,total:3};
+Grid.COVER_NAMES=['none','half','three-quarters','total'];
+/* The Armor Class bonus Half and Three-Quarters Cover give (Total Cover cannot be targeted at all). */
+Grid.COVER_BONUS=[0,2,5,0];
+var CORNER=.42;
+
+/* Does the straight line between two world points pass through a blocked square other than the two end squares? */
+function lineBlocked(g,x0,z0,x1,z1,a,b){
+  var dist=Math.hypot(x1-x0,z1-z0),n=Math.max(2,Math.ceil(dist/(g.cell/6)));
+  for(var i=1;i<n;i++){
+    var t=i/n,cell=Grid.cellAt(g,x0+(x1-x0)*t,z0+(z1-z0)*t);
+    if(!cell||Grid.same(cell,a)||Grid.same(cell,b))continue;
+    if(g.blocked[cell.r*g.cols+cell.c]===1)return true;
+  }
+  return false;
+}
+
+var NO_COVER={level:0,name:'none',blocked:0,bonus:0};
+/* A summed area table of the blocked squares (built when first needed, dropped when a square changes): is anything solid in the box around
+   two squares, one square wider on every side? When nothing is, nothing can give cover and the sixty four line traces are skipped. */
+function anyBlockedNear(g,a,b){
+  var sat=g.blockSat;
+  if(!sat){
+    var w=g.cols+1,h=g.rows+1;
+    sat=g.blockSat=new Int32Array(w*h);
+    for(var r=0;r<g.rows;r++)for(var c=0;c<g.cols;c++)
+      sat[(r+1)*w+c+1]=g.blocked[r*g.cols+c]+sat[r*w+c+1]+sat[(r+1)*w+c]-sat[r*w+c];
+  }
+  var W=g.cols+1,c0=Math.max(0,Math.min(a.c,b.c)-1),c1=Math.min(g.cols-1,Math.max(a.c,b.c)+1),r0=Math.max(0,Math.min(a.r,b.r)-1),r1=Math.min(g.rows-1,Math.max(a.r,b.r)+1);
+  return sat[(r1+1)*W+c1+1]-sat[r0*W+c1+1]-sat[(r1+1)*W+c0]+sat[r0*W+c0]>0;
+}
+
+/* {level: 0 none, 1 half, 2 three-quarters, 3 total, name, blocked (covered lines of the best corner, 0 to 4), bonus (AC)}. The
+   level a creature gets against an attacker standing on square `a` when it stands on square `b`. Cached per grid. */
+var COVER_BY_BEST=[0,1,2,3,4].map(function(best){
+  var level=best===0?0:best<=2?1:best===3?2:3;
+  return Object.freeze({level:level,name:Grid.COVER_NAMES[level],blocked:best,bonus:Grid.COVER_BONUS[level]});
+});
+Grid.coverBetween=function(g,a,b){
+  if(!a||!b||Grid.chebyshev(a,b)<=1)return NO_COVER;
+  if(!anyBlockedNear(g,a,b))return NO_COVER;
+  var cells=g.cols*g.rows,key=(a.r*g.cols+a.c)*cells+(b.r*g.cols+b.c),cache=g.coverCache,hit;
+  if(!cache)cache=g.coverCache=cells<=4096?{big:false,t:new Uint8Array(cells*cells)}:{big:true,t:new Map()};
+  hit=cache.big?cache.t.get(key):cache.t[key];
+  if(hit)return COVER_BY_BEST[hit-1];
+  var pa=Grid.center(g,a.c,a.r),pb=Grid.center(g,b.c,b.r),e=g.cell*CORNER,best=4;
+  for(var i=0;i<4&&best>0;i++){
+    var ax=pa.x+(i&1?e:-e),az=pa.z+(i&2?e:-e),n=0;
+    for(var j=0;j<4;j++){
+      var bx=pb.x+(j&1?e:-e),bz=pb.z+(j&2?e:-e);
+      if(lineBlocked(g,ax,az,bx,bz,a,b))n++;
+    }
+    if(n<best)best=n;
+  }
+  if(cache.big)cache.t.set(key,best+1);else cache.t[key]=best+1;
+  return COVER_BY_BEST[best];
+};
+
+/* ---------- light ---------- */
+
+Grid.LIGHT={bright:0,dim:1,dark:2};
+Grid.setLight=function(g,c,r,level){
+  if(!Grid.inBounds(g,c,r))throw new Error('Grid: square ('+c+', '+r+') is outside the grid');
+  if(!isInt(level)||level<0||level>2)throw new Error('Grid: light is 0 (bright), 1 (dim) or 2 (dark), got '+level);
+  if(!g.light)g.light=new Uint8Array(g.cols*g.rows);
+  g.light[r*g.cols+c]=level;
+};
+Grid.lightAt=function(g,c,r){return g.light&&Grid.inBounds(g,c,r)?g.light[r*g.cols+c]:0};
 
 /* ---------- search ---------- */
 

@@ -13,6 +13,7 @@
      handlers [{handler, event, oncePerTurn, source}]          bespoke rules ids from its sheet
      death {successes, failures, stable, dead}                 death saving throws (heroes; monsters die at 0)
      conditions [status entries]                                see js/rules/status.js
+     senses {darkvision?, ...}, ai (a monster's resolved AI profile), mind (what the enemy AI remembers, see js/rules/ai-core.js)
    }
 
    Fable.creature.fromSheet(sheet, {id, team})      a hero, from the sheet Fable.character.compute builds
@@ -56,7 +57,7 @@ function base(o){
     attacks:o.attacks||[],actions:o.actions||[],conditions:[],cell:null,facing:0,alive:true,down:false,
     portrait:o.portrait||null,subtitle:o.subtitle||'',inspiration:!!o.inspiration,economy:null,
     resources:o.resources||{},stock:o.stock||{},thrown:{},handlers:o.handlers||[],build:o.build||null,
-    death:{successes:0,failures:0,stable:false,dead:false}
+    death:{successes:0,failures:0,stable:false,dead:false},senses:o.senses||{},ai:null,mind:null
   };
 }
 
@@ -97,6 +98,28 @@ function monsterStock(def){
   return out;
 }
 
+/* The twelve standard actions every creature has (Dash, Disengage, Hide, Search ...), from the rules data when it is loaded. */
+function standardActions(){
+  var C=Fable.content,reg=C&&C.standardActions;
+  if(!reg||typeof reg.list!=='function')return [];
+  return reg.list().map(function(a){
+    return {id:a.id,name:a.name,kind:'standard',source:{type:'rules',id:'standard-actions',name:'Standard actions'},cost:a.cost,group:'standard',
+      icon:a.id,hotkey:null,targeting:{type:a.targeting||'none'},consumes:null,requires:null,available:true,reason:'',effects:[],
+      handler:a.handler,description:a.description};
+  });
+}
+/* Unarmed Strike (SRD 5.2.1): 1 plus the Strength modifier of bludgeoning damage, never less than 0. A goblin with every dagger
+   thrown can still do this much, which is almost nothing, so recovering the daggers is part of its plan. */
+function unarmedStrike(d){
+  var str=d.abilities.str.mod,flat=Math.max(0,1+str),pb=d.proficiencyBonus;
+  var bonus=Fable.stats.reduce([{label:'Strength modifier',op:'base',value:str},{label:'Proficiency bonus',op:'add',value:pb}]);
+  return {id:'unarmed-strike:melee',item:null,name:'Unarmed Strike',mode:'melee',hand:null,equipped:true,available:true,reason:'',
+    ability:'str',proficient:true,bonus:bonus,
+    damage:{dice:null,bonus:Fable.stats.reduce([{label:'Unarmed Strike',op:'base',value:flat}]),expression:String(flat),type:'bludgeoning',stats:Fable.dice.stats(String(flat))},
+    versatile:null,range:null,reach:5,properties:[],rollState:{state:'normal',advantage:[],disadvantage:[]},mastery:null,timing:'attack-action',ammo:null,
+    source:{type:'rules',id:'unarmed-strike',name:'Unarmed Strike'}};
+}
+
 Cr.fromMonster=function(def,opts){
   opts=opts||{};
   var d=Fable.statblock.derive(def,{hp:opts.hp,rnd:opts.rnd});
@@ -105,11 +128,11 @@ Cr.fromMonster=function(def,opts){
     id:opts.id||(def.id+'-'+n),name:opts.name||(opts.index!==undefined?def.name+' '+n:def.name),team:opts.team||'enemy',kind:'monster',defId:def.id,
     size:def.size,reachFt:d.reachFt,ac:d.ac,hp:{max:d.hp.max,current:d.hp.max,temp:0},speedFt:d.speed.walk,
     initiative:{value:d.initiative.value,breakdown:d.initiative.breakdown,rollState:{state:'normal',advantage:[],disadvantage:[]}},
-    abilities:d.abilities,proficiencyBonus:d.proficiencyBonus,attacks:d.attacks,actions:d.actions,portrait:def.portrait||null,
-    subtitle:def.size+' '+def.creatureType,stock:monsterStock(def)
+    abilities:d.abilities,proficiencyBonus:d.proficiencyBonus,attacks:d.attacks.concat([unarmedStrike(d)]),actions:d.actions.concat(standardActions()),
+    portrait:def.portrait||null,subtitle:def.size+' '+def.creatureType,stock:monsterStock(def),senses:Object.assign({},d.senses)
   });
   c.statblock=d;
-  c.ai=def.ai||null;
+  c.ai=Fable.ai&&Fable.ai.resolveProfile?Fable.ai.resolveProfile(def.ai,def,opts.ai):(def.ai||null);
   c.economy=Cr.newEconomy(c);
   return c;
 };
@@ -126,6 +149,36 @@ Cr.setHp=function(c,value){
   c.hp.current=Math.max(0,Math.min(c.hp.max,value|0));
   c.down=c.hp.current===0;
   if(c.kind==='monster')c.alive=!c.down;
+};
+
+/* ---------- plain copies (Phase 8) ---------- */
+/* A creature as JSON safe data for the enemy AI worker. The sheet keeps only what the rules read in a fight: the hands and the main
+   attack (reach, thrown weapons), the Stealth and Perception checks, and their roll states. */
+Cr.snapshot=function(c){
+  var sheet=c.sheet,sb=c.statblock,build=c.build,portrait=c.portrait;
+  c.sheet=null;c.statblock=null;c.build=null;c.portrait=null;
+  var o;
+  try{o=copy(c)}finally{c.sheet=sheet;c.statblock=sb;c.build=build;c.portrait=portrait}
+  if(sheet){
+    var rs=sheet.rollStates||{};
+    o.sheet={loadout:sheet.loadout?{hands:copy(sheet.loadout.hands),mainAttack:sheet.loadout.mainAttack}:null,loadouts:[],
+      skills:{stealth:sheet.skills&&sheet.skills.stealth?{value:sheet.skills.stealth.value}:undefined,perception:sheet.skills&&sheet.skills.perception?{value:sheet.skills.perception.value}:undefined},
+      rollStates:{'skill:stealth':copy(rs['skill:stealth']),'skill:perception':copy(rs['skill:perception'])}};
+  }
+  if(sb)o.statblock={skills:copy(sb.skills),passivePerception:copy(sb.passivePerception),challenge:copy(sb.challenge)};
+  return o;
+};
+/* What a plan changes: where it stands, what it spent, its hit points, statuses and stock. Everything else is shared. */
+Cr.cloneForPlan=function(c){
+  var n=Object.assign({},c);
+  n.cell=c.cell?{c:c.cell.c,r:c.cell.r}:null;
+  n.economy=c.economy?Object.assign({},c.economy,{handlersUsed:Object.assign({},c.economy.handlersUsed)}):null;
+  n.hp=Object.assign({},c.hp);
+  n.conditions=(c.conditions||[]).map(function(e){return JSON.parse(JSON.stringify(e))});
+  n.thrown=Object.assign({},c.thrown);n.stock=Object.assign({},c.stock);
+  n.death=Object.assign({},c.death);
+  var r={};Object.keys(c.resources||{}).forEach(function(k){r[k]=Object.assign({},c.resources[k])});n.resources=r;
+  return n;
 };
 
 /* ---------- resources ---------- */

@@ -18,9 +18,10 @@ var Cb=Fable.combat;
 var St=function(){return Fable.status};
 var Cr=function(){return Fable.creature};
 
-/* Standard actions with nothing to act on yet: no other allies, no hiding places, no objects or skill checks in a fight. */
-var LATER={help:'No ally to help',hide:'Nowhere to hide here',influence:'Nobody to talk to in a fight',magic:'You know no spells',
-  ready:'Ready arrives with reactions in a later phase',search:'Nothing to find here',study:'Nothing to study here',utilize:'Nothing to use here'};
+/* Standard actions with nothing to act on yet: no other allies, no objects or skill checks in a fight. (Hide and Search arrived
+   with Phase 8: senses.js.) */
+var LATER={help:'No ally to help',influence:'Nobody to talk to in a fight',magic:'You know no spells',
+  ready:'Ready arrives with reactions in a later phase',study:'Nothing to study here',utilize:'Nothing to use here'};
 Cb.unavailableActions=LATER;
 
 function find(c,id){
@@ -38,7 +39,7 @@ function slotFree(e,cost){
 }
 var SLOT_WORD={action:'Action',bonus:'Bonus Action',reaction:'Reaction'};
 
-Cb.actionState=function(s,c,id){
+Cb.actionState=function(s,c,id,opts){
   var D=Cb.DENIALS,out={ok:false,reason:'',cost:null,action:null};
   function no(r){out.reason=r;return out}
   var a=find(c,id);
@@ -61,12 +62,20 @@ Cb.actionState=function(s,c,id){
   var heals=(a.effects||[]).some(function(e){return e.type==='heal'});
   if(heals&&c.hp.current>=c.hp.max)return no('Already at full hit points');
   if(id==='dash'&&c.economy.dashes>=1)return no('Already dashed this turn');
+  if(id==='hide'||(id==='nimble-escape'&&opts&&opts.choice==='hide')){
+    var hc=Fable.senses?Fable.senses.hideCheck(s,c):{ok:false,reason:'Nowhere to hide here'};
+    if(!hc.ok)return no(hc.reason);
+  }
+  if(id==='nimble-escape'){
+    if(!opts||(opts.choice!=='disengage'&&opts.choice!=='hide'))return no('Choose Disengage or Hide');
+  }
   out.ok=true;
   return out;
 };
 
 Cb.useAction=function(s,c,id,opts){
-  var st=Cb.actionState(s,c,id);
+  opts=opts||{};
+  var st=Cb.actionState(s,c,id,opts);
   if(!st.ok)return {ok:false,reason:st.reason};
   var a=st.action,e=c.economy;
   if(a.cost==='action')e.action=true;
@@ -74,13 +83,26 @@ Cb.useAction=function(s,c,id,opts){
   else if(a.cost==='reaction')e.reaction=true;
   if(a.consumes)Cr().setResource(c,a.consumes.resource,c.resources[a.consumes.resource].current-a.consumes.amount);
   var res={ok:true,type:'action',id:id,name:a.name,creature:{id:c.id,name:c.name,team:c.team},cost:a.cost,heal:null,statuses:[],text:''};
-  if(id==='dash'){
+  var kind=id==='nimble-escape'?opts.choice:id;
+  if(id==='nimble-escape'){res.choice=kind;res.text=''}
+  if(kind==='hide'){
+    var h=Fable.senses.hide(s,c);
+    res.hide=h;
+    if(h.statuses)res.statuses=h.statuses;
+    if(h.status){res.statuses.push(h.status);Cb.emit(s,{type:'status',change:h.status.change,id:c.id,status:h.status.status})}
+    res.text=h.success?'Hidden (Stealth '+h.roll.total+' against DC '+h.dc+')':'Seen anyway (Stealth '+h.roll.total+' against DC '+h.dc+')';
+  }else if(id==='search'){
+    var f=Fable.senses.search(s,c);
+    res.search=f;
+    f.statuses.forEach(function(x){res.statuses.push(x);Cb.emit(s,{type:'status',change:x.change,id:x.creature,status:x.status})});
+    res.text=f.found.length?'Found '+f.found.map(function(i){return s.byId[i].name}).join(', ')+' (Perception '+f.roll.total+')':'Found nothing (Perception '+f.roll.total+')';
+  }else if(kind==='dash'){
     e.dashes++;
     res.text='Speed doubled: '+Cr().movementLeftFt(c)+' ft of movement left';
-  }else if(id==='disengage'){
+  }else if(kind==='disengage'){
     res.statuses.push(addStatus(s,c,{id:'disengaged',source:{id:'disengage',name:'Disengage',creature:c.id},expires:{creature:c.id,event:'turnend'}}));
     res.text='Movement does not provoke Opportunity Attacks this turn';
-  }else if(id==='dodge'){
+  }else if(kind==='dodge'){
     res.statuses.push(addStatus(s,c,{id:'dodging',source:{id:'dodge',name:'Dodge',creature:c.id},expires:{creature:c.id,event:'turnstart'}}));
     res.text='Attack rolls against you have Disadvantage until your next turn';
   }

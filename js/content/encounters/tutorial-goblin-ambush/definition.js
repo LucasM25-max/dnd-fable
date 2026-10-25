@@ -11,6 +11,8 @@ Fable.content.encounters.register({
      tutorial reveals both to teach attack rolls */
   reveal:{ac:true,hp:true},
   /* The coach on the left of the HUD. when is the event that ticks the step off: move, attack, second-wind, endturn. */
+  /* how the goblins think here (plan 16.6): the Cunning tier with the three tricks the tutorial teaches by example */
+  ai:{tier:'cunning',tricks:['throw-from-cover','hit-and-run','focus-fire']},
   tutorial:[
     {id:'move',text:'Click a square to move there.',when:'move'},
     {id:'attack',text:'Press 1 to aim your weapon, then click a goblin to attack.',when:'attack'},

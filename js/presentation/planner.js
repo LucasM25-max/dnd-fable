@@ -182,11 +182,12 @@ Fable.createPlanner=function(o){
       cues.push({t:.1,type:'vfx',fx:'fx-skid',at:'who',who:W.id,y:0,dir:'forward'});cues.push({t:.1,type:'sfx',id:'sfx-step',who:W.id});hud(.1);d=.6;
     }else if(id==='dash'&&cl.dash){
       cues.push({t:0,type:'anim',who:W.id,clip:cl.dash});cues.push({t:.1,type:'vfx',fx:'fx-run-dust',at:'who',who:W.id,y:0});hud(.1);d=.5;
+    }else if(((id==='nimble-escape'&&r.choice==='hide')||id==='hide')&&cl.hide){
+      cues.push({t:0,type:'anim',who:W.id,clip:cl.hide,hold:true,tag:'status:hidden'});cues.push({t:.1,type:'vfx',fx:'fx-skid',at:'who',who:W.id,y:0});
+      cues.push({t:.15,type:'bark',who:W.id,situation:'hide'});hud(.1);d=.7;
     }else if(id==='nimble-escape'&&cl.nimble){
       cues.push({t:0,type:'anim',who:W.id,clip:cl.nimble});cues.push({t:.12,type:'vfx',fx:'fx-skid',at:'who',who:W.id,y:0,dir:'forward'});
       cues.push({t:.3,type:'sfx',id:'sfx-step',who:W.id});cues.push({t:.1,type:'bark',who:W.id,situation:'flee'});hud(.1);d=.55;
-    }else if(id==='hide'&&cl.hide){
-      cues.push({t:0,type:'anim',who:W.id,clip:cl.hide,hold:true,tag:'status:hidden'});cues.push({t:.1,type:'vfx',fx:'fx-skid',at:'who',who:W.id,y:0});hud(.1);d=.7;
     }else{
       cues.push({t:0,type:'sfx',id:'sfx-status',who:W.id,gain:.7});hud(0);d=.35;
     }
@@ -240,6 +241,21 @@ Fable.createPlanner=function(o){
   function simple(hook){
     return function(e){return mk(hook,[{t:0,type:'hud',hook:hook,e:e,essential:true}],0,hook)};
   }
+  /* Phase 8: a thrown weapon lands, a creature picks one up, a goblin loses or finds its nerve */
+  function drop(e){
+    var cues=[{t:.05,type:'sfx',id:'sfx-step',who:e.id,gain:.5},{t:0,type:'hud',hook:'drop',e:e,essential:true}];
+    return mk('drop',cues,.2,'drop');
+  }
+  function pickup(e){
+    var cues=[{t:0,type:'sfx',id:'sfx-draw',who:e.id,gain:.6},{t:.05,type:'bark',who:e.id,situation:'pickup'},{t:0,type:'hud',hook:'pickup',e:e,essential:true}];
+    return mk('pickup',cues,.5,'pickup');
+  }
+  function morale(e){
+    var flee=e.result==='flee',cues=[{t:0,type:'hud',hook:'morale',e:e,essential:true}];
+    if(flee){cues.push({t:.05,type:'bark',who:e.id,situation:'flee'});cues.push({t:.05,type:'sfx',id:'sfx-status',who:e.id,gain:.6})}
+    else if(e.trigger!=='recovered'&&e.trigger!=='desperate')cues.push({t:.05,type:'bark',who:e.id,situation:'rally'});
+    return mk('morale',cues,flee?.6:.3,'morale');
+  }
   function over(e){
     var win=e.winner==='player',cues=[{t:0,type:'hud',hook:'over',e:e,essential:true}],d=2;
     cues.push({t:0,type:'call',name:'outcome',win:win,essential:true});
@@ -275,7 +291,7 @@ Fable.createPlanner=function(o){
   var handlers={
     attack:function(e){return attack(e.result)},
     down:down,action:action,swap:swap,status:status,deathsave:deathsave,turnstart:turnstart,over:over,start:start,
-    round:simple('round'),dead:simple('dead')
+    round:simple('round'),dead:simple('dead'),drop:drop,pickup:pickup,morale:morale,recovered:simple('recovered')
   };
   return {
     event:function(e){var h=handlers[e.type];return h?h(e):null},

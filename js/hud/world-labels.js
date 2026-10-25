@@ -39,7 +39,7 @@ Fable.createWorldLabels=function(o){
       var show=Fable.hudSettings.get('nameplates'),rm=Fable.hudSettings.reducedMotion();
       s.creatures.forEach(function(c){
         var pl=plates[c.id];if(!pl)return;
-        var on=show&&c.kind!=='hero'&&c.alive&&s.phase!=='setup'&&c.cell;
+        var on=show&&c.kind!=='hero'&&c.alive&&s.phase!=='setup'&&c.cell&&(!o.visible||o.visible(c));
         if(!on){pl.el.style.display='none';return}
         var pt=project(o.anchor(c),w,h);
         if(pt.behind){pl.el.style.display='none';return}

@@ -36,6 +36,7 @@ Fable.hudModules.overlays=function(hud){
       '<label class="shrng"><span>Motion</span><select data-k="motion"><option value="auto"'+(a.motion==='auto'?' selected':'')+'>Follow my system</option><option value="reduced"'+(a.motion==='reduced'?' selected':'')+'>Reduced</option><option value="full"'+(a.motion==='full'?' selected':'')+'>Full</option></select></label>'+
       '<label class="shrng"><span>Playback speed</span><select data-k="speed">'+opt(a.speed,[['normal','Normal'],['fast','Fast'],['instant','Instant (no animation)']])+'</select></label>'+
       '<label class="shrng"><span>Effects quality</span><select data-k="quality">'+opt(a.quality,[['auto','Auto'],['high','High'],['medium','Medium'],['low','Low']])+'</select></label>'+
+      '<label class="shrng"><span>Enemy tactics</span><select data-k="tactics">'+opt(a.tactics,[['auto','As the encounter says'],['instinct','Instinct (simple)'],['cunning','Cunning'],['tactician','Tactician'],['mastermind','Mastermind (hardest)']])+'</select></label>'+
       rng('volMaster','Master volume',a.volMaster)+rng('volMusic','Music',a.volMusic)+rng('volSfx','Effects',a.volSfx)+rng('volVoice','Voices',a.volVoice)+rng('shake','Camera shake',a.shake)+
       tog('mute','Mute all sound','Silences music, effects and voices.')+
       tog('barks','Speech bubbles','Creatures call out short lines in a fight.')+

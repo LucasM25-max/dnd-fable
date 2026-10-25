@@ -106,6 +106,7 @@ Cb.checkTarget=function(s,c,a,t,opts){
   if(t===c)return no('Cannot target yourself');
   if(!t.alive)return no('Already defeated');
   if(!Cb.isHostile(c,t))return no('Not an enemy');
+  if(Fable.senses&&Fable.senses.isHidden(t)&&!opts.ignoreHidden)return no('Cannot see '+t.name);
   var G=Grid(),dist=G.distanceFt(c.cell,t.cell);
   out.distanceFt=dist;
   if(a.mode==='melee'||a.mode==='light-extra'){
@@ -116,10 +117,21 @@ Cb.checkTarget=function(s,c,a,t,opts){
     var r=a.range||{normal:5,long:5};
     if(dist>r.long)return no('Out of range ('+dist+' ft away, range '+r.normal+'/'+r.long+' ft)');
     out.band=dist>r.normal?'long':'normal';
-    if(!G.lineClear(s.grid,c.cell,t.cell))return no('Blocked');
   }
+  /* cover from the attacker's corners (grid.js): Total Cover cannot be targeted, half and three-quarters raise the target's AC */
+  out.cover=Cb.coverFor(s,c,t);
+  if(out.cover.level>=G.COVER.total)return no('Blocked');
   out.ok=true;
   return out;
+};
+
+/* The cover t has against c and the Armor Class it gives c to beat. */
+Cb.coverFor=function(s,c,t){
+  return Grid().coverBetween(s.grid,c.cell,t.cell);
+};
+Cb.targetAc=function(s,c,t,tc){
+  var cv=(tc&&tc.cover)||Cb.coverFor(s,c,t);
+  return t.ac.value+(cv.bonus||0);
 };
 
 Cb.targetsFor=function(s,c,a,opts){
@@ -138,6 +150,8 @@ Cb.attackRollState=function(s,c,a,t,tc){
   var mods=St()?St().attackMods(c,t,{distanceFt:tc.distanceFt}):{advantage:[],disadvantage:[],autoCrit:false,consume:[]};
   adv=adv.concat(mods.advantage);dis=dis.concat(mods.disadvantage);
   if(tc.band==='long')dis.push('Long range');
+  /* a target in darkness the attacker cannot see through is unseen: Disadvantage (a Hidden attacker's Advantage is in Fable.status) */
+  if(Fable.senses&&t&&t.cell&&c.cell&&Fable.senses.effectiveLight(s,c,t.cell)>=2)dis.push('Target in darkness');
   if((a.mode==='thrown'||a.mode==='ranged')&&enemyAdjacent(s,c))dis.push('Enemy within 5 ft');
   var rs=Fable.stats.rollState(adv,dis);
   rs.autoCrit=mods.autoCrit;rs.consume=mods.consume;
@@ -166,9 +180,9 @@ Cb.previewAttack=function(s,c,a,t,opts){
     attack:{id:a.id,name:a.name,mode:a.mode,item:a.item},target:{id:t.id,name:t.name},band:tc.band,distanceFt:tc.distanceFt,
     roll:null,damage:null,mastery:null,notes:[]};
   if(tc.distanceFt===null)return out;
-  var rs=Cb.attackRollState(s,c,a,t,tc),ch=Cb.hitChance(a.bonus.value,t.ac.value,rs.state);
+  var rs=Cb.attackRollState(s,c,a,t,tc),ch=Cb.hitChance(a.bonus.value,Cb.targetAc(s,c,t,tc),rs.state);
   out.roll={bonus:a.bonus.value,bonusBreakdown:a.bonus.breakdown,state:rs.state,advantage:rs.advantage,disadvantage:rs.disadvantage,
-    ac:t.ac.value,acBreakdown:t.ac.breakdown,need:ch.need,hit:ch.hit,crit:rs.autoCrit?ch.hit:ch.crit,autoCrit:rs.autoCrit};
+    ac:Cb.targetAc(s,c,t,tc),acBreakdown:t.ac.breakdown,cover:tc.cover,need:ch.need,hit:ch.hit,crit:rs.autoCrit?ch.hit:ch.crit,autoCrit:rs.autoCrit};
   var expr=a.damage.expression;
   var n=Fable.dice.stats(expr),cr=Fable.dice.stats(expr,{crit:true});
   out.damage={expression:expr,type:a.damage.type,min:Math.max(0,n.min),max:n.max,average:n.average,critMin:Math.max(0,cr.min),critMax:cr.max,critAverage:cr.average,
@@ -224,7 +238,7 @@ Cb.beginAttack=function(s,c,attack,target,opts){
   var p={type:'attack',attacker:c.id,target:target.id,attackId:a.id,cost:st.cost,reaction:!!opts.reaction,silent:!!opts.silent,
     roll:{rolls:d.rolls.slice(),natural:d.natural,bonus:d.bonus,total:d.total,mode:d.mode,rerolled:null},
     state:{state:rs.state,advantage:rs.advantage,disadvantage:rs.disadvantage,autoCrit:rs.autoCrit},
-    band:tc.band,distanceFt:tc.distanceFt,ac:target.ac.value,canReroll:false};
+    band:tc.band,distanceFt:tc.distanceFt,ac:Cb.targetAc(s,c,target,tc),cover:tc.cover?tc.cover.name:'none',canReroll:false};
   p.canReroll=!opts.noReroll&&c.alive&&Cb.canReroll(s,c);
   s.pending=p;
   return {ok:true,pending:p};
@@ -249,7 +263,7 @@ Cb.completeAttack=function(s,p,opts){
     roll:{rolls:p.roll.rolls.slice(),natural:nat,bonus:p.roll.bonus,total:p.roll.total,mode:p.roll.mode,
       advantage:p.state.advantage.slice(),disadvantage:p.state.disadvantage.slice(),rerolled:p.roll.rerolled,
       bonusBreakdown:a.bonus.breakdown},
-    ac:p.ac,hit:hit,crit:crit,autoCrit:!!p.state.autoCrit,band:p.band,distanceFt:p.distanceFt,
+    ac:p.ac,cover:p.cover,hit:hit,crit:crit,autoCrit:!!p.state.autoCrit,band:p.band,distanceFt:p.distanceFt,
     damage:null,effects:[],statuses:[]};
   if(hit){
     var expr=a.damage.expression;
@@ -277,6 +291,10 @@ Cb.completeAttack=function(s,p,opts){
     }
   }
   s.pending=null;
+  /* attacking gives the attacker away (the Hidden status is also used up as the roll's Advantage) */
+  if(Fable.senses&&St()&&St().has(c,'hidden'))St().remove(s,c,'hidden','attacked');
+  /* a thrown weapon ends up on the ground, at the target's square (Phase 8, plan 14.3) */
+  if(a.mode==='thrown'&&a.item&&Cb.dropThrown)result.dropped=Cb.dropThrown(s,c,a,t.cell);
   if(!p.silent){
     Cb.emit(s,{type:'attack',id:c.id,result:result});
     Cb.followUps(s,result);

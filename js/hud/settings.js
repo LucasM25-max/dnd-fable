@@ -11,11 +11,13 @@
      speed          'normal', 'fast' or 'instant': how fast fights are played; Enter skips what is playing (Phase 7)
      quality        'auto' (adapts to the frame rate), 'high', 'medium' or 'low': particle and light budgets
      volMaster, volMusic, volSfx, volVoice   0 to 1      mute   silences everything
+     tactics        'auto' (what the encounter says), or the enemy tier: instinct, cunning, tactician, mastermind
+     explainAi      print each enemy plan and why to the browser console
      barks          creatures call out short lines in speech bubbles      shake   camera shake strength, 0 to 1 */
 (function(){
 var KEY='dicebound.hud.v1';
 var DEFAULTS={confirmEnd:true,scale:1,numbers:true,nameplates:true,log:true,feed:4,motion:'auto',contrast:false,
-  speed:'normal',quality:'auto',volMaster:.8,volMusic:.55,volSfx:.9,volVoice:.8,mute:false,barks:true,shake:1};
+  speed:'normal',quality:'auto',volMaster:.8,volMusic:.55,volSfx:.9,volVoice:.8,mute:false,barks:true,shake:1,tactics:'auto',explainAi:false};
 var cur=Object.assign({},DEFAULTS),listeners=[];
 try{
   var raw=window.localStorage.getItem(KEY);
@@ -29,6 +31,7 @@ function clamp(k,v){
   if(k==='speed')return v==='fast'||v==='instant'?v:'normal';
   if(k==='quality')return v==='high'||v==='medium'||v==='low'?v:'auto';
   if(k==='volMaster'||k==='volMusic'||k==='volSfx'||k==='volVoice'){var n=+v;return isFinite(n)?Math.max(0,Math.min(1,n)):DEFAULTS[k]}
+  if(k==='tactics')return v==='instinct'||v==='cunning'||v==='tactician'||v==='mastermind'?v:'auto';
   if(k==='shake'){var m=+v;return isFinite(m)?Math.max(0,Math.min(1,m)):1}
   return typeof DEFAULTS[k]==='boolean'?!!v:v;
 }

@@ -204,6 +204,54 @@ D.stats=function(expr,opts){
   return {min:min,max:max,average:avg};
 };
 
+/* The exact distribution of an expression's total, for the enemy AI (kill chances are exact, not sampled). Same options as roll.
+   Returns {min, p:[...]} where p[i] is the chance of the total min+i. A kept-dice term is worked out by listing every combination, so it is
+   limited like stats is. */
+D.pmf=function(expr,opts){
+  opts=opts||{};
+  var ast=parse(resolve(expr,opts)),mult=opts.crit?2:1,minDie=opts.minDie|0;
+  function face(v){return minDie>v?minDie:v}
+  var dist={min:0,p:[1]};
+  function conv(a,b){
+    var out=new Array(a.p.length+b.p.length-1),i,j;
+    for(i=0;i<out.length;i++)out[i]=0;
+    for(i=0;i<a.p.length;i++)for(j=0;j<b.p.length;j++)out[i+j]+=a.p[i]*b.p[j];
+    return {min:a.min+b.min,p:out};
+  }
+  ast.terms.forEach(function(t){
+    var term;
+    if(t.type==='flat'){term={min:t.sign*t.value,p:[1]}}
+    else{
+      var count=t.count*mult,keepN=t.keep?t.keep.n*mult:count,sides=t.sides,single,lo,hi,j,v;
+      if(!t.keep){
+        single={min:face(1),p:[]};
+        for(v=face(1);v<=face(sides);v++)single.p[v-face(1)]=0;
+        for(v=1;v<=sides;v++)single.p[face(v)-face(1)]+=1/sides;
+        term={min:0,p:[1]};
+        for(j=0;j<count;j++)term=conv(term,single);
+      }else{
+        if(Math.pow(sides,count)>ENUM_CAP)throw perr(ast.src,'too many combinations to work out an exact distribution');
+        lo=keepN*face(1);hi=keepN*face(sides);
+        var acc=new Array(hi-lo+1),combos=0,vals=[];
+        for(j=0;j<acc.length;j++)acc[j]=0;
+        for(j=0;j<count;j++)vals.push(1);
+        for(;;){
+          var sorted=vals.map(face).sort(function(a,b){return a-b}),sum=0;
+          if(t.keep.mode==='h'){for(j=count-keepN;j<count;j++)sum+=sorted[j]}
+          else{for(j=0;j<keepN;j++)sum+=sorted[j]}
+          acc[sum-lo]++;combos++;
+          for(j=0;j<count;j++){if(vals[j]<sides){vals[j]++;break}vals[j]=1}
+          if(j===count)break;
+        }
+        term={min:lo,p:acc.map(function(x){return x/combos})};
+      }
+      if(t.sign<0)term={min:-(term.min+term.p.length-1),p:term.p.slice().reverse()};
+    }
+    dist=conv(dist,term);
+  });
+  return dist;
+};
+
 /* ---- d20 rolls ---- */
 
 /* Advantage and disadvantage: any of each cancels out, however many sources there are (a count or an array of sources). */

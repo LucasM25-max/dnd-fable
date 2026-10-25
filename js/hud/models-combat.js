@@ -17,7 +17,7 @@ function sgn(n){return (n<0?'-':'+')+Math.abs(n)}
 
 var ICONS={
   longsword:'sword',dagger:'dagger',javelin:'javelin','unarmed-strike':'fist',
-  'second-wind':'heart',dash:'boots',disengage:'step',dodge:'guard','swap':'swap'
+  'second-wind':'heart',dash:'boots',disengage:'step',dodge:'guard','swap':'swap',hide:'hide',search:'search',pickup:'pickup'
 };
 function iconFor(a){
   if(a.mode==='thrown')return a.item==='dagger'?'throw-dagger':'throw-javelin';
@@ -53,12 +53,19 @@ M.actionBar=function(s,hero,selectedAttackId){
       ok:st.ok&&mine,reason:st.ok&&mine?'':(mine?st.reason:'Not your turn'),selected:false,uses:r?{current:r.current,max:r.max}:null,
       tip:(a.description||'')});
   });
-  ['dash','disengage','dodge'].forEach(function(id){
+  ['dash','disengage','dodge','hide','search'].forEach(function(id){
     var a=Cb().findAction(hero,id);if(!a)return;
     var st=Cb().actionState(s,hero,id);
     slots.push({id:'action:'+id,kind:'action',actionId:id,name:a.name,sub:'',icon:ICONS[id],cost:'action',group:'standard',
       ok:st.ok&&mine,reason:st.ok&&mine?'':(mine?st.reason:'Not your turn'),selected:false,tip:a.description});
   });
+  /* thrown weapons lying where the hero is standing can be picked up (Phase 8) */
+  var mine1=Cb().groundAt?Cb().groundAt(s,hero.cell).filter(function(g){return g.owner===hero.id}):[];
+  if(mine1.length){
+    var ps=Cb().pickupState(s,hero);
+    slots.push({id:'pickup',kind:'pickup',name:'Pick up',sub:mine1.length+' here',icon:'pickup',cost:ps.cost||'object',group:'standard',
+      ok:ps.ok&&mine,reason:ps.ok&&mine?'':(mine?ps.reason:'Not your turn'),selected:false,tip:'Pick up the weapon you threw.\nCosts your free object interaction, or your Action when that is spent'});
+  }
   var loadouts=(hero.sheet&&hero.sheet.loadouts)||[];
   loadouts.forEach(function(l){
     if(l.active)return;
@@ -104,7 +111,7 @@ function pv(p){
   var out={ok:p.ok,reason:p.reason||'',attack:p.attack.name,cost:p.cost,costLabel:M.COST_LABEL[p.cost]||'',band:p.band,distanceFt:p.distanceFt,roll:null,damage:null,mastery:p.mastery,notes:p.notes};
   if(p.roll){
     var r=p.roll;
-    out.roll={bonus:r.bonus,bonusText:sgn(r.bonus),ac:r.ac,hit:pct(r.hit),crit:pct(r.crit),state:r.state,advantage:r.advantage,disadvantage:r.disadvantage,autoCrit:r.autoCrit,need:r.need,
+    out.roll={bonus:r.bonus,bonusText:sgn(r.bonus),ac:r.ac,hit:pct(r.hit),crit:pct(r.crit),cover:r.cover&&r.cover.level?{name:r.cover.name,bonus:r.cover.bonus}:null,state:r.state,advantage:r.advantage,disadvantage:r.disadvantage,autoCrit:r.autoCrit,need:r.need,
       stateText:r.state==='advantage'?'Advantage':r.state==='disadvantage'?'Disadvantage':'',
       sources:r.advantage.map(function(x){return '+ '+x}).concat(r.disadvantage.map(function(x){return '- '+x}))};
   }
@@ -159,6 +166,8 @@ M.logEntry=function(e,s){
     }
     case 'action':{
       var a=e.result;
+      if(a.hide&&a.creature.team!=='player')return {tone:'info',text:a.creature.name+(a.hide.success?' slips out of sight.':' tries to hide, but is seen.')};
+      if(a.search&&a.creature.team!=='player')return {tone:'info',text:a.creature.name+' searches the clearing.'};
       return {tone:a.heal?'heal':'info',text:a.creature.name+' uses '+a.name+(a.text?': '+a.text+'.':'.')};
     }
     case 'swap':return {tone:'info',text:e.result.creature.name+' changes gear.'};
@@ -169,6 +178,19 @@ M.logEntry=function(e,s){
       var x=e.result,t=x.creature.name+' rolls a death saving throw: '+x.roll+'. ';
       t+=x.outcome==='revive'?'A natural 20: back on their feet with 1 hit point!':x.outcome==='success'?'Success.':x.outcome==='fail'?'Failure.':x.outcome==='fail2'?'Natural 1: two failures.':x.outcome==='stable'?'Stable.':'Dead.';
       return {tone:x.outcome==='success'||x.outcome==='stable'||x.outcome==='revive'?'heal':'miss',text:t};
+    }
+    case 'pickup':{
+      var pr=e.result,pn=pr.items.map(function(i){return i.name.toLowerCase()}).join(' and ');
+      return {tone:'info',text:pr.creature.name+' picks up '+(pr.creature.team==='player'?'the ':'its ')+pn+'.'};
+    }
+    case 'drop':return {tone:'info',text:nm(s,e.id)+"'s "+(e.item.name||e.item.item).toLowerCase()+' lands on the ground.'};
+    case 'recovered':return e.ids&&e.ids.length?{tone:'info',text:'Thrown weapons are gathered up after the fight.'}:null;
+    case 'morale':{
+      var mc=s.byId[e.id];if(!mc)return null;
+      if(e.result==='flee')return {tone:'miss',text:mc.name+(e.auto?' loses its nerve and flees.':' loses its nerve and flees (Wisdom '+e.total+' against DC '+e.dc+').')};
+      if(e.trigger==='recovered')return {tone:'info',text:mc.name+' steadies itself.'};
+      if(e.trigger==='desperate')return {tone:'info',text:mc.name+' has nowhere left to run and turns to fight.'};
+      return {tone:'info',text:mc.name+' holds its ground (Wisdom '+e.total+' against DC '+e.dc+').'};
     }
     case 'over':return {tone:e.winner==='player'?'heal':'dead',text:e.winner==='player'?'Victory!':'Defeat.'};
     case 'move':return e.reactions&&e.reactions.length?null:null;
