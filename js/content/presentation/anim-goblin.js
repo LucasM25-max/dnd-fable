@@ -55,6 +55,12 @@ A.registerAll([
     legL:{rotX:[D(0,0),D(.3,.9),D(.7,.9)]},legR:{rotX:[D(0,0),D(.3,.9),D(.7,.9)]}}}),
   clip('goblin-brace','Goblin cowers',.5,{hold:true,plant:false,tracks:{
     root:{posY:[D(0,0),D(.2,-1.8),D(.5,-1.8)]},torso:{rotX:[D(0,0),D(.2,.4),D(.5,.4)]},armL:{rotX:[D(0,0),D(.2,-1),D(.5,-1)]},armR:{rotX:[D(0,0),D(.2,-1),D(.5,-1)]}}}),
+  /* the Dodge stance: a deep crouch that weaves side to side with both arms up, held until the goblin's next turn */
+  clip('goblin-guard','Goblin weaves and guards',.6,{hold:true,plant:false,tracks:{
+    root:{posY:[D(0,0),D(.12,.8,'outQuad'),D(.3,-2.4,'outCubic'),D(.6,-2.4)],posZ:[D(0,0),D(.2,-1.6,'outCubic'),D(.6,-1)],rotZ:[D(0,0),D(.25,.22),D(.45,-.18),D(.6,.1)]},
+    torso:{rotX:[D(0,0),D(.3,.5),D(.6,.5)]},head:{rotX:[D(0,0),D(.3,.25),D(.6,.25)],rotZ:[D(0,0),D(.3,-.2),D(.6,.1)]},
+    armL:{rotX:[D(0,0),D(.3,-1.5),D(.6,-1.5)]},armR:{rotX:[D(0,0),D(.3,-1.3),D(.6,-1.3)]},
+    legL:{rotX:[D(0,0),D(.3,.7),D(.6,.7)]},legR:{rotX:[D(0,0),D(.3,.7),D(.6,.7)]}}}),
   clip('goblin-taunt','Goblin cackles',1.1,{plant:false,tracks:{
     root:{posY:[D(0,0),D(.15,.6),D(.3,0),D(.45,.6),D(.6,0),D(.75,.6),D(.9,0),D(1.1,0)]},torso:{rotX:[D(0,0),D(.2,-.25),D(.9,-.2),D(1.1,0)]},
     head:{rotX:[D(0,0),D(.2,-.4),D(.9,-.3),D(1.1,0)],rotZ:[D(0,0),D(.4,.2),D(.7,-.2),D(1.1,0)]},armR:{rotX:[D(0,0),D(.3,-1.4),D(.9,-1.2),D(1.1,0)]}},events:[{t:.2,cue:'cackle'}]}),

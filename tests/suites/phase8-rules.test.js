@@ -72,9 +72,9 @@ module.exports=function(t){
     });
     test('behind Total Cover a creature can hide, the roll is DC 15 and success leaves it Hidden',async()=>{
       const C=await world(),G=Fable.grid,g=open();
-      for(let r=0;r<20;r++)G.setBlocked(g,7,r,true);
+      for(let r=0;r<20;r++)G.setBlocked(g,11,r,true);
       const {s,hero,a}=duel(C,g);turnOf(s,a);
-      assert.ok(Fable.senses.hideCheck(s,a).ok);
+      assert.ok(Fable.senses.hideCheck(s,a).ok,JSON.stringify(Fable.senses.hideCheck(s,a)));
       let ok=0;
       for(let i=0;i<30;i++){
         const x=goblin(C,5);const sc=Fable.combat.create({grid:g,seed:i+1,creatures:[fighter(C),x]});
@@ -85,6 +85,13 @@ module.exports=function(t){
         if(r.success)ok++;
       }
       assert.ok(ok>15,'a goblin has +6 Stealth with Expertise: it hides most of the time');
+    });
+    test('a wall across the map is not a hiding place unless the creature is tucked right up against it',async()=>{
+      const C=await world(),G=Fable.grid,g=open();
+      for(let r=0;r<20;r++)G.setBlocked(g,7,r,true);
+      const {s,hero,a}=duel(C,g);turnOf(s,a);
+      const far=Fable.senses.hideCheck(s,a);
+      assert.ok(!far.ok&&/Nothing to hide behind/.test(far.reason),JSON.stringify(far));
     });
     test('a hidden creature cannot be targeted, and attacking reveals it with Advantage on the roll',async()=>{
       const C=await world(),G=Fable.grid,g=open();

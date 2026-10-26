@@ -6,7 +6,11 @@ const assert=require('assert'),H=require('../harness');
 async function world(){return H.loadData({monsters:true,heroes:true})}
 function open(cols,rows){return Fable.grid.create({cols:cols||24,rows:rows||24})}
 function fighter(C,id){return Fable.creature.fromSheet(Fable.character.compute(C.characters.get('human-fighter').build),{id:id||'hero'})}
-function goblin(C,i,eng){const g=Fable.creature.fromMonster(C.monsters.get('goblin-minion'),{index:i});if(eng!==undefined)g.ai=Object.assign({},g.ai,{engagement:eng});return g}
+/* The scenario tests exercise what the planner can do, so they play a cautious skirmisher (the first tuning of the profile) that uses every
+   trick. The shipped goblin is single minded instead (see 'the shipped goblin' below and the simulator bands). */
+const CAUTIOUS={engagement:1,weights:{damage:1,kill:1.6,risk:1.2,cover:.6,retreatRoutes:.5,resources:.4},riskAversion:.6,
+  morale:{fleeBelowHp:.5,fleeIfAlone:true,fleeIfAllyDefeated:'check'},tricks:['hit-and-run','throw-from-cover','hide-then-ambush','recover-daggers','focus-fire']};
+function goblin(C,i,eng,shipped){const g=Fable.creature.fromMonster(C.monsters.get('goblin-minion'),{index:i});if(!shipped)g.ai=Object.assign({},g.ai,CAUTIOUS);if(eng!==undefined)g.ai=Object.assign({},g.ai,{engagement:eng});return g}
 /* hero and goblins on a grid; every creature is placed and the fight is running with the goblin at `turn` active */
 function scene(C,o){
   const g=o.grid||open();
@@ -264,10 +268,35 @@ module.exports=function(t){
       assert.ok(gobs[0].economy.action||gobs[0].economy.movedFt>0||gobs[0].economy.bonus);
       assert.strictEqual(s.phase,'running');
     });
+    test('the shipped goblin: one aim, to kill the hero. It attacks when it can, never runs, never hides and does not give up the fight to stay safe',async()=>{
+      const C=await world();
+      /* next to the hero with every option open: it stabs and stays on it (no disengage) */
+      let {s,hero,gobs}=scene(C,{hero:{c:10,r:12},goblins:[{c:11,r:12}]});
+      gobs[0].ai=goblin(C,0,undefined,true).ai;
+      let p=Fable.ai.plan(s,gobs[0],{});
+      assert.ok(attackSteps(p).length>=1,stepText(p));
+      assert.ok(!p.intents.some(i=>i.id==='hide'||i.choice==='hide'),'no hiding: '+stepText(p));
+      /* a hurt goblin with its friend down still fights */
+      ({s,hero,gobs}=scene(C,{hero:{c:10,r:12},goblins:[{c:14,r:12},{c:12,r:5}]}));
+      gobs.forEach((g,i)=>{g.ai=goblin(C,i,undefined,true).ai});
+      gobs[0].hp.current=1;gobs[1].alive=false;gobs[1].down=true;gobs[1].hp.current=0;
+      for(let seed=1;seed<=12;seed++){
+        s.seed=seed;gobs[0].mind={};
+        const q=Fable.ai.plan(s,gobs[0],{});
+        assert.ok(!q.flee&&!(q.morale||[]).some(m=>m.result==='flee'),'seed '+seed+' does not flee');
+        assert.ok(!q.intents.some(i=>i.id==='hide'||i.choice==='hide'),'no hiding');
+      }
+      /* far away it closes the distance rather than waiting */
+      ({s,hero,gobs}=scene(C,{hero:{c:3,r:12},goblins:[{c:20,r:12}]}));
+      gobs[0].ai=goblin(C,0,undefined,true).ai;
+      p=Fable.ai.plan(s,gobs[0],{});
+      const last=p.intents.filter(i=>i.t==='move').pop();
+      assert.ok(last&&Fable.grid.distanceFt(last.to,hero.cell)<Fable.grid.distanceFt(gobs[0].cell,hero.cell)-20,'it advances: '+stepText(p));
+    });
     test('profiles resolve: monster fields over the content profile, the encounter over both, and a typo fails loudly',async()=>{
       const C=await world();
       const p=Fable.ai.resolveProfile({profile:'skirmisher',tier:'tactician',weights:{risk:2}},{id:'x'},{tricks:['focus-fire']});
-      assert.strictEqual(p.tier,'tactician');assert.strictEqual(p.weights.risk,2);assert.strictEqual(p.weights.damage,1.0);
+      assert.strictEqual(p.tier,'tactician');assert.strictEqual(p.weights.risk,2);assert.strictEqual(p.weights.damage,1.2);
       assert.deepStrictEqual(p.tricks,['focus-fire']);
       assert.throws(()=>Fable.ai.resolveProfile({profile:'nope'},{id:'x'}),/does not exist/);
       assert.throws(()=>C.aiProfiles.register({id:'bad',name:'Bad',source:'original',tier:'cunning',weights:{damage:1,kill:1,risk:1,cover:1,retreatRoutes:1,resources:1,luck:3},riskAversion:.5,morale:{fleeBelowHp:.5,fleeIfAlone:true,fleeIfAllyDefeated:'check'},tricks:[]}),/luck/);

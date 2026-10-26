@@ -54,12 +54,13 @@ C.defineKind('aiProfiles',{
 });
 C.aiProfiles.registerAll([
   {id:'skirmisher',name:'Skirmisher',source:'original',
-   description:'Light, fragile, cunning. Throws from cover, stabs and slips away, and runs when the fight turns.',
+   description:'Light and cunning, and single minded: it exists to kill the hero as fast as it can. It throws from cover, stabs and steps away only when that gets more blows in, and never runs.',
    tier:'cunning',
-   weights:{damage:1.0,kill:1.6,risk:1.2,cover:0.6,retreatRoutes:0.5,resources:0.4},
-   riskAversion:0.6,
-   morale:{fleeBelowHp:0.5,fleeIfAlone:true,fleeIfAllyDefeated:'check'},
-   tricks:['hit-and-run','throw-from-cover','hide-then-ambush','recover-daggers','focus-fire']},
+   engagement:2.5,
+   weights:{damage:1.2,kill:2.0,risk:0.4,cover:0.15,retreatRoutes:0.1,resources:0.5},
+   riskAversion:0.25,
+   morale:{fleeBelowHp:0,fleeIfAlone:false,fleeIfAllyDefeated:false},
+   tricks:['hit-and-run','throw-from-cover','recover-daggers','focus-fire']},
   {id:'brute',name:'Brute',source:'original',
    description:'Hits hard and keeps coming. Barely weighs its own safety.',
    tier:'cunning',

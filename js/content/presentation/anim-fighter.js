@@ -115,6 +115,12 @@ A.registerAll([
   clip('fighter-brace','Fighter braces to dodge',.7,{layer:'upper',plant:false,hold:true,tracks:{
     root:{posY:[D(0,0),D(.25,-1.2,'outCubic'),D(.7,-1.2)]},torso:{rotX:[D(0,0),D(.25,.22),D(.7,.22)]},
     armL:{rotX:[D(0,0),D(.25,-.7),D(.7,-.7)]},armR:{rotX:[D(0,0),D(.25,-.2),D(.7,-.2)]},legL:{rotX:[D(0,0),D(.25,.35),D(.7,.35)]},legR:{rotX:[D(0,0),D(.25,-.3),D(.7,-.3)]}}}),
+  /* the Dodge stance: a quick step back, side on, knees bent, weapon forward and the off hand up, held until the creature's next turn */
+  clip('fighter-guard','Fighter takes a dodging stance',.55,{layer:'upper',plant:false,hold:true,tracks:{
+    root:{posZ:[D(0,0),D(.18,-2.4,'outCubic'),D(.55,-1.4)],posY:[D(0,0),D(.1,.7,'outQuad'),D(.3,-1.6,'outCubic'),D(.55,-1.6)],rotY:[D(0,0),D(.3,.5,'outCubic'),D(.55,.5)]},
+    torso:{rotX:[D(0,0),D(.3,.28),D(.55,.28)],rotY:[D(0,0),D(.3,-.3),D(.55,-.3)]},head:{rotX:[D(0,0),D(.3,-.12),D(.55,-.12)]},
+    armL:{rotX:[D(0,0),D(.3,-1.35),D(.55,-1.35)]},armR:{rotX:[D(0,0),D(.3,-.95),D(.55,-.95)]},
+    legL:{rotX:[D(0,0),D(.3,.5),D(.55,.5)]},legR:{rotX:[D(0,0),D(.3,-.45),D(.55,-.45)]},cape:{rotX:[D(0,0),D(.2,.7),D(.55,.4)]}}}),
   clip('fighter-disengage','Fighter disengages',.55,{layer:'upper',plant:false,tracks:{
     root:{posZ:[D(0,0),D(.2,-2.2,'outCubic'),D(.55,0)],posY:[D(0,0),D(.12,.6),D(.3,0)]},armL:{rotX:[D(0,0),D(.2,-.6),D(.55,0)]}}}),
   clip('fighter-dash','Fighter dashes',.5,{layer:'upper',plant:false,tracks:{

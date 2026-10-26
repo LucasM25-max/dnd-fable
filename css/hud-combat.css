@@ -220,6 +220,7 @@
 .np.enemy b{color:#f0b9b3}.np.hero b{color:var(--hud-gold)}
 .np.active b{border-color:var(--hud-gold);color:var(--hud-gold-hi)}
 .np .bar{display:block;width:46px;height:5px;background:#0b0603;border:1px solid #000;box-shadow:0 1px 0 #000a}
+.np.hid{opacity:.8}.np.hid b::after{content:" - hidden";font-weight:600;color:#b9c7d6}
 .np .bar i{display:block;height:100%;background:linear-gradient(var(--hud-blood-hi),var(--hud-blood))}
 .np.hero .bar i{background:linear-gradient(#a8d4ff,#4a86c0)}
 .np.bloodied .bar i{filter:brightness(.78)}

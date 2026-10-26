@@ -8,7 +8,8 @@
      Fable.senses.seesPlain(s, who, target)     who could see target ignoring Hidden: awake, not Blinded, some line between the
                                                 squares (not Total Cover), and the target's square is not dark to them
      Fable.senses.sees(s, who, target)          who knows where target is: seesPlain, and the target is not Hidden from them
-   Hiding (SRD 5.2.1, the Hide action): a DC 15 Dexterity (Stealth) check, possible only when no enemy can see you
+   Hiding (SRD 5.2.1, the Hide action): a DC 15 Dexterity (Stealth) check, possible only when no enemy can see you and you are
+   Heavily Obscured or tucked behind a solid square (Total Cover); a creature is never made invisible, it is just not seen
      Fable.senses.hideCheck(s, c)               {ok, reason, seenBy}: could c try to hide here, now
      Fable.senses.hide(s, c)                    roll it; on a success c is Hidden, with its Stealth total kept as the DC to find it
      Fable.senses.searchTargets(s, c)           hidden enemies within 30 ft that c could find
@@ -95,8 +96,20 @@ Se.hideCheck=function(s,c){
     out.reason=best>=1?'Not enough cover: '+s.byId[out.seenBy[0]].name+' can still see you':'Nothing to hide behind';
     return out;
   }
+  /* SRD 5.2.1: Heavily Obscured, or behind Three-Quarters or Total Cover. In the open, with nothing beside you, you are only unseen in the dark. */
+  if(!Se.hasShelter(s,c,foes)){out.reason='Nothing to hide behind';return out}
   out.ok=true;
   return out;
+};
+/* A hiding place: every enemy's view of c is dark, or a solid square (a tree, a wall, a crate) is right beside c. */
+Se.hasShelter=function(s,c,foes){
+  var g=s.grid;
+  if(foes.length&&foes.every(function(o){return Se.effectiveLight(s,o,c.cell)>=DARK}))return true;
+  for(var dr=-1;dr<=1;dr++)for(var dc=-1;dc<=1;dc++){
+    if(!dr&&!dc)continue;
+    if(Gr().isBlocked(g,c.cell.c+dc,c.cell.r+dr)&&Gr().inBounds(g,c.cell.c+dc,c.cell.r+dr))return true;
+  }
+  return false;
 };
 Se.hide=function(s,c){
   var chk=Se.hideCheck(s,c);
