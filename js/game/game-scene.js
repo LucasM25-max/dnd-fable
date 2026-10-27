@@ -101,6 +101,12 @@ Fable.createGameScene=function(encounter){
     }else shake.set(0,0,0);
     cam.position.add(shake);
     look.add(shake);cam.lookAt(look);look.sub(shake);
+    /* a shot can slide the picture sideways (the victory and defeat shots put the hero beside the result menu) */
+    var vs=pd?pd.viewShift():0;
+    if(Math.abs(vs)>.0005){
+      var W=window.innerWidth,H=window.innerHeight;
+      cam.setViewOffset(W,H,vs*W,0,W,H);
+    }else if(cam.view&&cam.view.enabled)cam.clearViewOffset();
   }
   function eased(v){v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)}
   function orbit(target,yaw,pitch,dist){

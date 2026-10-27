@@ -89,6 +89,26 @@ module.exports=function(t){
       const css=read('hud-combat.css');
       assert.ok(/prefers-reduced-motion:reduce\)\s*\{[^}]*\.prm>\.plate/.test(css));
     });
+    test('the end of a fight takes the whole HUD off the screen, leaving only the result menu and the screen effects',()=>{
+      const css=read('presentation.css'),r=rules(css).filter(x=>/#hud-layer\.outcome/.test(x.sel));
+      assert.ok(r.length>=1);
+      const main=r.find(x=>/:not\(\.prm\)/.test(x.sel)&&/:not\(\.pfx\)/.test(x.sel));
+      assert.ok(main,'one rule hides everything but .prm and .pfx');
+      assert.ok(!/:not\(\.wl\)|:not\(\.ovl\)|:not\(\.hud-vignette\)/.test(main.sel),'nameplates, panels and the vignette go too');
+      assert.strictEqual(prop(main.decl,'opacity'),'0','gone, not dimmed');
+      assert.strictEqual(prop(main.decl,'visibility'),'hidden');
+      assert.ok(/visibility 0s linear/.test(prop(main.decl,'transition')),'hidden once the quick fade has finished');
+    });
+    test('the result menu sits to the side, and returns to the middle on a phone',()=>{
+      const css=read('hud-combat.css'),big=rules(css).filter(x=>x.sel==='.prm.big');
+      assert.ok(big.length>=2);
+      assert.strictEqual(prop(big[0].decl,'justify-content'),'flex-end');
+      assert.strictEqual(prop(big[big.length-1].decl,'justify-content'),'center');
+    });
+    test('the target card never takes the pointer',()=>{
+      const css=read('hud-combat.css');
+      assert.ok(rules(css).some(x=>/^\.tgt,\s*\.tgt \*$/.test(x.sel)&&/pointer-events:none!important/.test(x.decl.replace(/\s/g,''))));
+    });
     test('every transform-centred HUD element (left:50% with translate) has no transform animation',()=>{
       const problems=[];
       files.forEach(f=>{

@@ -5,10 +5,10 @@
    var wm = Fable.createWorldMarks({scene, grid})
    wm.setActive(cell, team)      move the grid window and the ring
    wm.follow(x, z)               keep the ring under a walking creature
-   wm.setTarget(info)            mark the creature the pointer is on: info {x, z, fromX, fromZ, ok, others:[{x,z}]} or null. A red reticle (ring,
-                                 corner brackets and a bobbing arrow) sits on the target, an aim line runs to it from the attacker, and the other
-                                 enemies the armed attack could reach get a faint ring. ok false turns the marks grey: the attack cannot be made.
-   wm.update(t)                  pulse the ring and the reticle */
+   wm.setTarget(info)            mark the creature the pointer is on: info {x, z, ok, others:[{x,z}]} or null. One circle on the floor under the
+                                 target, and a fainter one under each other enemy the armed attack could reach. Nothing else: no brackets, no
+                                 arrow, no line. The colours are the movement colours: blue when the attack can be made, red when it cannot.
+   wm.update(t)                  pulse the ring and the target circle */
 (function(){
 var RADIUS=9,Y=.4;
 function reduced(){try{return window.matchMedia('(prefers-reduced-motion:reduce)').matches}catch(e){return false}}
@@ -35,30 +35,16 @@ Fable.createWorldMarks=function(o){
   var fill=new THREE.Mesh(fillGeo,new THREE.MeshBasicMaterial({color:0xf0b94d,transparent:true,opacity:.16,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
   fill.renderOrder=3;fill.visible=false;group.add(fill);
 
-  /* the target reticle */
-  var RED=0xff4a3d,GREY=0x9a9a9a;
+  /* the target circle: the same two colours as the move preview, blue for can and red for cannot */
+  var OK=Fable.hudModels.COLORS.ok,DENY=Fable.hudModels.COLORS.deny;
   var tgt=new THREE.Group();tgt.visible=false;group.add(tgt);
-  var tRingMat=new THREE.MeshBasicMaterial({color:RED,transparent:true,opacity:.95,depthWrite:false,side:THREE.DoubleSide});
+  var tRingMat=new THREE.MeshBasicMaterial({color:OK,transparent:true,opacity:.95,depthWrite:false,side:THREE.DoubleSide});
   var tRingGeo=new THREE.RingGeometry(cell*.42,cell*.5,48);tRingGeo.rotateX(-Math.PI/2);
   var tRing=new THREE.Mesh(tRingGeo,tRingMat);tRing.renderOrder=6;tgt.add(tRing);
-  var tFillMat=new THREE.MeshBasicMaterial({color:RED,transparent:true,opacity:.2,depthWrite:false,side:THREE.DoubleSide});
+  var tFillMat=new THREE.MeshBasicMaterial({color:OK,transparent:true,opacity:.2,depthWrite:false,side:THREE.DoubleSide});
   var tFillGeo=new THREE.CircleGeometry(cell*.42,40);tFillGeo.rotateX(-Math.PI/2);
   var tFill=new THREE.Mesh(tFillGeo,tFillMat);tFill.renderOrder=5;tFill.position.y=-.05;tgt.add(tFill);
-  var bracketMat=new THREE.LineBasicMaterial({color:RED,transparent:true,opacity:1,depthWrite:false,depthTest:false});
-  var bp=[],h=cell*.46,l=cell*.2;
-  [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(function(q){
-    var x=q[0]*h,z=q[1]*h;
-    bp.push(x,0,z,x-q[0]*l,0,z, x,0,z,x,0,z-q[1]*l);
-  });
-  var bGeo=new THREE.BufferGeometry();bGeo.setAttribute('position',new THREE.Float32BufferAttribute(bp,3));
-  var brackets=new THREE.LineSegments(bGeo,bracketMat);brackets.renderOrder=7;brackets.position.y=.3;tgt.add(brackets);
-  var arrowMat=new THREE.MeshBasicMaterial({color:RED,transparent:true,opacity:.95,depthWrite:false,depthTest:false});
-  var arrowGeo=new THREE.ConeGeometry(cell*.17,cell*.34,4);arrowGeo.rotateX(Math.PI);
-  var arrow=new THREE.Mesh(arrowGeo,arrowMat);arrow.renderOrder=8;arrow.position.y=cell*1.9;tgt.add(arrow);
-  var lineGeo2=new THREE.BufferGeometry();lineGeo2.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3));
-  var lineMat=new THREE.LineBasicMaterial({color:RED,transparent:true,opacity:.8,depthWrite:false,depthTest:false});
-  var aim=new THREE.Line(lineGeo2,lineMat);aim.frustumCulled=false;aim.renderOrder=7;aim.visible=false;group.add(aim);
-  var faintMat=new THREE.MeshBasicMaterial({color:RED,transparent:true,opacity:.4,depthWrite:false,side:THREE.DoubleSide});
+  var faintMat=new THREE.MeshBasicMaterial({color:OK,transparent:true,opacity:.4,depthWrite:false,side:THREE.DoubleSide});
   var faint=[];
   for(var fi=0;fi<4;fi++){var fm=new THREE.Mesh(tRingGeo,faintMat);fm.renderOrder=4;fm.visible=false;fm.scale.set(.9,1,.9);group.add(fm);faint.push(fm)}
   var targetOk=true;
@@ -90,17 +76,12 @@ Fable.createWorldMarks=function(o){
     /* the ring stays under the creature while it walks */
     follow:function(x,z){ring.position.x=x;ring.position.z=z;fill.position.x=x;fill.position.z=z},
     setTarget:function(info){
-      if(!info){tgt.visible=false;aim.visible=false;faint.forEach(function(f){f.visible=false});return}
+      if(!info){tgt.visible=false;faint.forEach(function(f){f.visible=false});return}
       targetOk=info.ok!==false;
-      var col=targetOk?RED:GREY;
-      tRingMat.color.setHex(col);tFillMat.color.setHex(col);bracketMat.color.setHex(col);arrowMat.color.setHex(col);lineMat.color.setHex(col);faintMat.color.setHex(col);
-      tFillMat.opacity=targetOk?.22:.1;lineMat.opacity=targetOk?.8:.35;
+      var col=targetOk?OK:DENY;
+      tRingMat.color.setHex(col);tFillMat.color.setHex(col);faintMat.color.setHex(col);
+      tFillMat.opacity=targetOk?.22:.16;
       tgt.position.set(info.x,Y+.15,info.z);tgt.visible=true;
-      if(info.fromX!==undefined){
-        var p=lineGeo2.attributes.position.array;
-        p[0]=info.fromX;p[1]=11;p[2]=info.fromZ;p[3]=info.x;p[4]=11;p[5]=info.z;
-        lineGeo2.attributes.position.needsUpdate=true;aim.visible=true;
-      }else aim.visible=false;
       var others=info.others||[];
       faint.forEach(function(f,i){
         var q=others[i];
@@ -109,10 +90,8 @@ Fable.createWorldMarks=function(o){
     },
     update:function(t){
       if(tgt.visible){
-        var rm=reduced(),k=rm?1:1+Math.sin(t*5)*.07;
-        tRing.scale.set(k,1,k);brackets.scale.set(rm?1:1.04-Math.sin(t*5)*.05,1,rm?1:1.04-Math.sin(t*5)*.05);
-        arrow.position.y=cell*1.9+(rm?0:Math.sin(t*4)*cell*.08);
-        arrow.rotation.y=t*1.5;
+        var rm=reduced(),k=rm?1:1+Math.sin(t*5)*.05;
+        tRing.scale.set(k,1,k);
       }
       if(reduced()){ring.scale.set(1,1,1);return}
       var k2=1+Math.sin(t*3)*.05;ring.scale.set(k2,1,k2);

@@ -268,7 +268,7 @@ Fable.createPlanner=function(o){
     cues.push({t:.1,type:'time',op:'slow',scale:.4,dur:.6});
     cues.push({t:.2,type:'screen',op:'flash',color:win?'#fff0c0':'#200000',alpha:win?.3:.5,dur:.5});
     cues.push({t:.15,type:'sfx',id:win?'sfx-victory':'sfx-defeat',gain:1});
-    cues.push({t:0,type:'call',name:'celebrate',win:win});
+    cues.push({t:0,type:'call',name:'celebrate',win:win,essential:true});
     d=win?2.6:2.4;
     return mk('over',cues,d,'over',{win:win});
   }

@@ -14,6 +14,9 @@ var FT=5;
 
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 M.escape=esc;
+/* The two colours that tell the player whether something can be done: blue when it can, red when it cannot. Moving and aiming
+   an attack both read from here, so the same colour always means the same thing on the ground. */
+M.COLORS={ok:0x4aa3ff,deny:0xe8584c};
 
 /* ---------- portraits ---------- */
 M.portraitSvg=function(p){

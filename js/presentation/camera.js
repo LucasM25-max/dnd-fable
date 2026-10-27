@@ -13,6 +13,7 @@
      cd.update(dt)        real time seconds
      cd.modify(view)      -> the camera to use {target:{x,y,z}, yaw, pitch, dist}
      cd.offset()          -> {x, y, z} shake to add to the final position and look point     cd.fovAdd()  -> radians
+     cd.viewShift()       -> the fraction of the screen width the picture is slid sideways (a shot's shiftX), so the subject sits off centre
      cd.active()          a cinematic move is running */
 (function(G){
 G.Fable=G.Fable||{};
@@ -93,7 +94,7 @@ function createDirector(o){
       /* reduced motion keeps the framing of an action but drops the sweeping moves */
       var s={t:0,in:spec.in===undefined?.3:spec.in,hold:spec.hold===undefined?.5:spec.hold,out:spec.out===undefined?.5:spec.out,
         focus:spec.focus||null,dist:calm?1:(spec.dist===undefined?1:spec.dist),yaw:calm?0:(spec.yaw||0),pitch:calm?0:(spec.pitch||0),
-        spin:calm?0:(spec.spin||0),fov:calm?0:(spec.fov||0),tag:spec.tag||null,focusW:spec.focusW===undefined?1:spec.focusW,dead:false};
+        spin:calm?0:(spec.spin||0),fov:calm?0:(spec.fov||0),shiftX:spec.shiftX||0,tag:spec.tag||null,focusW:spec.focusW===undefined?1:spec.focusW,dead:false};
       if(calm&&s.in<.25)s.in=.25;
       shots.push(s);
       return s;
@@ -155,6 +156,12 @@ function createDirector(o){
     fovAdd:function(){
       var v=0;
       punches.forEach(function(p){var k=p.t/p.dur;v+=p.fov*(k<.15?k/.15:Math.pow(1-(k-.15)/.85,2))});
+      return v;
+    },
+    /* positive slides the subject to the left of the screen. It is framing, not motion, so reduced motion keeps it. */
+    viewShift:function(){
+      var v=0;
+      shots.forEach(function(s){if(s.shiftX)v+=s.shiftX*Math.max(0,envelope(s))});
       return v;
     },
     active:function(){return shots.length>0},

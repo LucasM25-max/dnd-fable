@@ -29,7 +29,87 @@ module.exports=function(t){
       assert.ok(ids.indexOf('attack:longsword:melee')===0);
       ['action:second-wind','action:dash','action:disengage','action:dodge','swap:b'].forEach(id=>assert.ok(ids.indexOf(id)>=0,id));
       assert.ok(ids.indexOf('action:heroic-inspiration-reroll')<0,'the reroll is a prompt, not a slot');
-      bar.forEach((x,i)=>assert.strictEqual(x.hotkey,i<9?String(i+1):i===9?'0':null));
+      bar.forEach(x=>assert.ok(x.costLabel,x.id+' has a cost label'));
+    });
+    test('the hotbar has ten slots: Move first, then the weapons and Second Wind already pinned, keys 1 to 9 and 0',async()=>{
+      const C=await world(),{s,hero}=fight(C);
+      const list=M().actionBar(s,hero,null),all=[M().moveSlot(s,hero,null)].concat(list);
+      const pins=M().defaultPins(all);
+      assert.strictEqual(pins.length,10);assert.strictEqual(pins[0],'move');
+      assert.deepStrictEqual(pins.filter(Boolean).slice(1,2),['attack:longsword:melee']);
+      list.filter(x=>x.kind==='attack').forEach(x=>assert.ok(pins.indexOf(x.id)>0,x.id+' is pinned'));
+      assert.ok(pins.indexOf('action:second-wind')>0,'Second Wind is pinned');
+      ['action:dash','action:disengage','action:dodge'].forEach(id=>assert.ok(pins.indexOf(id)<0,id+' stays in the menu'));
+      const bar=M().hotbar(pins,all,{});
+      assert.deepStrictEqual(bar.map(x=>x.hotkey),['1','2','3','4','5','6','7','8','9','0']);
+      assert.strictEqual(bar[0].slot.name,'Move');assert.ok(bar[0].slot.ok);assert.ok(bar[0].slot.selected,'Move is the mode when nothing is armed');
+      assert.ok(!M().hotbar(pins,all,{})[0].gone);
+      assert.ok(!M().moveSlot(s,hero,'longsword:melee').selected,'arming an attack leaves Move mode');
+    });
+    test('the thrown javelin and dagger of the tutorial hero are pinned by default and keep their place when they are gone',async()=>{
+      const C=await world(),{s,hero}=fight(C);
+      const list=M().actionBar(s,hero,null),all=[M().moveSlot(s,hero,null)].concat(list);
+      const names=list.filter(x=>x.kind==='attack').map(x=>x.name);
+      assert.ok(names.some(n=>/dagger/i.test(n))&&names.some(n=>/javelin/i.test(n)),'the hero has a dagger and a javelin to throw: '+names);
+      const mem={},pins=M().defaultPins(all);
+      M().hotbar(pins,all,mem);
+      const jav=list.find(x=>/javelin/i.test(x.name)&&/thrown/.test(x.name)).id,at=pins.indexOf(jav);
+      assert.ok(at>0);
+      const without=all.filter(x=>x.id!==jav),bar=M().hotbar(pins,without,mem);
+      assert.ok(bar[at].gone&&!bar[at].slot.ok&&bar[at].slot.name,'the slot keeps its place and name, dimmed');
+      assert.strictEqual(bar[at].slot.reason,'Not available right now');
+    });
+    test('pins: toggle, place, swap and remove never touch Move, never repeat an id and report a full bar',async()=>{
+      const m=M();
+      let p=m.defaultPins([]);
+      assert.deepStrictEqual(p,['move',null,null,null,null,null,null,null,null,null]);
+      p=m.pinToggle(p,'action:dodge');assert.strictEqual(p[1],'action:dodge');
+      p=m.pinToggle(p,'action:dash');assert.strictEqual(p[2],'action:dash');
+      p=m.pinToggle(p,'action:dodge');assert.strictEqual(p[1],null,'toggling a pinned slot unpins it');
+      p=m.pinPlace(p,'action:dash',5);assert.strictEqual(p[5],'action:dash');assert.strictEqual(p[2],null,'it left its old place');
+      p=m.pinPlace(p,'action:dodge',0);assert.strictEqual(p[0],'move','slot 1 is Move whatever is dropped on it');
+      p=m.pinSwap(p,5,7);assert.strictEqual(p[7],'action:dash');
+      p=m.pinSwap(p,0,7);assert.strictEqual(p[0],'move');
+      p=m.pinRemove(p,0);assert.strictEqual(p[0],'move');
+      assert.strictEqual(m.pinToggle(m.pinToggle(p,'move')[0],'move')[0],'move');
+      let full=['move'];for(let i=1;i<10;i++)full.push('x'+i);
+      assert.strictEqual(m.pinToggle(full,'action:dodge'),null,'a full hotbar says so');
+      assert.deepStrictEqual(m.normalizePins(['dodge','a','a',7,'passive:opportunity-attack']),['move','a',null,null,null,null,null,null,null,null]);
+    });
+    test('the menu sorts every slot into Actions, Bonus Actions or Reactions and then into a tab',async()=>{
+      const C=await world(),{s,hero}=fight(C);
+      const list=M().actionBar(s,hero,null),menu=M().actionMenu(s,hero,list);
+      assert.deepStrictEqual(menu.map(c=>c.id),['action','bonus','reaction']);
+      const cat=id=>menu.find(c=>c.id===id),tab=(c,t)=>cat(c).tabs.find(x=>x.id===t);
+      const ids=(c,t)=>(tab(c,t)?tab(c,t).slots:[]).map(x=>x.id);
+      assert.ok(ids('action','attacks').indexOf('attack:longsword:melee')===0);
+      ['action:dash','action:disengage','action:dodge'].forEach(id=>assert.ok(ids('action','standard').indexOf(id)>=0,id));
+      assert.ok(ids('bonus','abilities').indexOf('action:second-wind')>=0,'Second Wind spends a Bonus Action');
+      assert.ok(ids('action','gear').indexOf('swap:b')>=0,'a gear swap is in Gear');
+      assert.ok(!cat('action').tabs.some(t=>t.id==='spells'),'no Spells tab until there are spells');
+      assert.ok(cat('reaction').tabs[0].slots[0].passive,'the Reaction tab explains Opportunity Attacks');
+      assert.strictEqual(cat('reaction').tabs[0].slots[0].pinnable,false,'a passive slot cannot be pinned');
+      assert.ok(menu.every(c=>c.tabs.length>0));
+      // every slot of the bar appears exactly once
+      const seen=[];menu.forEach(c=>c.tabs.forEach(t=>t.slots.forEach(x=>{if(!x.passive)seen.push(x.id)})));
+      assert.deepStrictEqual(seen.slice().sort(),list.map(x=>x.id).sort());
+      hero.economy.reaction=true;
+      const m2=M().actionMenu(s,hero,list);assert.ok(m2.find(c=>c.id==='reaction').used);
+      assert.ok(!m2.find(c=>c.id==='reaction').tabs[0].slots[0].ok);
+    });
+    test('the dagger loadout puts the off-hand attack under Bonus Actions',async()=>{
+      const C=await world(),{s,hero}=fight(C,'b');
+      const menu=M().actionMenu(s,hero,M().actionBar(s,hero,null));
+      assert.ok(menu.find(c=>c.id==='bonus').tabs.some(t=>t.id==='attacks'&&t.slots.some(x=>x.attackId==='dagger:light-extra')));
+    });
+    test('moving and aiming share one pair of colours: blue for can, red for cannot',async()=>{
+      await world();
+      assert.deepStrictEqual(M().COLORS,{ok:0x4aa3ff,deny:0xe8584c});
+      const fs=require('fs'),path=require('path'),root=path.join(__dirname,'..','..','js','hud');
+      const mv=fs.readFileSync(path.join(root,'move-preview.js'),'utf8'),wm=fs.readFileSync(path.join(root,'world-marks.js'),'utf8');
+      assert.ok(/COLORS\.ok/.test(mv)&&/COLORS\.deny/.test(mv));
+      assert.ok(/COLORS\.ok/.test(wm)&&/COLORS\.deny/.test(wm));
+      assert.ok(!/GREY|brackets|arrow/.test(wm.replace(/\/\*[\s\S]*?\*\//g,'')),'the target mark is a circle: no brackets, arrow or grey');
     });
     test('every slot has an icon the icon set draws, a cost and a reason when it cannot be used',async()=>{
       const C=await world(),{s,hero}=fight(C);

@@ -4,6 +4,7 @@
      numbers        floating damage numbers over creatures
      nameplates     name and health plates over creatures
      log            the combat log is open
+     menu           the tabbed action menu above the economy plate is open (B folds it; the hotbar stays)
      feed           how long the dice card stays, in seconds (2 to 8)
      motion         'auto' follows the system, 'reduced' or 'full' forces it
      contrast       true thickens edges and brightens text
@@ -16,7 +17,7 @@
      barks          creatures call out short lines in speech bubbles      shake   camera shake strength, 0 to 1 */
 (function(){
 var KEY='dicebound.hud.v1';
-var DEFAULTS={confirmEnd:true,scale:1,numbers:true,nameplates:true,log:true,feed:4,motion:'auto',contrast:false,
+var DEFAULTS={confirmEnd:true,scale:1,numbers:true,nameplates:true,log:true,menu:true,feed:4,motion:'auto',contrast:false,
   speed:'normal',quality:'auto',volMaster:.8,volMusic:.55,volSfx:.9,volVoice:.8,mute:false,barks:true,shake:1,tactics:'auto',explainAi:false};
 var cur=Object.assign({},DEFAULTS),listeners=[];
 try{

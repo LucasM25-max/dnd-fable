@@ -3,7 +3,7 @@
    hero's computed sheet and the fight's own numbers (hit points, pools), so it shows what is true now. */
 (function(){
 var KEYMAP=[
-  ['Hover a square','Preview a move'],['Click','Move there, or attack the target you aimed at'],['1-9, 0','Use that ability slot'],
+  ['Hover a square','Preview a move'],['Click','Move there, or attack the target you aimed at'],['1-9, 0','Use that hotbar slot (1 is Move)'],['B','Fold or unfold the action menu'],['Right-click','Pin or unpin an action on the hotbar'],
   ['Space','End turn'],['Esc','Cancel aiming, close a panel, then the menu'],['C','Character sheet'],['L','Combat log'],['H or ?','Controls and settings'],
   ['R / Enter','Reroll with Heroic Inspiration, when asked'],['K','Keep the roll, when asked'],['Q / E','Turn the camera'],['Drag, wheel','Orbit and zoom'],['Enter','Skip the action that is playing'],['F','Cycle playback speed'],['M','Mute or unmute']
 ];

@@ -176,20 +176,52 @@ Fable.createPresentation=function(o){
       case 'celebrate':{
         var s=getState();
         if(!s)return;
+        var heroActor=null;
         list.forEach(function(x){
+          if(x.creature.team==='player')heroActor=heroActor||x;
           if(!x.creature.alive||x.creature.down)return;
           var cl=x.profile&&x.profile.clips,win=c.win;
-          if(win&&x.creature.team==='player'&&cl&&cl.victory){x.animator.play(cl.victory,{hold:true,tag:'victory'});vfx.play('fx-victory',{x:x.walker.position().x,y:0,z:x.walker.position().z})}
           if(!win&&x.creature.team==='enemy'&&cl&&cl.taunt)x.animator.play(cl.taunt);
         });
-        var hero=list.filter(function(x){return x.creature.team==='player'})[0];
-        var cen=hero?hero.walker.position():{x:0,z:0};
-        if(c.win){cam.shot({focus:{x:cen.x,y:9,z:cen.z},dist:.62,pitch:-.12,spin:.22,in:.9,hold:Infinity,out:.8,tag:'outcome'})}
-        else cam.shot({focus:{x:cen.x,y:6,z:cen.z},dist:1.3,pitch:.1,spin:-.05,in:1.4,hold:Infinity,out:.8,tag:'outcome'});
+        /* The hero is lifted up out of the fight into the result: it floats clear of the ground, and a win then plays the victory
+           animation up there. A defeat keeps the fallen pose and rises with it, slower. The camera slides the picture so the hero
+           stands to one side, and the result menu takes the other. */
+        var cen=heroActor?heroActor.walker.position():{x:0,z:0};
+        if(heroActor)rise(heroActor,c.win);
+        if(c.win){cam.shot({focus:{x:cen.x,y:15,z:cen.z},dist:.56,pitch:-.1,spin:.2,in:1.3,hold:Infinity,out:.8,tag:'outcome',shiftX:.2})}
+        else cam.shot({focus:{x:cen.x,y:9,z:cen.z},dist:1.2,pitch:.08,spin:-.04,in:1.8,hold:Infinity,out:.8,tag:'outcome',shiftX:.2});
         if(fx)fx.letterbox(true);
         return;
       }
     }
+  }
+  /* ---------- the rise ---------- */
+  var RISE={win:{to:12,dur:1.9,at:.5},lose:{to:9,dur:2.6,at:1}};
+  function rise(a,win){
+    var spec=win?RISE.win:RISE.lose,calm=reduced(),p=a.walker.position();
+    a.rise={t:calm?spec.dur:0,dur:spec.dur,to:spec.to,at:spec.at,win:win,fired:false,clock:0};
+    if(win){
+      vfx.play('fx-victory',{x:p.x,y:0,z:p.z});
+      audio.play('sfx-surge',{gain:.5,pan:panOf(p)});
+    }
+    stepRise(a,0);
+  }
+  function fireRise(a){
+    var r=a.rise;if(!r||r.fired)return;
+    r.fired=true;
+    var cl=a.profile&&a.profile.clips;
+    if(r.win&&cl&&cl.victory&&a.creature.alive){
+      a.animator.play(cl.victory,{hold:true,tag:'victory'});
+      var p=a.walker.position();vfx.play('fx-victory',{x:p.x,y:a.animator.hover(),z:p.z});
+    }
+  }
+  function stepRise(a,dt){
+    var r=a.rise;if(!r)return;
+    r.clock+=dt;r.t=Math.min(r.dur,r.t+dt);
+    var k=r.t/r.dur,e=1-Math.pow(1-k,3);
+    var bob=(k>=1&&!reduced())?Math.sin(r.clock*1.7)*.55:0;
+    a.animator.setHover(r.to*e+bob);
+    if(k>=r.at)fireRise(a);
   }
   function cameraCue(c){
     if(c.op==='shot'){
@@ -259,8 +291,10 @@ Fable.createPresentation=function(o){
   };
   api.busy=function(){return queue.busy()};
   function finishVisuals(){
+    /* a skip never cancels the rise: it lands it, so the hero is where the result expects it */
+    list.forEach(function(x){if(x.rise){x.rise.t=x.rise.dur;stepRise(x,0);fireRise(x)}});
     list.forEach(function(x){x.animator.finish();x.animator.clearLook()});
-    vfx.clear();queue.timeScale=1;slowUntil=0;cam.release();
+    vfx.clear();queue.timeScale=1;slowUntil=0;if(over)cam.release('attack');else cam.release();
   }
   api.skip=function(){if(!queue.busy())return false;queue.skip();finishVisuals();return true};
   api.skipAll=function(){if(!queue.busy())return false;queue.skipAll();finishVisuals();return true};
@@ -276,6 +310,7 @@ Fable.createPresentation=function(o){
     queue.update(dt);
     var gdt=dt*queue.timeScale,spd=isFinite(sp)?sp:1;
     list.forEach(function(x){
+      if(x.rise)stepRise(x,dt);
       x.walker.update(gdt);
       if(x.lookUntil&&clockReal>x.lookUntil){x.animator.clearLook();x.lookUntil=0}
       x.animator.update(gdt*(x.animator.busy()?1:1));x.animator.apply();

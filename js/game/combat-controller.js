@@ -131,8 +131,8 @@ Fable.createCombatController=function(o){
   }
 
   /* ---------- the target under the pointer ---------- */
-  /* A reticle on the enemy the pointer is on (red when the attack can be made, grey when it cannot), an aim line from the hero, a faint
-     ring on every other enemy the armed attack could hit, and a cursor to match. */
+  /* A circle on the floor under the enemy the pointer is on, in the movement colours (blue when the attack can be made, red when it
+     cannot), a fainter one under every other enemy the armed attack could hit, and a cursor to match. */
   var cursorNow='';
   function setCursor(c){if(c!==cursorNow&&Fable.canvas){cursorNow=c;Fable.canvas.style.cursor=c}}
   function updateTargetMarks(){
@@ -142,7 +142,7 @@ Fable.createCombatController=function(o){
     }
     var atkId=currentAttack(),atk=atkId&&Cb().findAttack(hero,atkId);
     var ok=!!atk&&Cb().attackState(s,hero,atk,{}).ok&&Cb().checkTarget(s,hero,atk,t,{}).ok;
-    var tw=entryOf(t).walker.position(),hw=entryOf(hero).walker.position();
+    var tw=entryOf(t).walker.position();
     var others=[];
     if(targeting.attackId&&atk){
       creatures.forEach(function(k){
@@ -150,8 +150,23 @@ Fable.createCombatController=function(o){
         if(Cb().checkTarget(s,hero,atk,k,{}).ok){var w=entryOf(k).walker.position();others.push({x:w.x,z:w.z})}
       });
     }
-    marks.setTarget({x:tw.x,z:tw.z,fromX:hw.x,fromZ:hw.z,ok:ok,others:others});
+    marks.setTarget({x:tw.x,z:tw.z,ok:ok,others:others});
     setCursor(ok?'crosshair':'not-allowed');
+  }
+
+  /* the target card floats beside the creature it describes */
+  var cardVec=new THREE.Vector3();
+  function placeTargetCard(){
+    var tp=hud.mods.targetPanel;
+    if(!tp||!tp.place)return;
+    var t=targeting.hoverId&&s.byId[targeting.hoverId];
+    if(!t||!t.alive||!t.cell)return;
+    var w=entryOf(t).walker.position();
+    camera.updateMatrixWorld();
+    cardVec.set(w.x,9,w.z).project(camera);
+    var W=window.innerWidth,H=window.innerHeight;
+    if(cardVec.z>1)tp.place(null,0,W,H);
+    else tp.place((cardVec.x*.5+.5)*W,(-cardVec.y*.5+.5)*H,W,H);
   }
 
   /* ---------- previews ---------- */
@@ -252,7 +267,15 @@ Fable.createCombatController=function(o){
     hud.banner((words[x.outcome]||'Death save')+'  ('+x.roll+')',x.outcome==='success'||x.outcome==='stable'||x.outcome==='revive'?'player':'enemy');
     dirty=true;
   }
-  function onOver(e){say(e);dirty=true;overShown=false;ai={stage:'idle',t:0,token:(ai.token||0)+1};items.sync(s.ground);targeting.attackId=null;mp.setReachable([]);holds=0}
+  /* The fight is over: the whole HUD goes at once (the result menu is the only part that stays, and it comes in a moment later), the
+     marks on the ground go with it, and the camera and the hero take the stage. */
+  function onOver(e){
+    say(e);dirty=true;overShown=false;ai={stage:'idle',t:0,token:(ai.token||0)+1};items.sync(s.ground);targeting.attackId=null;targeting.hoverId=null;
+    mp.setReachable([]);mp.hide();marks.setTarget(null);marks.setActive(null);setCursor('');holds=0;
+    if(hud.overlayOpen())hud.closeOverlay();
+    hud.clearTransient();
+    hud.root.classList.add('outcome');
+  }
 
   function handle(e){
     switch(e.type){
@@ -345,8 +368,15 @@ Fable.createCombatController=function(o){
   function slotList(){return Fable.hudModels.actionBar(s,hero,targeting.attackId)}
   function useSlot(id){
     if(locked()||!heroTurn()){return}
+    if(id==='move'){
+      var mv=Fable.hudModels.moveSlot(s,hero,targeting.attackId);
+      if(!mv.ok){hud.announce('Move: '+mv.reason);labels.float(hero,mv.reason,'info');return}
+      var was=targeting.attackId;targeting.attackId=null;
+      hud.announce(was?'Attack cancelled. Click a square to move.':'Click a square to move');
+      dirty=true;return;
+    }
     var sl=slotList().filter(function(x){return x.id===id})[0];
-    if(!sl)return;
+    if(!sl){hud.announce('That slot is not available right now');return}
     if(!sl.ok){hud.announce(sl.name+': '+sl.reason);labels.float(hero,sl.reason,'info');return}
     if(sl.kind==='attack'){
       targeting.attackId=targeting.attackId===sl.attackId?null:sl.attackId;
@@ -492,10 +522,12 @@ Fable.createCombatController=function(o){
     }
     if(e.code==='KeyM'&&!e.repeat){Fable.hudSettings.set('mute',!Fable.hudSettings.get('mute'));hud.announce(Fable.hudSettings.get('mute')?'Sound off':'Sound on');return true}
     if(e.code==='Space'){if(!e.repeat)endHeroTurn();return true}
+    if(e.code==='KeyB'&&!e.repeat){hud.toggleMenu();return true}
     var m=/^(Digit|Numpad)(\d)$/.exec(e.code);
     if(m&&!e.repeat){
-      var n=+m[2],idx=n===0?9:n-1,list=slotList();
-      if(list[idx])useSlot(list[idx].id);
+      /* the keys belong to the hotbar: 1 is Move, 2 to 9 and 0 are whatever the player pinned there */
+      var n=+m[2],id=hud.hotbarId(n===0?9:n-1);
+      if(id)useSlot(id);
       return true;
     }
     return false;
@@ -537,6 +569,7 @@ Fable.createCombatController=function(o){
       marks.update(clock);
       mp.update(clock,window.innerWidth,window.innerHeight);
       labels.update(s,window.innerWidth,window.innerHeight,dt);
+      placeTargetCard();
       items.update(clock);
     }
   };
