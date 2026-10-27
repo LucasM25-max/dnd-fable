@@ -15,8 +15,8 @@ Fable.content.encounters.register({
   ai:{tier:'cunning',tricks:['throw-from-cover','hit-and-run','focus-fire']},
   tutorial:[
     {id:'move',text:'Click a square to move there.',when:'move'},
-    {id:'attack',text:'Press 1 to aim your weapon, then click a goblin to attack.',when:'attack'},
-    {id:'second-wind',text:'Hurt? Press the Second Wind slot to heal as a Bonus Action.',when:'second-wind'},
+    {id:'attack',text:'Press 2 to ready your longsword from the hotbar, then click a goblin to attack.',when:'attack'},
+    {id:'second-wind',text:'Hurt? Use Second Wind on the hotbar to heal as a Bonus Action.',when:'second-wind'},
     {id:'endturn',text:'Press Space when you are done to end your turn.',when:'endturn'}
   ],
   enemies:[

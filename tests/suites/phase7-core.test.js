@@ -62,6 +62,18 @@ module.exports=function(t){
       near(r.joints.root.scale.y,.75);near(r.joints.torso.rotation.y,0);near(r.joints.armR.rotation.x,-.9);
       near(r.joints.root.position.x,10);near(r.joints.root.position.z,20);
     });
+    test('a hover lifts the whole creature on top of its clips and only that: the pose, scale and ground position stay',()=>{
+      load();
+      const r=rig(),a=Fable.anim.createAnimator(r,{lookup:{get:()=>clip}});
+      a.setRoot(10,20,0);
+      a.update(.05);a.apply();
+      const y0=r.joints.root.position.y;
+      a.setHover(12);a.update(.05);a.apply();
+      near(r.joints.root.position.y,y0+12);near(r.joints.root.position.x,10);near(r.joints.root.position.z,20);near(r.joints.root.scale.y,.75);
+      assert.strictEqual(a.hover(),12);
+      a.setHover(0);a.update(.05);a.apply();
+      near(r.joints.root.position.y,y0);
+    });
     test('an upper clip blends over the base, fires its events once, and calls back when it ends',()=>{
       load();
       const r=rig(),a=Fable.anim.createAnimator(r,{lookup:{get:()=>clip}}),seen=[];let done=0;
@@ -262,6 +274,19 @@ module.exports=function(t){
       red=true;cd.shake(1,.3);cd.punch(.1,.3);cd.update(.05);near(cd.offset().x,0);near(cd.fovAdd(),0);
       cd.shot({dist:.5,spin:1,yaw:1,fov:.2,in:.1,hold:1,out:.1});cd.update(.4);
       const m=cd.modify({target:{x:0,y:0,z:0},yaw:0,pitch:.9,dist:100});near(m.dist,100);near(m.yaw,0);
+    });
+    test('a shot can slide the picture sideways: it eases in with the shot, holds, and is gone when the shot ends',()=>{
+      loadCam();
+      const cd=Fable.camera.createDirector({rng:()=>.5,reduced:()=>false});
+      near(cd.viewShift(),0);
+      cd.shot({focus:{x:0,y:6,z:0},in:1,hold:Infinity,out:1,shiftX:.2,tag:'outcome'});
+      near(cd.viewShift(),0);
+      cd.update(.5);const mid=cd.viewShift();assert.ok(mid>0&&mid<.2,'easing in: '+mid);
+      cd.update(2);near(cd.viewShift(),.2,1e-9);
+      cd.release('outcome');cd.update(2);near(cd.viewShift(),0);
+      const calm=Fable.camera.createDirector({rng:()=>.5,reduced:()=>true});
+      calm.shot({focus:{x:0,y:6,z:0},in:.25,hold:Infinity,out:1,shiftX:.2});calm.update(1);
+      near(calm.viewShift(),.2,1e-9);
     });
     test('an orbit shot turns the camera by its spin over time',()=>{
       loadCam();

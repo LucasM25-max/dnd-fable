@@ -25,6 +25,9 @@ var P={
   hide:'<path d="M12 3c-4 0-7 3-7 7v8l2.500-2 2 2 2.500-2 2.500 2 2-2 2.500 2v-8c0-4-3-7-6-7z"/><path d="M8 10.500h2M14 10.500h2" stroke="#000" stroke-opacity=".6" stroke-width="2" stroke-linecap="square"/>',
   search:'<circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.600"/><path d="M14.500 14.500 21 21" stroke="currentColor" stroke-width="3" stroke-linecap="square"/>',
   pickup:'<path d="M12 3v11M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="square"/><path d="M4 19h16v2H4z"/>',
+  move:'<path d="M12 2l4 4h-3v5h5V8l4 4-4 4v-3h-5v5h3l-4 4-4-4h3v-5H6v3l-4-4 4-4v3h5V6H8z"/>',
+  pin:'<path d="M9 2h6l-1 6 3 3v2h-4v7l-1 2-1-2v-7H7v-2l3-3z"/>',
+  chevron:'<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="square"/>',
   check:'<path d="M3.500 12.500 9 18 20.500 6.500 19 5 9 15 5 11z"/>'
 };
 Fable.hudIcons={

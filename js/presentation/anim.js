@@ -23,7 +23,7 @@
    var a = Fable.anim.createAnimator(rig, {lookup})   rig = {joints:{name:Object3D}, idle:{name:rotX}, footDrop}
      a.play(clip|id, {speed, fade, fadeOut, loop, hold, weight, layer, onEvent, onDone})   -> handle {stop(fade), done(), time()}
      a.setBase(clip|id, {fade, speed})     a.locomotion({moving, running, dist, yawRate})     a.setSpeed(scale)   a.freeze(seconds)
-     a.lookAt(x, z, weight) / clearLook()  a.aim(x, z, weight) / clearAim()    a.setRoot(x, z, yaw)
+     a.lookAt(x, z, weight) / clearLook()  a.aim(x, z, weight) / clearAim()    a.setRoot(x, z, yaw)   a.setHover(y)
      a.update(dt)   a.apply()   a.pose()   a.finish()   a.reset()   a.busy()   a.isPlaying(id)   a.baseId() */
 (function(G){
 G.Fable=G.Fable||{};
@@ -119,7 +119,7 @@ function createAnimator(rig,opts){
   var joints=rig.joints||{},names=Object.keys(joints),idx={};
   names.forEach(function(n,i){idx[n]=i});
   var N=names.length,pose=new Float64Array(N*9),rest=[],speedScale=1,frozen=0;
-  var root={x:0,z:0,yaw:0};
+  var root={x:0,z:0,yaw:0},hover=0;
   var idle=rig.idle||{};
   var footDrop=rig.footDrop===undefined?8:rig.footDrop;
   var look={x:null,z:null,w:0,cur:0},aim={x:null,z:null,w:0,cur:0},lean={roll:0,pitch:0,tiltRoll:0};
@@ -363,7 +363,7 @@ function createAnimator(rig,opts){
         /* position offsets are in the creature's own frame: +z is forward */
         var ox=pose[b],oy=pose[b+1],oz=pose[b+2],sn=Math.sin(root.yaw),cs=Math.cos(root.yaw);
         o.position.x=root.x+ox*cs+oz*sn;
-        o.position.y=oy;
+        o.position.y=oy+hover;
         o.position.z=root.z-ox*sn+oz*cs;
         if(o.rotation.order!==undefined&&o.rotation.order!=='YXZ')o.rotation.order='YXZ';
         o.rotation.x=pose[b+3];o.rotation.y=yaw;o.rotation.z=pose[b+5];
@@ -380,6 +380,8 @@ function createAnimator(rig,opts){
     play:play,setBase:setBase,locomotion:locomotion,
     setIdle:function(c){idleClip=c;if(!loco.moving&&c){var cur=base.filter(function(b){return b.wTarget>0})[0],id=typeof c==='string'?c:c.id;if(!cur||cur.clip.id!==id)setBase(c,{fade:.25})}},
     setRoot:function(x,z,yaw){root.x=x;root.z=z;root.yaw=yaw},
+    /* the whole creature floats this far above the ground, on top of whatever its clips do (the victory and defeat rise) */
+    setHover:function(y){hover=y||0},hover:function(){return hover},
     setSpeed:function(s){speedScale=Math.max(.05,s)},speed:function(){return speedScale},
     freeze:function(sec){frozen=Math.max(frozen,sec)},frozenFor:function(){return frozen},
     lookAt:function(x,z,w){look.x=x;look.z=z;look.w=w===undefined?1:w},

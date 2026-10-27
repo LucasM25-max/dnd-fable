@@ -125,6 +125,16 @@ module.exports=function({suite,test}){
         {type:'over',winner:'player'},{type:'over',winner:'enemy'},{type:'turnstart',id:'hero',index:0},{type:'start'},{type:'round',round:2}];
       evs.forEach(e=>{const t=plan.event(e);assert.ok(t,e.type);checkTl(t);assert.ok(t.cues.some(c=>c.type==='hud'&&c.essential),e.type+' needs an essential HUD cue')});
     });
+    test('the fight ending always lifts the hero into the result, even when the player skips: the cue is essential',async()=>{
+      const {plan}=await make();
+      [{type:'over',winner:'player'},{type:'over',winner:'enemy'}].forEach(e=>{
+        const t=plan.event(e),c=t.cues.filter(x=>x.type==='call'&&x.name==='celebrate');
+        assert.strictEqual(c.length,1);assert.ok(c[0].essential,'celebrate survives a skip');assert.strictEqual(c[0].win,e.winner==='player');
+        const tl=Fable.createTimeline(t.cues,{duration:t.duration}),seen=[];
+        tl.skip(x=>seen.push(x.name||x.type));
+        assert.ok(seen.includes('celebrate')&&seen.includes('outcome'));
+      });
+    });
     test('every planned timeline skips to the same set of essential cues, in time order',async()=>{
       const {plan}=await make();
       const t=plan.attack(res({crit:true}));

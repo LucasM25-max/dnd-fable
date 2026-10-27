@@ -10,6 +10,8 @@
      hud.openOverlay('sheet'|'help', s) / hud.closeOverlay() / hud.overlayOpen()
      hud.banner(text, team)           the turn and round banner ('player' or 'enemy')
      hud.announce(text)               polite screen reader line
+     hud.toggleMenu() / hud.hotbarId(i)   fold the action menu; the slot id pinned at hotbar index i (0 is Move)
+     hud.clearTransient()             drop what is still arriving (the dice card) when the fight ends
      hud.show() / hud.hide() / hud.destroy()
    Each module is Fable.hudModules.<name>(hud) returning {update(s, ctx)}; a new HUD part is a new file that adds itself there. */
 (function(){
@@ -28,7 +30,7 @@ Fable.createHud=function(opts){
   var intents=opts.intents||{};
   var root=document.getElementById('hud-layer');
   if(!root){root=document.createElement('div');root.id='hud-layer';document.body.appendChild(root)}
-  root.hidden=false;root.classList.remove('on');
+  root.hidden=false;root.classList.remove('on');root.classList.remove('outcome');
   root.innerHTML=
     '<div class="hud-vignette"></div>'+
     '<div class="banner" aria-hidden="true"><span></span></div>'+
@@ -65,10 +67,12 @@ Fable.createHud=function(opts){
     clearTimeout(bannerTimer);
     bannerTimer=setTimeout(function(){bannerWrap.classList.remove('play')},1800);
   };
+  /* anything still on its way onto the screen when the fight ends: the dice card and its queue, the floating numbers' host stays but is hidden */
+  hud.clearTransient=function(){var rf=hud.mods.rollFeed;if(rf&&rf.clear)rf.clear()};
   hud.announce=function(text){live.textContent='';setTimeout(function(){live.textContent=text},30)};
   hud.show=function(){root.hidden=false;void root.offsetWidth;root.classList.add('on')};
   hud.hide=function(){root.classList.remove('on')};
-  hud.destroy=function(){clearTimeout(bannerTimer);offSettings();window.removeEventListener('resize',applySettings);root.classList.remove('on');root.hidden=true;root.innerHTML=''};
+  hud.destroy=function(){clearTimeout(bannerTimer);offSettings();window.removeEventListener('resize',applySettings);root.classList.remove('on');root.classList.remove('outcome');root.hidden=true;root.innerHTML=''};
   return hud;
 };
 })();

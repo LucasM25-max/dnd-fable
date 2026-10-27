@@ -3,6 +3,9 @@
    Fable.hudModels (models.js) and never change the state.
 
    Fable.hudModels.actionBar(s, hero)         the ability slots: attacks, feature actions, standard actions, loadout swaps
+   Fable.hudModels.actionMenu(s, hero, slots) the tabbed menu: Actions, Bonus Actions and Reactions, each with its own tabs
+   Fable.hudModels.moveSlot(s, hero, armed)   the Move slot that is always on the hotbar
+   Fable.hudModels.defaultPins(slots) / normalizePins / pinToggle / pinPlace / pinSwap / hotbar   the 10 slot hotbar
    Fable.hudModels.targetCard(s, hero, target, attack)   the target plate and the attack preview for a hover or a locked target
    Fable.hudModels.rollCard(result)           the dice feed for an attack result
    Fable.hudModels.logEntry(e, s)             one combat log line for a combat event, or null when it has none
@@ -17,7 +20,7 @@ function sgn(n){return (n<0?'-':'+')+Math.abs(n)}
 
 var ICONS={
   longsword:'sword',dagger:'dagger',javelin:'javelin','unarmed-strike':'fist',
-  'second-wind':'heart',dash:'boots',disengage:'step',dodge:'guard','swap':'swap',hide:'hide',search:'search',pickup:'pickup'
+  move:'move','second-wind':'heart',dash:'boots',disengage:'step',dodge:'guard','swap':'swap',hide:'hide',search:'search',pickup:'pickup'
 };
 function iconFor(a){
   if(a.mode==='thrown')return a.item==='dagger'?'throw-dagger':'throw-javelin';
@@ -26,7 +29,7 @@ function iconFor(a){
 function weaponName(a){return a.name}
 
 /* ---------- ability slots ---------- */
-M.COST_LABEL={action:'Action',bonus:'Bonus Action',reaction:'Reaction',free:'Free',object:'Free interaction'};
+M.COST_LABEL={action:'Action',bonus:'Bonus Action',reaction:'Reaction',free:'Free',object:'Free interaction',move:'Movement'};
 
 M.actionBar=function(s,hero,selectedAttackId){
   var slots=[],mine=Cb().active(s)===hero&&s.phase==='running'&&!s.pending;
@@ -74,8 +77,130 @@ M.actionBar=function(s,hero,selectedAttackId){
       ok:st.ok&&mine,reason:st.ok&&mine?'':(mine?st.reason:'Not your turn'),selected:false,
       tip:'Change what you hold and wear.\n'+(st.cost==='action'?'Costs your Action (a Shield is donned or doffed)':'Costs your free object interaction')});
   });
-  slots.forEach(function(x,i){x.hotkey=i<9?String(i+1):i===9?'0':null;x.costLabel=M.COST_LABEL[x.cost]||x.cost});
+  slots.forEach(function(x){x.costLabel=M.COST_LABEL[x.cost]||x.cost});
   return slots;
+};
+
+/* ---------- the Move slot ---------- */
+/* Always the first slot of the hotbar. Using it drops an armed attack and goes back to clicking squares to walk. */
+M.moveSlot=function(s,hero,selectedAttackId){
+  var mine=Cb().active(s)===hero&&s.phase==='running'&&!s.pending,e=hero.economy;
+  var left=e?Math.max(0,e.speedFt*(1+e.dashes)-e.movedFt):0;
+  var reason='';
+  if(!mine)reason='Not your turn';else if(hero.down||!hero.alive)reason='Cannot move';else if(left<=0)reason='No movement left';
+  return {id:'move',kind:'move',name:'Move',sub:left+' ft left',icon:'move',cost:'move',costLabel:M.COST_LABEL.move,group:'move',
+    ok:!reason,reason:reason,selected:!selectedAttackId,pinnable:false,
+    tip:'Click a square to walk there.\nMovement left: '+left+' ft'};
+};
+
+/* ---------- the tabbed menu ---------- */
+/* Three categories, named for what they spend. Inside each, tabs group the slots by kind. A kind with nothing to show has no tab;
+   Spells is listed so that a spellcaster's slots land in the right place the day spells exist. */
+M.MENU_CATEGORIES=[
+  {id:'action',label:'Actions',short:'Action',cost:'action'},
+  {id:'bonus',label:'Bonus Actions',short:'Bonus',cost:'bonus'},
+  {id:'reaction',label:'Reactions',short:'Reaction',cost:'reaction'}
+];
+M.MENU_TABS=[
+  {id:'attacks',label:'Attacks',icon:'sword'},
+  {id:'abilities',label:'Abilities',icon:'star'},
+  {id:'spells',label:'Spells',icon:'book'},
+  {id:'standard',label:'Standard',icon:'boots'},
+  {id:'gear',label:'Gear',icon:'swap'}
+];
+M.slotCategory=function(sl){return sl.cost==='bonus'?'bonus':sl.cost==='reaction'?'reaction':'action'};
+M.slotTab=function(sl){
+  if(sl.kind==='swap'||sl.kind==='pickup')return 'gear';
+  if(sl.kind==='attack')return 'attacks';
+  if(sl.group==='spell')return 'spells';
+  if(sl.group==='standard')return 'standard';
+  return 'abilities';
+};
+/* The Reaction is spent by Opportunity Attacks, which the game offers as a question when an enemy leaves your reach. It is shown
+   in the menu so the player can see what the Reaction is for and whether it is still there, but it is never a button. */
+M.reactionSlots=function(s,hero){
+  var used=!!(hero.economy&&hero.economy.reaction);
+  return [{id:'passive:opportunity-attack',kind:'passive',passive:true,name:'Opportunity Attack',sub:used?'Spent':'Ready',icon:'sword',cost:'reaction',costLabel:M.COST_LABEL.reaction,
+    group:'ability',ok:!used,reason:used?'Reaction already used':'',selected:false,pinnable:false,
+    tip:'When an enemy leaves your reach without Disengaging, you are asked whether to strike it with your Reaction.\nThere is nothing to press: the game asks you at the moment.'}];
+};
+M.actionMenu=function(s,hero,slots){
+  var all=slots.concat(M.reactionSlots(s,hero)),e=hero.economy||{};
+  return M.MENU_CATEGORIES.map(function(cat){
+    var mine=all.filter(function(x){return M.slotCategory(x)===cat.id}),tabs=[];
+    M.MENU_TABS.forEach(function(t){
+      var list=mine.filter(function(x){return M.slotTab(x)===t.id});
+      if(list.length)tabs.push({id:t.id,label:t.label,icon:t.icon,slots:list});
+    });
+    if(!tabs.length)tabs.push({id:'abilities',label:'Abilities',icon:'star',slots:[],empty:'No '+cat.label.toLowerCase()+' available'});
+    return {id:cat.id,label:cat.label,short:cat.short,cost:cat.cost,used:!!e[cat.id],count:mine.filter(function(x){return x.ok}).length,tabs:tabs};
+  });
+};
+
+/* ---------- the hotbar ---------- */
+/* Ten slots. Slot 1 is Move and never changes. A layout is an array of 10 slot ids or null. Until the player pins or unpins
+   something the layout is the default, worked out again each time from what the hero has, so a gear swap re-pins the new weapons;
+   after that it is theirs and is kept as they left it. */
+M.PIN_COUNT=10;
+M.hotkeyFor=function(i){return i<9?String(i+1):i===9?'0':''};
+M.defaultPins=function(slots){
+  var ids=['move'];
+  slots.filter(function(x){return x.kind==='attack'}).concat(slots.filter(function(x){return x.kind==='action'&&x.group==='ability'})).forEach(function(x){
+    if(ids.length<M.PIN_COUNT&&ids.indexOf(x.id)<0)ids.push(x.id);
+  });
+  while(ids.length<M.PIN_COUNT)ids.push(null);
+  return ids;
+};
+M.normalizePins=function(arr){
+  var out=['move'],seen={move:1};
+  for(var i=1;i<M.PIN_COUNT;i++){
+    var v=Array.isArray(arr)?arr[i]:null;
+    if(typeof v==='string'&&v&&!seen[v]&&v.indexOf('passive:')!==0){out.push(v);seen[v]=1}else out.push(null);
+  }
+  return out;
+};
+/* pin to the first free slot, or unpin when it is already there. null when the hotbar is full. */
+M.pinToggle=function(layout,id){
+  var p=M.normalizePins(layout),at=p.indexOf(id);
+  if(id==='move'||!id)return p;
+  if(at>0){p[at]=null;return p}
+  var free=p.indexOf(null,1);
+  if(free<0)return null;
+  p[free]=id;return p;
+};
+/* put an id on a given slot (dragged from the menu); it leaves any slot it was on before */
+M.pinPlace=function(layout,id,index){
+  var p=M.normalizePins(layout);
+  if(!id||id==='move'||index<1||index>=M.PIN_COUNT)return p;
+  var at=p.indexOf(id);if(at>0)p[at]=null;
+  p[index]=id;return p;
+};
+M.pinSwap=function(layout,a,b){
+  var p=M.normalizePins(layout);
+  if(a<1||b<1||a>=M.PIN_COUNT||b>=M.PIN_COUNT)return p;
+  var t=p[a];p[a]=p[b];p[b]=t;return p;
+};
+M.pinRemove=function(layout,index){
+  var p=M.normalizePins(layout);
+  if(index>=1&&index<M.PIN_COUNT)p[index]=null;
+  return p;
+};
+/* The ten entries to draw. A pinned slot that is not on offer right now (a thrown javelin that is lying on the ground, the dagger
+   loadout while the sword is held) keeps its place and shows what it was, dimmed, so the bar never shuffles under the player's hand.
+   `memory` is an object the caller keeps between calls to remember what each id looked like. */
+M.hotbar=function(layout,slots,memory){
+  memory=memory||{};
+  var byId={};slots.forEach(function(x){byId[x.id]=x;memory[x.id]={name:x.name,icon:x.icon,cost:x.cost,costLabel:x.costLabel,kind:x.kind}});
+  return M.normalizePins(layout).map(function(id,i){
+    var e={index:i,hotkey:M.hotkeyFor(i),id:id,slot:null,gone:false};
+    if(!id)return e;
+    if(byId[id])e.slot=byId[id];
+    else if(memory[id]){
+      var m=memory[id];e.gone=true;
+      e.slot={id:id,kind:m.kind,name:m.name,sub:'',icon:m.icon,cost:m.cost,costLabel:m.costLabel,ok:false,reason:'Not available right now',selected:false,tip:'',pinnable:true};
+    }
+    return e;
+  });
 };
 
 /* ---------- statuses ---------- */

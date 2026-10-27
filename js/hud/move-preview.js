@@ -9,7 +9,7 @@
    mp.hide()
    mp.update(t, w, h)                     every frame: marches the dashes and places the label */
 (function(){
-var BLUE=0x4aa3ff,RED=0xe8584c;
+var BLUE=Fable.hudModels.COLORS.ok,RED=Fable.hudModels.COLORS.deny;
 var Y=.45;
 function reduced(){try{return window.matchMedia('(prefers-reduced-motion:reduce)').matches}catch(e){return false}}
 
