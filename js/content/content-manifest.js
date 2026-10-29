@@ -5,7 +5,7 @@ window.Fable=window.Fable||{};
 Fable.content=Fable.content||{};
 Fable.content.manifest={
   rules:['abilities','skills','damage-types','conditions','weapon-properties','weapon-mastery','languages','coins','weapon-categories','armor-categories','progression','tools','standard-actions'],
-  items:['item-kind','item-models','weapons','armor','gear','packs','tool-items'],
+  items:['item-kind','item-models','weapons','armor','gear','packs','tool-items','shops'],
   feats:['feature-kind','feat-kind','option-kinds','core-features','origin-feats','fighting-style-feats'],
   species:['human'],
   backgrounds:['soldier'],
@@ -14,6 +14,7 @@ Fable.content.manifest={
   aiProfiles:['profiles'],
   monsters:['goblin-minion'],
   characters:['human-fighter'],
+  economy:['standard'],
   encounters:['tutorial-goblin-ambush'],
-  presentation:['presentation-kinds','anim-fighter','anim-goblin','effects','sounds','profiles','barks']
+  presentation:['presentation-kinds','anim-fighter','anim-goblin','effects','sounds','profiles','barks','victories']
 };

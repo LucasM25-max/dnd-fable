@@ -54,7 +54,9 @@ Cb.actionState=function(s,c,id,opts){
   if(id==='heroic-inspiration-reroll')return no('Used when you roll a d20');
   if(LATER[id])return no(LATER[id]);
   if(a.available===false)return no(a.reason||'Not available');
-  if(a.consumes){
+  if(a.consumes&&a.consumes.item){
+    if((c.stock[a.consumes.item]||0)<a.consumes.amount)return no('None left');
+  }else if(a.consumes){
     var r=c.resources[a.consumes.resource];
     if(!r||r.current<a.consumes.amount)return no('No uses left');
   }
@@ -81,8 +83,12 @@ Cb.useAction=function(s,c,id,opts){
   if(a.cost==='action')e.action=true;
   else if(a.cost==='bonus')e.bonus=true;
   else if(a.cost==='reaction')e.reaction=true;
-  if(a.consumes)Cr().setResource(c,a.consumes.resource,c.resources[a.consumes.resource].current-a.consumes.amount);
-  var res={ok:true,type:'action',id:id,name:a.name,creature:{id:c.id,name:c.name,team:c.team},cost:a.cost,heal:null,statuses:[],text:''};
+  if(a.consumes&&a.consumes.item){
+    /* a consumable is used up: it leaves the stock now, and the fight keeps a count (the results screen removes it from the build) */
+    c.stock[a.consumes.item]-=a.consumes.amount;
+    c.itemsUsed=c.itemsUsed||{};c.itemsUsed[a.consumes.item]=(c.itemsUsed[a.consumes.item]||0)+a.consumes.amount;
+  }else if(a.consumes)Cr().setResource(c,a.consumes.resource,c.resources[a.consumes.resource].current-a.consumes.amount);
+  var res={ok:true,type:'action',id:id,name:a.name,creature:{id:c.id,name:c.name,team:c.team},cost:a.cost,heal:null,statuses:[],text:'',item:a.consumes&&a.consumes.item||null};
   var kind=id==='nimble-escape'?opts.choice:id;
   if(id==='nimble-escape'){res.choice=kind;res.text=''}
   if(kind==='hide'){

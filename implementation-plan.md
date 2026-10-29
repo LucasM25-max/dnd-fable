@@ -767,7 +767,7 @@ js/hud/
   hud.js                 mounts #hud-layer, wires modules
   health-bar.js          top centre bar, conditions, death saves
   initiative-ribbon.js
-  action-economy.js      A / B / R markers and movement bar
+  (action-economy.js removed: the Action, Bonus Action and Reaction shapes live on the folded action menu handle and the movement left sits on the Move slot of the hotbar)
   action-bar.js          hotbar generated from sheet.actions and sheet.attacks
   character-panel.js     portrait, quick stats, resources
   target-panel.js        hover and pinned enemy info
@@ -1445,6 +1445,7 @@ Each phase ends in something verifiable. Combat is turn based from the start, an
 **Phase 9: Rewards**
 - XP and difficulty tier calculators, gold formula, performance bonuses, coin drops, results screen, first shop purchase with the tutorial gold (section 17).
 - Done when: finishing the tutorial grants 50 XP and 50 GP, the results screen tallies them with coin effects, and the gold can be spent in the shop.
+  - Status: built. Rules `js/rules/rewards.js` (tier, gold in whole numbers rounded half up, bonuses, shares, items, XP progress), data `js/content/economy/standard.js` (`economies` kind), `js/character/shop.js` and `js/content/items/shops.js` (the Armory; the Potion of Healing is first at 50 gp and is a Bonus Action item usable in a fight), persistence in `roster.js` (`dicebound.progress.v1`), coins `js/presentation/coins.js`, results screen `js/hud/results.js`, Armory screen `js/menu/shop-ui.js`, the hub profile and gold are live. Victory animations are data (`victoryAnimations` kind, `js/content/presentation/victories.js`): the director reads the hero's chosen row, and a pose bought with gold is one more row (cost, clip, effect, sound). Tests: `node tests/run.js "phase 9"`.
 
 **Phase 10: Level up and more content**
 - Level up flow, multiclass groundwork, Fighter levels 2 to 5 (Action Surge, Tactical Mind, subclass, ASI feat, Extra Attack), Champion subclass, a second class to prove the data model (recommended: Rogue or Cleric).

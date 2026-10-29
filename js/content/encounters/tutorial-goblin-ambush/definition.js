@@ -6,7 +6,8 @@ Fable.content.encounters.register({
   description:'2 goblin minions, forest clearing',
   map:'forest-clearing',
   playerCharacter:'human-fighter',
-  rewards:{xp:40,goldMin:20,goldMax:30},
+  /* both computed from the goblins (2 x 25 XP = 50 XP, a Low fight, so 50 gp); no performance bonuses in the first fight (plan 17.6) */
+  rewards:{xp:'auto',gold:'auto',bonuses:false,items:[]},
   /* the knowledge policy (plan 13.9): enemy Armor Class and exact hit points are hidden unless the encounter reveals them; the
      tutorial reveals both to teach attack rolls */
   reveal:{ac:true,hp:true},

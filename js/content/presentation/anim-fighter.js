@@ -106,6 +106,14 @@ A.registerAll([
     armR:{rotX:[D(0,0),D(.5,-1.2,'outBack'),D(1,-1.1),D(2.2,-1.1)],rotZ:[D(0,0),D(.5,-.3),D(2.2,-.3)]},
     torso:{rotX:[D(0,0),D(.5,-.1),D(2.2,-.1)]},head:{rotX:[D(0,0),D(.5,-.18),D(2.2,-.18)]},
     root:{posY:[D(0,0),D(.25,1.4,'outQuad'),D(.5,0,'inQuad'),D(2.2,0)]},cape:{rotX:[D(0,0),D(.6,.5),D(2.2,.3)]}},events:[{t:.5,cue:'flourish'}]}),
+  /* a second victory pose, bought in the Armory: both arms thrown up, a leap and a full turn in the air, then a held cheer */
+  clip('fighter-victory-spin','Fighter victory spin',2.6,{layer:'upper',hold:true,tracks:{
+    armR:{rotX:[D(0,0),D(.45,-2.5,'outBack'),D(2.6,-2.5)],rotZ:[D(0,0),D(.45,-.25),D(2.6,-.25)]},
+    armL:{rotX:[D(0,0),D(.45,-2.5,'outBack'),D(2.6,-2.5)],rotZ:[D(0,0),D(.45,.25),D(2.6,.25)]},
+    torso:{rotX:[D(0,0),D(.4,.12,'outQuad'),D(.8,-.18),D(2.6,-.18)]},head:{rotX:[D(0,0),D(.8,-.3),D(2.6,-.3)]},
+    root:{posY:[D(0,0),D(.3,-.8,'outQuad'),D(.7,3,'outQuad'),D(1.1,0,'inQuad'),D(1.4,.8,'outQuad'),D(1.7,0,'inQuad'),D(2.6,0)],
+      rotY:[D(0,0),D(.35,0),D(1.1,6.2832,'inOutCubic'),D(2.6,6.2832)]},
+    cape:{rotX:[D(0,0),D(.7,.9),D(1.2,.4),D(2.6,.3)]}},events:[{t:.7,cue:'flourish'}]}),
   clip('fighter-second-wind','Fighter second wind',1.2,{layer:'upper',plant:false,tracks:{
     armR:{rotX:[D(0,0),D(.4,-1.3,'outQuad'),D(.8,-1.2),D(1.2,0)]},torso:{rotX:[D(0,0),D(.5,-.18),D(.9,-.25),D(1.2,0)]},
     head:{rotX:[D(0,0),D(.5,-.3),D(1.2,0)]},root:{posY:[D(0,0),D(.7,.5,'outSine'),D(1.2,0)]}},events:[{t:.5,cue:'gulp'},{t:.85,cue:'surge'}]}),

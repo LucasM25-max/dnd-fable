@@ -207,7 +207,7 @@ The HUD design is specified in Section 13 of implementation-plan.md, but the act
 - **Top centre:** the active character's name/class/level, prominent health bar and numeric HP, AC, temporary HP, Heroic Inspiration and conditions.
 - **Top left:** round counter and initiative ribbon; highlight the active creature and allow a creature to be selected.
 - **Bottom left:** character portrait, quick stats, resources and equipped slots.
-- **Bottom centre:** action-economy markers for Action, Bonus Action, Reaction and remaining movement; a fixed quick-access hotbar; End Turn.
+- **Bottom centre:** the action menu and the quick-access hotbar sit flush to the bottom edge (remaining movement is on the Move slot, spent Action, Bonus Action and Reaction show on the folded menu handle); End Turn.
 - **Right side:** context-sensitive target details and recent roll feed, with a separate expandable combat log.
 - **3D battlefield:** the remaining space, with reachable squares, movement distance arcs, attack ranges, targeting overlays, creature labels and floating results.
 - **Temporary prompts:** reaction choices, confirmations, tutorial instructions and death-save interaction appear when relevant, not permanently.
@@ -242,7 +242,6 @@ Keep HUD concerns modular, following the current implementation plan:
 - js/hud/hud.js
 - health-bar.js
 - initiative-ribbon.js
-- action-economy.js
 - action-bar.js
 - character-panel.js
 - target-panel.js

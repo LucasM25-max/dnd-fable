@@ -149,12 +149,17 @@ Fable.createPlanner=function(o){
     if(T.kind==='monster'){
       cues.push({t:.04+landT+.1,type:'vfx',fx:(P.effects&&P.effects.death)||'fx-death',at:'who',who:e.id,y:0});
       cues.push({t:.04+landT,type:'sfx',id:'sfx-death',who:e.id,gain:.7});
+      /* blood: a spray as it drops, a pool that spreads beneath it and stays (the pool is essential: a skip still leaves it) */
+      if(P.effects&&P.effects.blood)cues.push({t:.04+Math.max(0,landT-.18),type:'vfx',fx:P.effects.blood,at:'who',who:e.id,y:0,dir:'fromAttacker'});
+      if(P.effects&&P.effects.bloodPool)cues.push({t:.04+landT+.05,type:'vfx',fx:P.effects.bloodPool,at:'who',who:e.id,y:0,essential:true});
       cues.push({t:.02,type:'bark',who:e.id,situation:'down'});
+      /* what it carried spills out where it fell (the amount is its share of the gold, decided by the rules, see rewards.js) */
+      if(T.drop&&T.drop.cp>0)cues.push({t:.04+landT+.14,type:'call',name:'coins',who:e.id,cp:T.drop.cp,tags:T.drop.tags||[],essential:true});
     }else{
       cues.push({t:.04,type:'time',op:'slow',scale:.45,dur:.7});
       cues.push({t:.04,type:'screen',op:'vignette',color:'#1a0000',alpha:.75,dur:1.4});
     }
-    cues.push({t:.04,type:'status',who:e.id,id:'down',change:'added'});
+    cues.push({t:.04,type:'status',who:e.id,id:'down',change:'added',essential:true});
     return mk('down',cues,(c?dur(c):.9)+.2,'down');
   }
   function action(e){
@@ -269,6 +274,8 @@ Fable.createPlanner=function(o){
     cues.push({t:.2,type:'screen',op:'flash',color:win?'#fff0c0':'#200000',alpha:win?.3:.5,dur:.5});
     cues.push({t:.15,type:'sfx',id:win?'sfx-victory':'sfx-defeat',gain:1});
     cues.push({t:0,type:'call',name:'celebrate',win:win,essential:true});
+    /* the hero gathers every coin that was dropped as it is lifted up into the result */
+    if(win)cues.push({t:.35,type:'call',name:'collect'});
     d=win?2.6:2.4;
     return mk('over',cues,d,'over',{win:win});
   }

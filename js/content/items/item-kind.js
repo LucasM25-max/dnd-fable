@@ -113,6 +113,15 @@ function validateGear(def,fail){
   if(def.storage!==undefined&&!isText(def.storage))fail('storage must be an item id');
   if(def.uses!==undefined&&(!isInt(def.uses)||def.uses<1))fail('uses must be a whole number of 1 or more');
   if(def.magic!==undefined&&def.magic!==true)fail('magic must be true when given');
+  if(def.use!==undefined){
+    var u=def.use;
+    if(!u||typeof u!=='object'||Array.isArray(u))fail('use must be an object');
+    else{
+      if(['action','bonus','reaction','object'].indexOf(u.cost)<0)fail('use.cost must be action, bonus, reaction or object');
+      if(!Array.isArray(u.effects)||!u.effects.length)fail('use.effects needs at least one effect');
+      else u.effects.forEach(function(e,i){if(!e||e.type!=='heal'||typeof e.amount!=='string')fail('use.effects['+i+'] must be {type:"heal", amount:"2d4 + 2"} (only healing is supported so far)')});
+    }
+  }
   if(def.asWeapon!==undefined){
     var a=def.asWeapon;
     if(!a||!isText(a.category)||a.kind!=='melee')fail('asWeapon needs a category and kind "melee"');

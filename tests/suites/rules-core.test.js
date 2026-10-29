@@ -17,7 +17,7 @@ module.exports=function({suite,test}){
     });
     test('every row carries the srd52 source tag',async()=>{
       const C=await H.loadData();
-      C.kindNames().filter(k=>k!=='itemModels'&&k!=='aiProfiles').forEach(k=>C[k].list().forEach(d=>assert.strictEqual(d.source,'srd52',k+' '+d.id)));
+      C.kindNames().filter(k=>k!=='itemModels'&&k!=='aiProfiles'&&k!=='economies'&&k!=='shops'&&k!=='victoryAnimations').forEach(k=>C[k].list().forEach(d=>assert.strictEqual(d.source,'srd52',k+' '+d.id)));
     });
     test('abilities are in the usual order with three letter abbreviations',async()=>{
       const C=await H.loadData();

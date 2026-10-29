@@ -125,6 +125,27 @@ C.encounters={
       if(!def.ai||typeof def.ai!=='object'||Array.isArray(def.ai))fail('Encounter',id,'ai must be an object');
       else if(C.checkAiBlock)C.checkAiBlock(def.ai,function(m){fail('Encounter',id,'ai: '+m)},'');
     }
+    if(def.rewards!==undefined){
+      var rw=def.rewards;
+      if(!rw||typeof rw!=='object'||Array.isArray(rw))fail('Encounter',id,'rewards must be an object');
+      ['xp','gold'].forEach(function(k){
+        var v=rw[k];
+        if(v!==undefined&&v!=='auto'&&!(typeof v==='number'&&isFinite(v)&&Math.floor(v)===v&&v>=0))fail('Encounter',id,'rewards.'+k+' must be "auto" or a whole number of 0 or more');
+      });
+      if(rw.bonuses!==undefined&&typeof rw.bonuses!=='boolean')fail('Encounter',id,'rewards.bonuses must be true or false');
+      if(rw.par!==undefined&&!(rw.par&&Number.isInteger(rw.par.rounds)&&rw.par.rounds>=1))fail('Encounter',id,'rewards.par must be {rounds: a whole number of 1 or more}');
+      if(rw.economy!==undefined&&(typeof rw.economy!=='string'||!rw.economy))fail('Encounter',id,'rewards.economy must be an economy id');
+      else if(rw.economy&&C.economies&&!C.economies.has(rw.economy))fail('Encounter',id,'rewards.economy "'+rw.economy+'" is not a known economy');
+      if(rw.items!==undefined){
+        if(!Array.isArray(rw.items))fail('Encounter',id,'rewards.items must be a list');
+        else rw.items.forEach(function(e,i){
+          if(!e||typeof e.item!=='string'||!e.item)fail('Encounter',id,'rewards.items['+i+'] needs an item id');
+          if(e&&e.qty!==undefined&&!(Number.isInteger(e.qty)&&e.qty>=1))fail('Encounter',id,'rewards.items['+i+'].qty must be a whole number of 1 or more');
+          if(e&&e.chance!==undefined&&!(typeof e.chance==='number'&&e.chance>0&&e.chance<=100))fail('Encounter',id,'rewards.items['+i+'].chance must be a percent above 0 and up to 100');
+        });
+      }
+      if(rw.goldMin!==undefined||rw.goldMax!==undefined)fail('Encounter',id,'rewards.goldMin and goldMax are gone: use gold:"auto" or a number (plan 17.6)');
+    }
     if(def.enabled===undefined)def.enabled=true;
     encounters[id]=def;encounterOrder.push(id);
     if(def.enabled&&C.encounters.defaultId===null)C.encounters.defaultId=id;

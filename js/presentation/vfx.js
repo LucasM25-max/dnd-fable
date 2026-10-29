@@ -13,6 +13,9 @@
      {type:'burst', count, delay, speed:[a,b], spread, lift, life:[a,b], size:[a,b], end, colors:[hex], glow, gravity, drag, y, radius}
      {type:'arc', count, radius, from, to, y, life, size, colors, glow, dur, lift}   a crescent swept around the direction of the blow
      {type:'ring', from, to, dur, color, y, width}      {type:'light', color, intensity, dur, y, delay}   {type:'column', ...} rises
+     {type:'decal', count, radius, size:[a,b], colors, grow, delay}   flat patches that settle on the floor and STAY (a pool of blood):
+                    they are not particles, a skip does not clear them, and the oldest are reused when the pool is full. A burst with
+                    stain:true (or [size multiplier]) leaves a small patch where each of its drops lands. vfx.clearDecals() wipes them (a new fight).
    Particle counts are scaled by the quality tier and capped, and the light pool is fixed, so the frame cost stays inside the budget (15.11). */
 (function(G){
 G.Fable=G.Fable||{};
@@ -20,7 +23,7 @@ var Fable=G.Fable;
 
 var MAX_PARTICLES={high:1600,medium:900,low:420};
 var COUNT_SCALE={high:1,medium:.6,low:.3};
-var MAX_LIGHTS=3,MAX_RINGS=10,POOL=2000;
+var MAX_LIGHTS=3,MAX_RINGS=10,POOL=2000,MAX_DECALS=180;
 
 function r2(rng,a,b){return a+(b-a)*rng()}
 function pick(rng,list){return list[Math.floor(rng()*list.length)%list.length]}
@@ -30,7 +33,7 @@ Fable.createVfx=function(o){
   var T=G.THREE||(typeof THREE!=='undefined'?THREE:null);
   var scene=o.scene,rng=o.rng||Math.random,qualityFn=o.quality||function(){return 'high'},reducedFn=o.reduced||function(){return false};
   var plist=[],dead=[],counts={spawned:0,peak:0,lights:0};
-  var solid=null,glow=null,dummy=null,color=null,lights=[],rings=[],projectiles=[],flashes=[];
+  var solid=null,glow=null,dummy=null,color=null,lights=[],rings=[],projectiles=[],flashes=[],decalMesh=null,decals=[],decalNext=0,decalDirty=false;
 
   if(T&&scene){
     var geo=new T.BoxGeometry(1,1,1);
@@ -43,6 +46,12 @@ Fable.createVfx=function(o){
       m.instanceMatrix.setUsage&&m.instanceMatrix.setUsage(T.DynamicDrawUsage);
       scene.add(m);
     });
+    /* floor decals: one more instanced mesh of very flat boxes lying just above the ground */
+    decalMesh=new T.InstancedMesh(geo,new T.MeshBasicMaterial({color:0xffffff}),MAX_DECALS);
+    decalMesh.count=0;decalMesh.frustumCulled=false;decalMesh.renderOrder=2;
+    decalMesh.instanceColor=new T.InstancedBufferAttribute(new Float32Array(MAX_DECALS*3),3);
+    decalMesh.instanceMatrix.setUsage&&decalMesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
+    scene.add(decalMesh);
     dummy=new T.Object3D();color=new T.Color();
     for(var i=0;i<MAX_LIGHTS;i++){
       var L=new T.PointLight(0xffffff,0,90,2);L.visible=false;scene.add(L);lights.push({light:L,t:0,dur:0,peak:0,on:false});
@@ -71,7 +80,7 @@ Fable.createVfx=function(o){
       var s=r2(rng,sp[0],sp[1])*scale,ch=Math.cos(py);
       var rad=(part.radius||0)*scale,ox=(rng()*2-1)*rad,oz=(rng()*2-1)*rad;
       emit({x:at.x+ox,y:at.y+(part.y||0)*scale+(rng()*2-1)*.5*(part.jitterY||0),z:at.z+oz,vx:Math.sin(yaw)*ch*s,vy:Math.sin(py)*s,vz:Math.cos(yaw)*ch*s,
-        g:part.gravity===undefined?40:part.gravity,drag:part.drag===undefined?1.5:part.drag,life:r2(rng,life[0],life[1]),age:-(part.delay||0)-rng()*(part.stagger||0),
+        stain:part.stain?(Array.isArray(part.stain)?part.stain:[1]):null,g:part.gravity===undefined?40:part.gravity,drag:part.drag===undefined?1.5:part.drag,life:r2(rng,life[0],life[1]),age:-(part.delay||0)-rng()*(part.stagger||0),
         s0:r2(rng,size[0],size[1])*scale,s1:(part.end===undefined?0:part.end),c0:pick(rng,colors),c1:part.fade||null,glow:!!part.glow,spin:rng()*6,bounce:!!part.bounce});
     }
   }
@@ -85,6 +94,21 @@ Fable.createVfx=function(o){
       emit({x:at.x+Math.sin(a)*R,y:at.y+(part.y||8)*scale+(part.lift||0)*(k-.5)*scale,z:at.z+Math.cos(a)*R,
         vx:Math.sin(a+Math.PI/2)*4,vy:0,vz:Math.cos(a+Math.PI/2)*4,g:0,drag:4,life:part.life||.22,age:-k*dur,
         s0:(part.size||1.3)*scale*(.5+.7*Math.sin(Math.PI*k)),s1:0,c0:colors[Math.min(colors.length-1,Math.floor(k*colors.length))],c1:null,glow:part.glow!==false,spin:0});
+    }
+  }
+  function addDecal(x,z,w,d,col,grow,delay){
+    var dc={x:x,z:z,w:w,d:d,yaw:rng()*Math.PI,col:col,t:reducedFn()?(grow||.25):-(delay||0),grow:Math.max(.01,grow||.25)};
+    if(decals.length<MAX_DECALS)decals.push(dc);else{decals[decalNext]=dc;decalNext=(decalNext+1)%MAX_DECALS}
+    decalDirty=true;
+  }
+  /* a pool: a big patch in the middle with irregular smaller ones around it, so it reads as spilled and not as a stamp */
+  function partDecal(part,at,scale,tint){
+    var n=Math.max(2,Math.round((part.count||7)*(COUNT_SCALE[qualityFn()]||1)));
+    var sz=pair(part.size,2),rad=(part.radius===undefined?5:part.radius)*scale,colors=tint?[tint]:(part.colors||[0x5a0c0c]);
+    for(var i=0;i<n;i++){
+      var a=rng()*Math.PI*2,r=i===0?0:Math.sqrt(rng())*rad,k=i===0?1.7:(1-.55*r/Math.max(1,rad));
+      var w=r2(rng,sz[0],sz[1])*scale*k,d=r2(rng,sz[0],sz[1])*scale*k*(.6+rng()*.7);
+      addDecal(at.x+Math.sin(a)*r,at.z+Math.cos(a)*r,w,d,pick(rng,colors),part.grow,(part.delay||0)+r/Math.max(1,rad)*.18);
     }
   }
   function partRing(part,at,scale,tint){
@@ -124,6 +148,7 @@ Fable.createVfx=function(o){
       (rec.parts||[]).forEach(function(p){
         if(p.type==='burst'||p.type==='column')partBurst(p,pos,dir,scale,p.keepColor?null:tint);
         else if(p.type==='arc')partArc(p,pos,dir,scale,tint);
+        else if(p.type==='decal')partDecal(p,pos,scale,tint);
         else if(p.type==='ring')partRing(p,pos,scale,tint);
         else if(p.type==='light')partLight(p,pos,scale,tint);
       });
@@ -166,7 +191,12 @@ Fable.createVfx=function(o){
         if(p.age>=p.life){plist[i]=plist[plist.length-1];plist.pop();continue}
         var dr=Math.exp(-p.drag*dt);p.vx*=dr;p.vz*=dr;p.vy=p.vy*dr-p.g*dt;
         p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
-        if(p.y<.25){p.y=.25;p.vy=p.bounce?-p.vy*.4:0;p.vx*=.8;p.vz*=.8}
+        if(p.y<.25){
+          p.y=.25;
+          /* a drop that lands leaves a small patch where it fell, and is gone */
+          if(p.stain){addDecal(p.x,p.z,p.s0*p.stain[0]*1.3,p.s0*p.stain[0]*(.8+rng()*.8),p.c0,.12,0);p.age=p.life;continue}
+          p.vy=p.bounce?-p.vy*.4:0;p.vx*=.8;p.vz*=.8;
+        }
       }
       /* writing to the instance buffers: every live particle in order */
       for(i=0;i<plist.length;i++){
@@ -179,6 +209,19 @@ Fable.createVfx=function(o){
         if(q.glow)color.multiplyScalar(1-k*.6);
         im.setColorAt?im.setColorAt(idx,color):im.instanceColor.setXYZ(idx,color.r,color.g,color.b);
         n++;
+      }
+      /* the decals: each grows to full size once, then the buffer only rewrites when something changed */
+      var growing=false;
+      for(i=0;i<decals.length;i++){var dd=decals[i];if(dd.t<dd.grow){dd.t+=dt;growing=true}}
+      if(decalMesh&&(growing||decalDirty)){
+        for(i=0;i<decals.length;i++){
+          var dc=decals[i],g=Math.max(0,Math.min(1,dc.t/dc.grow)),ge=1-Math.pow(1-g,3);
+          dummy.position.set(dc.x,.1,dc.z);dummy.rotation.set(0,dc.yaw,0);dummy.scale.set(Math.max(.001,dc.w*ge),.12,Math.max(.001,dc.d*ge));dummy.updateMatrix();
+          decalMesh.setMatrixAt(i,dummy.matrix);color.setHex(dc.col);decalMesh.setColorAt?decalMesh.setColorAt(i,color):decalMesh.instanceColor.setXYZ(i,color.r,color.g,color.b);
+        }
+        decalMesh.count=decals.length;decalMesh.instanceMatrix.needsUpdate=true;
+        if(decalMesh.instanceColor)decalMesh.instanceColor.needsUpdate=true;
+        decalDirty=false;
       }
       solid.count=ns;glow.count=ng;
       solid.instanceMatrix.needsUpdate=glow.instanceMatrix.needsUpdate=true;
@@ -220,16 +263,18 @@ Fable.createVfx=function(o){
         if(k>=1)f.on=false;
       });
     },
-    stats:function(){return {particles:plist.length,peak:counts.peak,lights:counts.lights,rings:rings.filter(function(r){return r.on}).length,projectiles:projectiles.length,spawned:counts.spawned}},
+    stats:function(){return {decals:decals.length,particles:plist.length,peak:counts.peak,lights:counts.lights,rings:rings.filter(function(r){return r.on}).length,projectiles:projectiles.length,spawned:counts.spawned}},
     busy:function(){return projectiles.length>0},
     clear:function(){
       plist.length=0;projectiles.forEach(function(p){scene.remove(p.m)});projectiles.length=0;
       lights.forEach(function(l){l.on=false;l.light.visible=false});rings.forEach(function(r){r.on=false;r.mesh.visible=false});
       if(solid){solid.count=0;glow.count=0}
     },
+    clearDecals:function(){decals.length=0;decalNext=0;decalDirty=false;if(decalMesh)decalMesh.count=0},
+    decalCount:function(){return decals.length},
     dispose:function(){
-      api.clear();
-      [solid,glow].forEach(function(m){if(m){scene.remove(m);m.dispose&&m.dispose()}});
+      api.clear();api.clearDecals();
+      [solid,glow,decalMesh].forEach(function(m){if(m){scene.remove(m);m.dispose&&m.dispose()}});
       lights.forEach(function(l){scene.remove(l.light)});rings.forEach(function(r){scene.remove(r.mesh);r.mesh.material.dispose()});
     }
   };

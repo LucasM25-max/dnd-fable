@@ -9,7 +9,7 @@
      motion         'auto' follows the system, 'reduced' or 'full' forces it
      contrast       true thickens edges and brightens text
      confirmEnd     ask before ending a turn with an Action unspent and an enemy in reach
-     speed          'normal', 'fast' or 'instant': how fast fights are played; Enter skips what is playing (Phase 7)
+     speed          'slow' (also shows the player's dice rolls in the middle of the screen), 'normal', 'fast' or 'instant': how fast fights are played; Enter skips what is playing (Phase 7)
      quality        'auto' (adapts to the frame rate), 'high', 'medium' or 'low': particle and light budgets
      volMaster, volMusic, volSfx, volVoice   0 to 1      mute   silences everything
      tactics        'auto' (what the encounter says), or the enemy tier: instinct, cunning, tactician, mastermind
@@ -29,7 +29,7 @@ function clamp(k,v){
   if(k==='scale')return Math.max(.85,Math.min(1.3,+v||1));
   if(k==='feed')return Math.max(2,Math.min(8,Math.round(+v||4)));
   if(k==='motion')return v==='reduced'||v==='full'?v:'auto';
-  if(k==='speed')return v==='fast'||v==='instant'?v:'normal';
+  if(k==='speed')return v==='slow'||v==='fast'||v==='instant'?v:'normal';
   if(k==='quality')return v==='high'||v==='medium'||v==='low'?v:'auto';
   if(k==='volMaster'||k==='volMusic'||k==='volSfx'||k==='volVoice'){var n=+v;return isFinite(n)?Math.max(0,Math.min(1,n)):DEFAULTS[k]}
   if(k==='tactics')return v==='instinct'||v==='cunning'||v==='tactician'||v==='mastermind'?v:'auto';

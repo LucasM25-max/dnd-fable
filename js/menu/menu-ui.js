@@ -5,12 +5,25 @@ function say(m){toast.textContent=m;toast.classList.add('show');clearTimeout(tt)
 document.querySelectorAll('[data-t]').forEach(function(b){b.addEventListener('click',function(){say('Mockup: this opens '+b.dataset.t+'.')})});
 
 var E=[],ei=0;
+/* what an encounter pays, worked out by the same rules that pay it */
+function rewardText(e){
+  try{
+    var est=Fable.rewards.estimate(e,heroLevels(e)),bits=[];
+    if(est.xp)bits.push(est.xp+' XP');
+    if(est.gold)bits.push(est.maxGold>est.gold?est.gold+' to '+est.maxGold+' gp':est.gold+' gp');
+    return bits.length?'Reward: '+bits.join(' and '):'';
+  }catch(err){return ''}
+}
+function heroLevels(e){
+  var b=Fable.character.roster.build((e&&e.playerCharacter)||'human-fighter'),n=0;
+  ((b&&b.classLevels)||[]).forEach(function(c){n+=c.level||0});
+  return [Math.max(1,n)];
+}
 function show(){
   var name=document.getElementById('en'),desc=document.getElementById('ed'),rw=document.getElementById('rw');
   if(!E.length){name.textContent='No encounters';desc.textContent='Add an encounter package to continue';rw.textContent='';return}
-  var e=E[ei],reward=e.rewards&&e.rewards.xp!=null?e.rewards.xp+' XP':'';
-  var gold=e.rewards&&e.rewards.goldMin!=null?' and '+e.rewards.goldMin+' to '+e.rewards.goldMax+' gp':'';
-  name.textContent=e.name;desc.textContent=e.description||e.map;showHero(e);rw.textContent='Reward: '+reward+gold;
+  var e=E[ei];
+  name.textContent=e.name;desc.textContent=e.description||e.map;showHero(e);rw.textContent=rewardText(e);
   document.getElementById('prev').disabled=E.length<2;document.getElementById('next').disabled=E.length<2;
 }
 /* The hub's stat strip reads the hero's computed sheet instead of hard coded numbers (implementation plan, section 13). */
@@ -76,12 +89,29 @@ function drawLoadouts(sheet){
     loadoutBox.appendChild(btn);
   });
 }
-Fable.character.roster.onChange(function(id,sheet){if(id===heroId)drawSheet(sheet)});
+/* the hub profile and the purse are the saved hero's, and follow every XP, gold or loadout change */
+function drawProfile(){
+  var def=Fable.content.characters.get(heroId);
+  if(!def||!def.build)return;
+  var R=Fable.character.roster,b=R.build(heroId),p=Fable.tables.xpProgress(R.xp(heroId));
+  function set(id,t){var n=document.getElementById(id);if(n)n.textContent=t}
+  var cls=(b.classLevels&&b.classLevels[0]&&b.classLevels[0].class)||'';
+  cls=cls.replace(/(^|-)(\w)/g,function(m,a,c){return (a?' ':'')+c.toUpperCase()});
+  set('pf-name',b.name||def.name||'');set('pf-lv',String(p.level));
+  set('pf-sub',cls+', level '+p.level+(p.nextLevelXp===null?' (maximum)':' ('+p.xp.toLocaleString('en-GB')+' / '+p.nextLevelXp.toLocaleString('en-GB')+' XP)'));
+  var bar=document.getElementById('pf-xp');if(bar)bar.style.width=Math.round(p.fraction*100)+'%';
+  set('pf-gp',Fable.money.format(R.purseCp(heroId)));
+  show();
+}
+Fable.character.roster.onChange(function(id,sheet){if(id===heroId){drawSheet(sheet);drawProfile()}});
+function openShop(){Fable.shopUi.open(heroId,'armory',{say:say})}
+document.getElementById('open-shop').onclick=openShop;
+document.getElementById('pf-gold').onclick=openShop;
 function refresh(){
   E=Fable.content.encounters.enabled();ei=Math.min(ei,Math.max(0,E.length-1));show();
 }
 document.getElementById('prev').onclick=function(){if(E.length){ei=(ei+E.length-1)%E.length;show()}};
 document.getElementById('next').onclick=function(){if(E.length){ei=(ei+1)%E.length;show()}};
 document.getElementById('play').onclick=function(){if(E[ei])Fable.enterWorld(E[ei].id)};
-Fable.content.whenReady(refresh);
+Fable.content.whenReady(function(){refresh();drawProfile()});
 })();

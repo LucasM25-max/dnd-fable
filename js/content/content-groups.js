@@ -15,6 +15,7 @@ var order=[
   {key:'aiProfiles',dir:'ai-profiles',mode:'file'},
   {key:'monsters',dir:'monsters',mode:'package'},
   {key:'characters',dir:'characters',mode:'package'},
+  {key:'economy',dir:'economy',mode:'file'},
   {key:'encounters',dir:'encounters',mode:'package'},
   {key:'presentation',dir:'presentation',mode:'file'}
 ];

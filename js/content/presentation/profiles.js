@@ -25,7 +25,7 @@ P.registerAll([
  clips:{walk:'goblin-walk',run:'goblin-run',idle:'goblin-idle',hitLight:'goblin-hit-light',hitHeavy:'goblin-hit-heavy',dodge:'goblin-dodge',block:'goblin-brace',
    down:'goblin-down',getup:'goblin-getup',prone:'goblin-prone',victory:'goblin-taunt',brace:'goblin-brace',guard:'goblin-guard',nimble:'goblin-nimble',hide:'goblin-hide',
    taunt:'goblin-taunt',pop:'goblin-pop',flinch:'goblin-flinch'},
- effects:{death:'fx-death',land:'fx-thud',pop:'fx-pop'},
+ effects:{death:'fx-death',land:'fx-thud',pop:'fx-pop',blood:'fx-blood',bloodPool:'fx-blood-pool'},
  sounds:{hit:'sfx-hit',block:'sfx-block',pop:'sfx-pop'},
  attacks:{
   'mode:thrown':{clip:'goblin-throw',swingSound:'sfx-throw',projectile:{size:.8,long:5,spin:0,arc:5,dur:.34,color:0xc2cbd0},trail:'fx-trail'},
