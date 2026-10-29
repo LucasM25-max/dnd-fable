@@ -153,6 +153,8 @@ G([
   {id:'iron-pot',name:'Pot, Iron',cost:{gp:2},weight:10,
    description:"An Iron Pot holds up to 1 gallon."},
   {id:'potion-of-healing',name:'Potion of Healing',cost:{gp:50},weight:0.5,magic:true,
+   /* use: a consumable's action while one is carried (cost: bonus, action or object); effects as for a class feature */
+   use:{cost:'bonus',icon:'potion',effects:[{type:'heal',amount:'2d4 + 2'}],text:'Drink the potion as a Bonus Action to regain 2d4 + 2 Hit Points.'},
    description:"This potion is a magic item. As a Bonus Action, you can drink it or administer it to another creature within 5 feet of yourself. The creature that drinks the magical red fluid in this vial regains 2d4 + 2 Hit Points."},
   {id:'pouch',name:'Pouch',cost:{sp:5},weight:1,
    description:"A Pouch holds up to 6 pounds within one-fifth of a cubic foot."},

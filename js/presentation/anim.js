@@ -24,7 +24,7 @@
      a.play(clip|id, {speed, fade, fadeOut, loop, hold, weight, layer, onEvent, onDone})   -> handle {stop(fade), done(), time()}
      a.setBase(clip|id, {fade, speed})     a.locomotion({moving, running, dist, yawRate})     a.setSpeed(scale)   a.freeze(seconds)
      a.lookAt(x, z, weight) / clearLook()  a.aim(x, z, weight) / clearAim()    a.setRoot(x, z, yaw)   a.setHover(y)
-     a.update(dt)   a.apply()   a.pose()   a.finish()   a.reset()   a.busy()   a.isPlaying(id)   a.baseId() */
+     a.halt() / resume()   a.halted()   a.update(dt)   a.apply()   a.pose()   a.finish()   a.reset()   a.busy()   a.isPlaying(id)   a.baseId() */
 (function(G){
 G.Fable=G.Fable||{};
 var Fable=G.Fable,E=Fable.ease;
@@ -123,7 +123,7 @@ function createAnimator(rig,opts){
   var idle=rig.idle||{};
   var footDrop=rig.footDrop===undefined?8:rig.footDrop;
   var look={x:null,z:null,w:0,cur:0},aim={x:null,z:null,w:0,cur:0},lean={roll:0,pitch:0,tiltRoll:0};
-  var loco={moving:false,running:false,phase:0,k:0,lastStep:-1};
+  var loco={moving:false,running:false,phase:0,k:0,lastStep:-1},halted=false;
 
   function lookupClip(c){
     if(typeof c!=='string')return c;
@@ -177,6 +177,7 @@ function createAnimator(rig,opts){
     /* weight toward its target */
     if(inst.w<inst.wTarget){inst.w=Math.min(inst.wTarget,inst.w+(inst.fadeIn>0?dt/inst.fadeIn:1))}
     else if(inst.w>inst.wTarget){inst.w=Math.max(inst.wTarget,inst.w-(inst.fadeOut>0?dt/inst.fadeOut:1))}
+    if(halted&&inst.layer==='base')return; /* a fallen creature's idle stands still (halt) */
     if(inst.phase)return; /* locomotion clips take their time from the stride phase (see locomotion) */
     var rate=inst.rate*((inst.speedScaled||inst.layer==='base')?speedScale:1);
     var from=inst.t,to=from+dt*rate,wrapped=false;
@@ -241,6 +242,7 @@ function createAnimator(rig,opts){
   }
   function locomotion(m){
     m=m||{};
+    if(halted)return;
     loco.moving=!!m.moving;loco.running=!!m.running;
     var want=wantedBase();
     if(want){
@@ -378,16 +380,31 @@ function createAnimator(rig,opts){
 
   var api={
     play:play,setBase:setBase,locomotion:locomotion,
-    setIdle:function(c){idleClip=c;if(!loco.moving&&c){var cur=base.filter(function(b){return b.wTarget>0})[0],id=typeof c==='string'?c:c.id;if(!cur||cur.clip.id!==id)setBase(c,{fade:.25})}},
+    setIdle:function(c){idleClip=c;if(!halted&&!loco.moving&&c){var cur=base.filter(function(b){return b.wTarget>0})[0],id=typeof c==='string'?c:c.id;if(!cur||cur.clip.id!==id)setBase(c,{fade:.25})}},
     setRoot:function(x,z,yaw){root.x=x;root.z=z;root.yaw=yaw},
     /* the whole creature floats this far above the ground, on top of whatever its clips do (the victory and defeat rise) */
     setHover:function(y){hover=y||0},hover:function(){return hover},
     setSpeed:function(s){speedScale=Math.max(.05,s)},speed:function(){return speedScale},
     freeze:function(sec){frozen=Math.max(frozen,sec)},frozenFor:function(){return frozen},
-    lookAt:function(x,z,w){look.x=x;look.z=z;look.w=w===undefined?1:w},
+    lookAt:function(x,z,w){if(halted)return;look.x=x;look.z=z;look.w=w===undefined?1:w},
     clearLook:function(){look.w=0},
-    aim:function(x,z,w){aim.x=x;aim.z=z;aim.w=w===undefined?1:w},
+    aim:function(x,z,w){if(halted)return;aim.x=x;aim.z=z;aim.w=w===undefined?1:w},
     clearAim:function(){aim.w=0},
+    /* A creature that has fallen stops all of its own life: the idle loop freezes where it is, breathing and other additive clips end, and the
+       head no longer turns to look at things. Only the action it is playing (the fall) and what is held stay. resume() undoes it (a revive). */
+    halt:function(){
+      if(halted)return;
+      halted=true;
+      add.forEach(function(a){a.ending=true;a.wTarget=0;a.fadeOut=Math.min(a.fadeOut,.15)});
+      look.w=0;aim.w=0;lean.pitchWant=0;lean.rollWant=0;loco.moving=false;loco.running=false;
+    },
+    resume:function(){
+      if(!halted)return;
+      halted=false;
+      var want=wantedBase(),cur=base.filter(function(b){return b.wTarget>0})[0];
+      if(want&&(!cur||cur.clip.id!==(typeof want==='string'?want:want.id)))setBase(want,{fade:.25});
+    },
+    halted:function(){return halted},
     update:update,apply:apply,
     /* the current pose as plain data, for the tests: {joint:{posX..sclZ}} */
     pose:function(){
@@ -409,7 +426,7 @@ function createAnimator(rig,opts){
       sweep(base,true);
       evaluate();
     },
-    reset:function(){base.length=upper.length=add.length=0;look.w=aim.w=look.cur=aim.cur=0;lean.pitch=lean.roll=lean.pitchWant=lean.rollWant=0;loco.phase=0;evaluate()},
+    reset:function(){halted=false;base.length=upper.length=add.length=0;look.w=aim.w=look.cur=aim.cur=0;lean.pitch=lean.roll=lean.pitchWant=lean.rollWant=0;loco.phase=0;evaluate()},
     busy:function(layer){return (layer==='additive'?add:upper).some(function(u){return !u.loop&&!u.finished})},
     isPlaying:function(id){return [base,upper,add].some(function(l){return l.some(function(u){return u.clip.id===id&&u.wTarget>0})})},
     baseId:function(){var b=base.filter(function(x){return x.wTarget>0})[0];return b?b.clip.id:null},

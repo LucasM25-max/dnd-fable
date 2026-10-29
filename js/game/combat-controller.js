@@ -83,7 +83,11 @@ Fable.createCombatController=function(o){
      that causes them, so a result shows when the blow lands and a skip still ends with the right state. */
   var hooks={start:function(e){say(e)},round:function(e){roundChanged=true;say(e)},turnstart:onTurnStart,attack:onAttack,action:onAction,swap:onSwap,
     status:function(e){say(e);dirty=true},down:onDown,dead:function(e){say(e);dirty=true},deathsave:onDeathSave,over:onOver,pickup:onPickup,morale:onMorale,recovered:onRecovered};
-  pres=Fable.createPresentation({scene:scene,camera:camera,hud:hud,state:function(){return s},hooks:hooks,seed:seed,settings:Fable.hudSettings});
+  pres=Fable.createPresentation({scene:scene,camera:camera,hud:hud,state:function(){return s},hooks:hooks,seed:seed,settings:Fable.hudSettings,
+    /* the coins each goblin drops when it falls (its share of the base gold, bonuses not counted: those are paid on the results screen),
+       and the victory pose the player has chosen */
+    drops:function(id){var d=dropShares()[id];return d?{cp:d}:null},
+    victory:function(){return Fable.character.roster.victory(o.hero.id)}});
   ctrl.pres=pres;
   creatures.forEach(function(c){var a=pres.addActor(c,entries[c.id]);entries[c.id].walker=a.walker});
   function loadoutIdle(){
@@ -463,18 +467,45 @@ Fable.createCombatController=function(o){
     autoEnd+=dt;
     if(autoEnd>1.5&&heroTurn()&&s.phase==='running'){autoEnd=-1;Cb().endTurn(s);dirty=true}
   }
+  var dropCache=null;
+  function levelsOf(){
+    var b=o.hero.build,n=0;
+    ((b&&b.classLevels)||[]).forEach(function(c){n+=c.level||0});
+    return [Math.max(1,n)];
+  }
+  function dropShares(){
+    if(dropCache)return dropCache;
+    dropCache={};
+    try{
+      var R=Fable.rewards,en=R.enemies(s).map(function(e){e.status='defeated';return e});
+      var r=R.compute({win:true,encounter:o.encounter,enemies:en,hero:{hp:1,hpMax:1},rounds:0,consumablesUsed:0,levels:levelsOf(),xpBefore:0,rng:function(){return 1}});
+      r.shares.forEach(function(x){dropCache[x.id]=x.cp});
+    }catch(e){console.warn('Coin drops: '+e.message)}
+    return dropCache;
+  }
+  function consumablesUsed(){var n=0,u=hero.itemsUsed||{};Object.keys(u).forEach(function(k){n+=u[k]});return n}
+  var paid=null;
+  /* the reward is worked out and paid once, however many times the outcome is shown */
+  function settleRewards(win){
+    if(paid)return paid;
+    var R=Fable.rewards,ro=Fable.character.roster,id=o.hero.id;
+    var rng=Fable.rng((seed^0x7e57ab1e)>>>0);
+    paid=R.compute({win:win,encounter:o.encounter||{},enemies:R.enemies(s),hero:{hp:hero.hp.current,hpMax:hero.hp.max},rounds:s.round,
+      consumablesUsed:consumablesUsed(),levels:levelsOf(),xpBefore:ro.xp(id),rng:rng});
+    ro.consume(id,hero.itemsUsed);
+    if(win)ro.grant(id,{xp:paid.xp,cp:paid.cp,items:paid.items});
+    return paid;
+  }
   function showOutcome(){
     overShown=true;hud.root.classList.add('outcome');
-    var win=s.winner==='player',rw=o.encounter&&o.encounter.rewards;
+    var win=s.winner==='player',r;
+    try{r=settleRewards(win)}catch(e){console.error('Rewards: '+e.message);r=null}
     var rows=[['Rounds',String(s.round)],['Hit points left',hero.hp.current+' / '+hero.hp.max]];
-    if(win&&rw){
-      if(rw.xp!=null)rows.push(['Experience',rw.xp+' XP']);
-      if(rw.goldMin!=null)rows.push(['Gold',rw.goldMin+' to '+rw.goldMax+' gp']);
-    }
-    hud.prompt({title:win?'Victory':'Defeat',big:true,tone:win?'win':'lose',icon:win?'star':'skull',
-      body:win?'The clearing is quiet again.':(hero.alive?'You could not hold the line.':hero.name+' has fallen.'),rows:rows,
-      choices:[{id:'again',label:'Fight again',primary:true,key:'f',keyLabel:'F',codes:['Enter']},{id:'menu',label:'Return to menu',key:'m',keyLabel:'M',codes:['Escape']}],
-      onChoose:function(id){if(id==='again')Fable.enterWorld(o.encounter&&o.encounter.id);else Fable.enterMenu()}});
+    var choices=[{id:'again',label:'Fight again',primary:true,key:'f',keyLabel:'F',codes:['Enter']},{id:'menu',label:'Return to menu',key:'m',keyLabel:'M',codes:['Escape']}];
+    function onChoose(id){if(id==='again')Fable.enterWorld(o.encounter&&o.encounter.id);else Fable.enterMenu()}
+    var body=win?'The clearing is quiet again.':(hero.alive?'You could not hold the line.':hero.name+' has fallen.');
+    if(r&&hud.showResults)hud.showResults(r,{rows:rows,body:body,choices:choices,onChoose:onChoose,sound:function(id){try{pres.audio.play(id)}catch(e){}}});
+    else hud.prompt({title:win?'Victory':'Defeat',big:true,tone:win?'win':'lose',icon:win?'star':'skull',body:body,rows:rows,choices:choices,onChoose:onChoose});
     dirty=true;
   }
 
@@ -517,8 +548,8 @@ Fable.createCombatController=function(o){
     if(hud.overlayOpen())return false;
     if(e.code==='Enter'&&!e.repeat&&pres.busy()){pres.skip();return true}
     if(e.code==='KeyF'&&!e.repeat){
-      var order=['normal','fast','instant'],cur=Fable.hudSettings.get('speed'),nx=order[(order.indexOf(cur)+1)%3];
-      Fable.hudSettings.set('speed',nx);hud.announce('Playback speed: '+nx);return true;
+      var order=['slow','normal','fast','instant'],cur=Fable.hudSettings.get('speed'),nx=order[(order.indexOf(cur)+1)%order.length];
+      Fable.hudSettings.set('speed',nx);hud.announce('Playback speed: '+nx+(nx==='slow'?'. Your dice rolls show in the middle of the screen.':''));return true;
     }
     if(e.code==='KeyM'&&!e.repeat){Fable.hudSettings.set('mute',!Fable.hudSettings.get('mute'));hud.announce(Fable.hudSettings.get('mute')?'Sound off':'Sound on');return true}
     if(e.code==='Space'){if(!e.repeat)endHeroTurn();return true}

@@ -5,7 +5,7 @@
 var KEYMAP=[
   ['Hover a square','Preview a move'],['Click','Move there, or attack the target you aimed at'],['1-9, 0','Use that hotbar slot (1 is Move)'],['B','Fold or unfold the action menu'],['Right-click','Pin or unpin an action on the hotbar'],
   ['Space','End turn'],['Esc','Cancel aiming, close a panel, then the menu'],['C','Character sheet'],['L','Combat log'],['H or ?','Controls and settings'],
-  ['R / Enter','Reroll with Heroic Inspiration, when asked'],['K','Keep the roll, when asked'],['Q / E','Turn the camera'],['Drag, wheel','Orbit and zoom'],['Enter','Skip the action that is playing'],['F','Cycle playback speed'],['M','Mute or unmute']
+  ['R / Enter','Reroll with Heroic Inspiration, when asked'],['K','Keep the roll, when asked'],['Q / E','Turn the camera'],['Drag, wheel','Orbit and zoom'],['Enter','Skip the action that is playing'],['F','Cycle playback speed (Slow, Normal, Fast, Instant)'],['M','Mute or unmute']
 ];
 function plateHtml(hud,inner){return hud.plate(inner,'ov-p')}
 Fable.hudModules.overlays=function(hud){
@@ -34,7 +34,7 @@ Fable.hudModules.overlays=function(hud){
       '<label class="shrng"><span>HUD size</span><input type="range" min="0.85" max="1.3" step="0.05" value="'+a.scale+'" data-k="scale"><output>'+Math.round(a.scale*100)+'%</output></label>'+
       '<label class="shrng"><span>Dice card time</span><input type="range" min="2" max="8" step="1" value="'+a.feed+'" data-k="feed"><output>'+a.feed+' s</output></label>'+
       '<label class="shrng"><span>Motion</span><select data-k="motion"><option value="auto"'+(a.motion==='auto'?' selected':'')+'>Follow my system</option><option value="reduced"'+(a.motion==='reduced'?' selected':'')+'>Reduced</option><option value="full"'+(a.motion==='full'?' selected':'')+'>Full</option></select></label>'+
-      '<label class="shrng"><span>Playback speed</span><select data-k="speed">'+opt(a.speed,[['normal','Normal'],['fast','Fast'],['instant','Instant (no animation)']])+'</select></label>'+
+      '<label class="shrng"><span>Playback speed</span><select data-k="speed">'+opt(a.speed,[['slow','Slow (shows your dice rolls)'],['normal','Normal'],['fast','Fast'],['instant','Instant (no animation)']])+'</select></label>'+
       '<label class="shrng"><span>Effects quality</span><select data-k="quality">'+opt(a.quality,[['auto','Auto'],['high','High'],['medium','Medium'],['low','Low']])+'</select></label>'+
       '<label class="shrng"><span>Enemy tactics</span><select data-k="tactics">'+opt(a.tactics,[['auto','As the encounter says'],['instinct','Instinct (simple)'],['cunning','Cunning'],['tactician','Tactician'],['mastermind','Mastermind (hardest)']])+'</select></label>'+
       rng('volMaster','Master volume',a.volMaster)+rng('volMusic','Music',a.volMusic)+rng('volSfx','Effects',a.volSfx)+rng('volVoice','Voices',a.volVoice)+rng('shake','Camera shake',a.shake)+

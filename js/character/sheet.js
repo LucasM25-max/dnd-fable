@@ -513,6 +513,16 @@ Ch.compute=function(input,options){
       actionIds[a.id]=1;
     });
   }
+  /* a consumable item (a Potion of Healing) is an action for as long as one is carried: the item's use row says what it costs and does */
+  Object.keys(inv).forEach(function(id){
+    var it=C.items.get(id);
+    if(!it||!it.use||!(inv[id]>0))return;
+    var u=it.use,aid='use-'+id;
+    actions.push({id:aid,name:it.name,kind:'item',itemId:id,source:{type:'item',id:id,name:it.name},cost:u.cost,group:'item',icon:u.icon||id,hotkey:null,
+      targeting:{type:'none'},consumes:{item:id,amount:1},requires:null,available:true,reason:'',
+      effects:(u.effects||[]).map(function(e){return resolveEffect(e,it.name)}),description:u.text||it.description});
+    actionIds[aid]=1;
+  });
   var handlers=[];
   effectSources.forEach(function(es){
     (es.def.effects||[]).forEach(function(e){

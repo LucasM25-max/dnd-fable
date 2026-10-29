@@ -169,3 +169,8 @@ The game opens straight into combat: a short camera tour (click or any key skips
 - `?seed=N` makes the dice reproducible. `Fable.currentScene().combat.state` is the live fight for the debug console.
 - Rules live in `js/rules` (`Fable.grid`, `Fable.statblock`, `Fable.creature`, `Fable.combat`, `Fable.combatAI`) and are tested in Node (`node tests/run.js phase 5`). The HUD only reads the state and sends intents.
 - Monsters carry a stat block next to their model (see `js/rules/statblock.js` for the vocabulary); numbers that can be derived are checked at load time.
+
+
+## Rewards, the Armory and victory poses (implementation plan, Phase 9)
+
+A won fight pays XP and gold from the stat blocks of what was defeated (`gold = round(XP x goldPerXp x tier multiplier x (1 + bonus))`, whole numbers, half up; constants in `js/content/economy/standard.js`). Goblins drop their share of the coins, the hero collects them, and the results screen fills the XP bar and counts the gold. XP, gold and items are saved in the browser (`dicebound.progress.v1`). The Armory (hub) sells the Potion of Healing first at 50 gp, then a javelin and a dagger; a Potion of Healing is a Bonus Action in a fight. Victory animations are rows in `js/content/presentation/victories.js`; the free one is the default and a row with a `cost` is sold in the Armory's Victory poses tab. Also in this release: the bottom bar is gone (movement left is on the Move slot), tooltips draw above the hotbar, fallen enemies stop animating and bleed, and a Slow speed (key F) shows only your dice in a centre panel. Tests: `node tests/run.js "phase 9"`.

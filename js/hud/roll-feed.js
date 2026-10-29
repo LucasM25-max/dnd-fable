@@ -1,13 +1,18 @@
 /* Right of centre: the dice card (implementation plan, section 13.10). Every attack the fight resolves lands here with its d20,
    the bonus, the Armor Class it met and the outcome, then the damage dice. Advantage and Disadvantage show both d20s with the
    one that was dropped struck out; a Heroic Inspiration reroll shows what it replaced. The card stays a few seconds
-   (a setting) and the combat log keeps the same facts for later. */
+   (a setting) and the combat log keeps the same facts for later.
+
+   SLOW MODE (Playback speed: Slow). The card moves to the middle of the screen and gets bigger, the d20 tumbles before it settles, and
+   the outcome and the damage are revealed one after the other. It shows only the player's own rolls: the enemies' rolls stay in the
+   combat log, so the panel never interrupts the player's own turn with a goblin's roll. Each card stays at least 3.6 seconds. */
 (function(){
 Fable.hudModules.rollFeed=function(hud){
   var host=document.createElement('div');
   host.className='feed';host.hidden=true;host.setAttribute('aria-hidden','true');
   hud.root.appendChild(host);
-  var timer=0,queue=[],showing=false;
+  var timer=0,queue=[],showing=false,tumble=0,settle=0;
+  function slowMode(){return !!Fable.hudSettings&&Fable.hudSettings.get('speed')==='slow'}
   function die(v,dropped,tone){return '<span class="die'+(dropped?' dropped':'')+(tone?' '+tone:'')+'">'+Fable.hudIcons.svg('d20')+'<b>'+v+'</b></span>'}
   function render(card){
     var d=card.d20,faces='';
@@ -26,24 +31,38 @@ Fable.hudModules.rollFeed=function(hud){
     card.effects.forEach(function(e){h+='<div class="fd-note eff">'+hud.escape(e)+'</div>'});
     return h;
   }
+  function stopTumble(){clearInterval(tumble);clearTimeout(settle);tumble=0;settle=0}
+  /* the centre panel: the dice spin through random faces, then land on the real ones and the rest of the card is revealed */
+  function roll(card){
+    var dice=host.querySelectorAll('.die b'),calm=Fable.hudSettings.reducedMotion(),finals=[];
+    Array.prototype.forEach.call(dice,function(b){finals.push(b.textContent)});
+    function land(){stopTumble();Array.prototype.forEach.call(dice,function(b,i){b.textContent=finals[i]});host.classList.add('rolled');hud.announce(card.title+': '+card.outcome)}
+    if(calm||!dice.length){land();return}
+    tumble=setInterval(function(){Array.prototype.forEach.call(dice,function(b){b.textContent=1+Math.floor(Math.random()*20)})},65);
+    settle=setTimeout(land,850);
+  }
   function next(){
+    stopTumble();
     if(!queue.length){showing=false;host.classList.remove('in');setTimeout(function(){if(!showing)host.hidden=true},260);return}
     showing=true;
-    var card=queue.shift();
-    host.hidden=false;host.className='feed '+card.team;
+    var card=queue.shift(),centre=slowMode();
+    host.hidden=false;host.className='feed '+card.team+(centre?' centre':'');
     host.innerHTML=hud.plate(render(card),'fd');
     void host.offsetWidth;host.classList.add('in');
     var secs=Fable.hudSettings?Fable.hudSettings.get('feed'):4;
-    timer=setTimeout(next,Math.max(900,secs*1000/(queue.length+1)));
+    if(centre){roll(card);timer=setTimeout(next,Math.max(3600,secs*1000)/(queue.length+1))}
+    else timer=setTimeout(next,Math.max(900,secs*1000/(queue.length+1)));
   }
   return {
     show:function(card){
       if(!card)return;
+      /* slow mode shows the player's own rolls only; the log keeps everyone's */
+      if(slowMode()&&card.team!=='player')return;
       queue.push(card);
       if(queue.length>3)queue.shift();
       if(!showing){clearTimeout(timer);next()}
     },
-    clear:function(){queue=[];clearTimeout(timer);showing=false;host.hidden=true;host.classList.remove('in')},
+    clear:function(){queue=[];clearTimeout(timer);stopTumble();showing=false;host.hidden=true;host.classList.remove('in')},
     update:function(){}
   };
 };

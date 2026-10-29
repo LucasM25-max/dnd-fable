@@ -24,6 +24,10 @@ S.registerAll([
   snd('sfx-star','Heroic Inspiration','sfx',1.4,[{type:'notes',wave:'sine',notes:[['A5',0,.3,.8],['E6',.07,.3,.8],['A6',.14,.9,.7],['C#7',.21,.9,.4]],env:[.005,.08,.4,.6],gain:.16},N('white','highpass',[7000,7000],.5,[.01,.4,.2,.6],.05,0,.8)],{priority:3,duck:.3}),
   snd('sfx-roll','Dice clatter','sfx',.6,[N('white','bandpass',[3000,2000],3,[.001,.02,0,.02],.25,0,.02),N('white','bandpass',[2600,1800],3,[.001,.02,0,.02],.22,.07,.02),N('white','bandpass',[3200,2200],3,[.001,.02,0,.02],.2,.15,.02),N('white','bandpass',[2800,2000],3,[.001,.02,0,.02],.18,.26,.02)],{priority:1}),
   snd('sfx-turn','Turn chime','sfx',.6,[{type:'notes',wave:'sine',notes:[['D5',0,.3,1],['A5',.1,.5,.8]],env:[.005,.1,.4,.3],gain:.1}],{priority:1}),
+  /* coins: a single clink, a handful tumbling and settling, and the quick tick that counts gold up on the results screen */
+  snd('sfx-coin','Coin clink','sfx',.5,[O('triangle',[2700,2650],[.001,.05,.15,.3],.14,0,.12),O('sine',[4100,4050],[.001,.04,.1,.25],.07,.012,.1),N('white','highpass',[6000,6000],.5,[.001,.01,0,.02],.08,0,.015)],{variation:{pitch:.18,gain:.15},priority:1}),
+  snd('sfx-coins','Coins spill','sfx',.9,[O('triangle',[2500,2450],[.001,.05,.15,.3],.12,0,.1),O('triangle',[3000,2950],[.001,.05,.15,.3],.1,.07,.1),O('triangle',[2200,2150],[.001,.05,.15,.3],.12,.15,.1),O('triangle',[3300,3250],[.001,.05,.15,.3],.08,.23,.1),O('triangle',[2750,2700],[.001,.05,.15,.3],.1,.34,.1),N('white','highpass',[6500,6500],.5,[.001,.02,0,.04],.1,0,.4)],{variation:{pitch:.1,gain:.1},priority:2}),
+  snd('sfx-coin-tick','Coin count tick','sfx',.2,[O('triangle',[3200,3150],[.001,.03,.1,.12],.1,0,.06),O('sine',[4800,4700],[.001,.02,.05,.1],.05,0,.04)],{variation:{pitch:.12,gain:.1},priority:0}),
   snd('sfx-pop','Goblin springs out','sfx',.5,[N('pink','bandpass',[400,1600],1,[.02,.1,.3,.15],.5,0,.2),O('sine',[200,60],[.01,.1,.3,.1],.3,0,.1)]),
   snd('sfx-death','Defeat','sfx',.9,[N('brown','lowpass',[1500,150],.7,[.01,.3,.3,.4],.5,0,.4),O('sine',[160,40],[.01,.3,.3,.4],.3,0,.4)]),
   snd('sfx-throw','Throw release','sfx',.25,[N('pink','bandpass',[900,2800],1.4,[.01,.05,.3,.1],.35,0,.12)]),

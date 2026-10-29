@@ -56,6 +56,15 @@ M.actionBar=function(s,hero,selectedAttackId){
       ok:st.ok&&mine,reason:st.ok&&mine?'':(mine?st.reason:'Not your turn'),selected:false,uses:r?{current:r.current,max:r.max}:null,
       tip:(a.description||'')});
   });
+  /* consumable items carried (a Potion of Healing): one slot each, with the count left */
+  (hero.actions||[]).forEach(function(a){
+    if(a.kind!=='item')return;
+    var left=hero.stock[a.itemId]||0;
+    if(left<1)return;
+    var st=Cb().actionState(s,hero,a.id);
+    slots.push({id:'action:'+a.id,kind:'action',actionId:a.id,name:a.name,sub:left+' left',icon:a.icon||'potion',cost:a.cost,group:'item',
+      ok:st.ok&&mine,reason:st.ok&&mine?'':(mine?st.reason:'Not your turn'),selected:false,uses:{current:left,max:left},tip:a.description||''});
+  });
   ['dash','disengage','dodge','hide','search'].forEach(function(id){
     var a=Cb().findAction(hero,id);if(!a)return;
     var st=Cb().actionState(s,hero,id);
@@ -110,7 +119,7 @@ M.MENU_TABS=[
 ];
 M.slotCategory=function(sl){return sl.cost==='bonus'?'bonus':sl.cost==='reaction'?'reaction':'action'};
 M.slotTab=function(sl){
-  if(sl.kind==='swap'||sl.kind==='pickup')return 'gear';
+  if(sl.kind==='swap'||sl.kind==='pickup'||sl.group==='item')return 'gear';
   if(sl.kind==='attack')return 'attacks';
   if(sl.group==='spell')return 'spells';
   if(sl.group==='standard')return 'standard';

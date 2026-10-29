@@ -119,6 +119,7 @@ Ch.normalize=function(input){
   if(!isObj(rec.resources))rec.resources={};
   if(!isObj(rec.hitDiceUsed))rec.hitDiceUsed={};
   if(rec.hpCurrent===undefined)rec.hpCurrent=null;
+  if(rec.xp===undefined)rec.xp=0;
   return rec;
 };
 
@@ -141,7 +142,8 @@ Ch.create=function(opts){
     loadouts:opts.loadouts||[],
     resources:opts.resources||{},
     hitDiceUsed:opts.hitDiceUsed||{},
-    hpCurrent:opts.hpCurrent===undefined?null:opts.hpCurrent
+    hpCurrent:opts.hpCurrent===undefined?null:opts.hpCurrent,
+    xp:opts.xp===undefined?0:opts.xp
   };
   return Ch.normalize(rec);
 };
@@ -156,7 +158,7 @@ Ch.parse=function(text){
 
 /* ---------- shape check ---------- */
 
-var KNOWN_FIELDS=['v','name','species','background','classLevels','abilityScores','backgroundAsi','choices','inventory','equipped','currency','loadouts','resources','hitDiceUsed','hpCurrent'];
+var KNOWN_FIELDS=['v','name','species','background','classLevels','abilityScores','backgroundAsi','choices','inventory','equipped','currency','loadouts','resources','hitDiceUsed','hpCurrent','xp'];
 
 /* Checks the shape of a normalized record without looking at content. Returns issues
    [{severity:'error'|'warning', code, message, path}]. An empty list means the record is well formed. */
@@ -234,6 +236,7 @@ Ch.checkRecord=function(rec){
     if(!isInt(rec.hitDiceUsed[c])||rec.hitDiceUsed[c]<0)bad('bad-hit-dice','hitDiceUsed.'+c+' must be a whole number of 0 or more','hitDiceUsed.'+c);
   });
   if(rec.hpCurrent!==null&&(!isInt(rec.hpCurrent)||rec.hpCurrent<0))bad('bad-hp-current','hpCurrent must be null or a whole number of 0 or more','hpCurrent');
+  if(!isInt(rec.xp)||rec.xp<0)bad('bad-xp','xp must be a whole number of 0 or more','xp');
   return issues;
 };
 })(typeof window!=='undefined'?window:typeof self!=='undefined'?self:globalThis);

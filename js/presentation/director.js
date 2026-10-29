@@ -17,7 +17,7 @@
 G.Fable=G.Fable||{};
 var Fable=G.Fable;
 
-var SPEEDS={normal:1,fast:1.65,instant:Infinity};
+var SPEEDS={slow:.6,normal:1,fast:1.65,instant:Infinity};
 
 Fable.createPresentation=function(o){
   var S=o.settings||Fable.hudSettings,hooks=o.hooks||{},getState=o.state||function(){return null};
@@ -38,6 +38,7 @@ Fable.createPresentation=function(o){
   }
 
   var vfx=Fable.createVfx({scene:o.scene,rng:rng,quality:quality,reduced:reduced});
+  var coins=Fable.createCoins({scene:o.scene,rng:rng,reduced:reduced,onSound:function(id,x,z){if(!disposed)audio.play(id,{gain:id==='sfx-coin-tick'?.5:.7,pan:panOf({x:x,y:3,z:z})})}});
   var audio=Fable.createAudio({settings:S,rng:rng,ctxFactory:o.audioFactory,autoUnlock:o.autoUnlock});
   var cam=Fable.camera.createDirector({rng:rng,reduced:reduced});
   var fx=o.hud?Fable.createScreenFx({root:o.hud.root,camera:o.camera,reduced:reduced}):null;
@@ -52,12 +53,12 @@ Fable.createPresentation=function(o){
   function whoInfo(id){
     var s=getState(),c=s&&s.byId[id],a=actors[id];
     var p=a?a.walker.position():{x:0,z:0};
-    return {id:id,team:c?c.team:'enemy',kind:c?c.kind:'monster',name:c?c.name:id,defId:c?c.defId:null,hpMax:c?c.hp.max:1,hpNow:c?c.hp.current:1,x:p.x,z:p.z,profile:a?a.profile:null};
+    return {id:id,team:c?c.team:'enemy',kind:c?c.kind:'monster',name:c?c.name:id,defId:c?c.defId:null,hpMax:c?c.hp.max:1,hpNow:c?c.hp.current:1,x:p.x,z:p.z,profile:a?a.profile:null,drop:o.drops?o.drops(id):null};
   }
   planner=Fable.createPlanner({who:whoInfo,clip:clipOf,rng:rng});
 
   /* ---------- actors ---------- */
-  var api={camera:cam,audio:audio,vfx:vfx,fx:fx,planner:planner,queue:null};
+  var api={camera:cam,audio:audio,vfx:vfx,coins:coins,fx:fx,planner:planner,queue:null};
   api.addActor=function(creature,entry){
     var prof=profileOf(creature),cl=(prof&&prof.clips)||{};
     var rig=Object.assign({},entry.rig,{clips:{walk:cl.walk,run:cl.run,idle:cl.idle}});
@@ -148,6 +149,8 @@ Fable.createPresentation=function(o){
       case 'status':{
         a=actors[c.who];if(!a)return;
         if(c.change==='removed')delete a.statuses[c.id];else a.statuses[c.id]=true;
+        /* a creature that is down stops idling: no breathing, no turning of the head (the fall itself still plays) */
+        if(c.id==='down'){if(c.change==='removed')a.animator.resume();else a.animator.halt()}
         return;
       }
       case 'call':return callCue(c,info);
@@ -171,6 +174,15 @@ Fable.createPresentation=function(o){
         return;
       }
       case 'flash':{a=actors[c.who];if(a)vfx.flash(a.entry,c.color,c.dur,c.strength);return}
+      case 'coins':{
+        /* the coins a defeated creature carried burst from where it fell, and stay on the ground until the fight is won */
+        a=actors[c.who];if(!a)return;
+        p=a.walker.position();
+        coins.drop(p,c.cp,{tags:c.tags});
+        vfx.play('fx-coin-glint',{x:p.x,y:2,z:p.z});
+        return;
+      }
+      case 'collect':{api.collectCoins();return}
       case 'music':{audio.music.start('bed-combat');return}
       case 'outcome':{over=true;audio.music.stop(1.4);if(fx)fx.lowHealth(0);return}
       case 'celebrate':{
@@ -196,10 +208,22 @@ Fable.createPresentation=function(o){
     }
   }
   /* ---------- the rise ---------- */
-  var RISE={win:{to:12,dur:1.9,at:.5},lose:{to:9,dur:2.6,at:1}};
+  /* The hero is lifted out of the fight into the result. What it does up there is a victory animation (Fable.content.victoryAnimations):
+     the one the player picked (o.victory(characterId) gives its id), or the default one. Its row says the clip, effect, sound and how it
+     rises, so a new one is data. A defeat keeps the fallen pose and rises with it, slower. */
+  var RISE={win:{to:12,dur:1.9,at:.5,bob:.55},lose:{to:9,dur:2.6,at:1,bob:.55}};
+  function victoryOf(a){
+    var reg=Fable.content&&Fable.content.victoryAnimations;
+    if(!reg)return null;
+    var id=o.victory?o.victory(a.creature.defId):null,d=id?reg.get(id):null;
+    if(d&&!d.clips[a.creature.defId])d=null; /* a pose with no clip for this character falls back to the default */
+    if(!d)d=reg.filter(function(v){return v.default})[0]||null;
+    return d;
+  }
+  api.victoryOf=function(id){var a=actors[id];return a?victoryOf(a):null};
   function rise(a,win){
-    var spec=win?RISE.win:RISE.lose,calm=reduced(),p=a.walker.position();
-    a.rise={t:calm?spec.dur:0,dur:spec.dur,to:spec.to,at:spec.at,win:win,fired:false,clock:0};
+    var vic=win?victoryOf(a):null,spec=Object.assign({},win?RISE.win:RISE.lose,(vic&&vic.rise)||{}),calm=reduced(),p=a.walker.position();
+    a.rise={t:calm?spec.dur:0,dur:spec.dur,to:spec.to,at:spec.at,bob:spec.bob,win:win,fired:false,clock:0,vic:vic};
     if(win){
       vfx.play('fx-victory',{x:p.x,y:0,z:p.z});
       audio.play('sfx-surge',{gain:.5,pan:panOf(p)});
@@ -209,17 +233,19 @@ Fable.createPresentation=function(o){
   function fireRise(a){
     var r=a.rise;if(!r||r.fired)return;
     r.fired=true;
-    var cl=a.profile&&a.profile.clips;
-    if(r.win&&cl&&cl.victory&&a.creature.alive){
-      a.animator.play(cl.victory,{hold:true,tag:'victory'});
-      var p=a.walker.position();vfx.play('fx-victory',{x:p.x,y:a.animator.hover(),z:p.z});
+    var cl=a.profile&&a.profile.clips,vic=r.vic,clip=(vic&&vic.clips[a.creature.defId])||(cl&&cl.victory);
+    if(r.win&&clip&&a.creature.alive){
+      a.animator.play(clip,{hold:true,tag:'victory'});
+      var p=a.walker.position();
+      vfx.play((vic&&vic.effect)||'fx-victory',{x:p.x,y:a.animator.hover(),z:p.z});
+      if(vic&&vic.sound&&vic.sound!=='sfx-surge')audio.play(vic.sound,{gain:.6,pan:panOf(p)});
     }
   }
   function stepRise(a,dt){
     var r=a.rise;if(!r)return;
     r.clock+=dt;r.t=Math.min(r.dur,r.t+dt);
     var k=r.t/r.dur,e=1-Math.pow(1-k,3);
-    var bob=(k>=1&&!reduced())?Math.sin(r.clock*1.7)*.55:0;
+    var bob=(k>=1&&!reduced())?Math.sin(r.clock*1.7)*(r.bob===undefined?.55:r.bob):0;
     a.animator.setHover(r.to*e+bob);
     if(k>=r.at)fireRise(a);
   }
@@ -293,8 +319,8 @@ Fable.createPresentation=function(o){
   function finishVisuals(){
     /* a skip never cancels the rise: it lands it, so the hero is where the result expects it */
     list.forEach(function(x){if(x.rise){x.rise.t=x.rise.dur;stepRise(x,0);fireRise(x)}});
-    list.forEach(function(x){x.animator.finish();x.animator.clearLook()});
-    vfx.clear();queue.timeScale=1;slowUntil=0;if(over)cam.release('attack');else cam.release();
+    list.forEach(function(x){x.animator.finish();x.animator.clearLook();if(x.statuses.down)x.animator.halt()});
+    vfx.clear();coins.settle();queue.timeScale=1;slowUntil=0;if(over)cam.release('attack');else cam.release();
   }
   api.skip=function(){if(!queue.busy())return false;queue.skip();finishVisuals();return true};
   api.skipAll=function(){if(!queue.busy())return false;queue.skipAll();finishVisuals();return true};
@@ -315,7 +341,7 @@ Fable.createPresentation=function(o){
       if(x.lookUntil&&clockReal>x.lookUntil){x.animator.clearLook();x.lookUntil=0}
       x.animator.update(gdt*(x.animator.busy()?1:1));x.animator.apply();
     });
-    vfx.update(gdt);
+    vfx.update(gdt);coins.update(dt);
     /* persistent status effects drift off a creature while the status lasts */
     auraClock+=dt;
     if(auraClock>.55){
@@ -363,7 +389,15 @@ Fable.createPresentation=function(o){
   };
   api.dispose=function(){
     disposed=true;queue.clear();
-    audio.dispose();vfx.dispose();if(fx)fx.dispose();
+    audio.dispose();vfx.dispose();coins.dispose();if(fx)fx.dispose();
+  };
+  /* the hero collects every coin lying on the ground; the coins fly to it (it may be rising, so it reads the hero's height each time) */
+  api.collectCoins=function(onCoin){
+    var h=null;
+    list.forEach(function(x){if(x.creature.team==='player')h=h||x});
+    if(!h)return 0;
+    var p=h.walker.position();
+    return coins.collect({x:p.x,y:h.animator.hover()+11,z:p.z},onCoin);
   };
   api.finishVisuals=finishVisuals;
   return api;

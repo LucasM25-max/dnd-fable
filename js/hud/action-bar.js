@@ -1,4 +1,5 @@
-/* Bottom centre, above the action economy: the hotbar and the action menu (implementation plan, section 13.6).
+/* Bottom centre: the hotbar and the action menu (implementation plan, section 13.6). There is no separate action economy bar: Move
+   on the hotbar shows the movement left, and the menu's tabs (and its folded handle) show which of Action, Bonus Action and Reaction are spent.
 
    The menu is the whole list of what the hero can do, sorted the way the rules sort it: tabs down the left for Actions, Bonus
    Actions and Reactions, and inside each of those tabs along the top for Attacks, Abilities, Standard actions and Gear (Spells
@@ -9,7 +10,7 @@
    a menu slot can be dragged onto a hotbar slot, hotbar slots can be dragged to swap, and dragging one back into the menu or
    right clicking it unpins it. The keys 1 to 9 and 0 use the hotbar slots. The player's own layout is kept in the browser per hero.
 
-   Each slot shows an icon, a cost marker that uses the same shapes as the economy plate (gold circle Action, green triangle Bonus
+   Each slot shows an icon, a cost marker that uses the same shapes as the menu tabs (gold circle Action, green triangle Bonus
    Action, violet diamond Reaction, grey square free) and says why it is unavailable instead of just greying out. Clicking an attack
    arms it and the player then picks a target; every other slot acts at once. The model is in models-combat.js. */
 (function(){
@@ -55,6 +56,30 @@ Fable.hudModules.actionBar=function(hud){
       '</button>';
   }
 
+  /* The Move slot's movement meter. It is painted in place on every update, because the pointer previewing a destination changes it
+     many times a second without the rest of the bar changing. */
+  var mvKey='';
+  function paintMove(hero,ctx){
+    var slot=hotEl.querySelector('.hslot[data-index="0"]');
+    if(!slot||!hero||!hero.economy)return;
+    var m=M.economy(hero,ctx&&ctx.preview),mv=m.movement,key=JSON.stringify(mv)+(ctx&&ctx.preview&&ctx.preview.ok?'o':'')+(slot.querySelector('.mvm')?'':'n');
+    if(key===mvKey&&slot.querySelector('.mvm'))return;
+    mvKey=key;
+    var val=slot.querySelector('.mvv'),bar=slot.querySelector('.mvm');
+    if(!val){val=document.createElement('b');val.className='mvv';slot.appendChild(val)}
+    if(!bar){bar=document.createElement('span');bar.className='mvm';bar.innerHTML='<span class="segs" role="img"></span>';slot.appendChild(bar)}
+    var segs=bar.firstChild;
+    val.innerHTML=mv.left+'<small>ft</small>';
+    slot.classList.toggle('mv-empty',mv.left<=0);
+    segs.setAttribute('aria-label','Movement: '+mv.text);
+    if(segs.children.length!==mv.segments.length)segs.innerHTML=mv.segments.map(function(){return '<i class="seg"></i>'}).join('');
+    mv.segments.forEach(function(sg,i){
+      var n=segs.children[i];
+      n.className='seg'+(sg.state==='spent'?' spent':sg.state==='part'?' part':'')+(sg.dash&&sg.state!=='spent'?' dash':'')+(sg.preview?' preview'+(ctx&&ctx.preview&&ctx.preview.ok?' ok':''):'');
+      if(sg.part!==null)n.style.setProperty('--part',sg.part+'%');else n.style.removeProperty('--part');
+    });
+  }
+
   function render(force){
     var s=lastS,ctx=lastCtx;
     if(!s)return;
@@ -70,7 +95,7 @@ Fable.hudModules.actionBar=function(hud){
     var cat=menu.filter(function(c){return c.id===catId})[0]||menu[0];catId=cat.id;
     var tab=cat.tabs.filter(function(t){return t.id===tabOf[cat.id]})[0]||cat.tabs[0];tabOf[cat.id]=tab.id;
     var key=JSON.stringify([bar,menu,catId,tabOf,folded,!!custom])+(ctx.busy?'b':'');
-    if(!force&&key===last)return;
+    if(!force&&key===last){paintMove(hero,ctx);return}
     last=key;
     var pinned={};bar.forEach(function(e){if(e.id)pinned[e.id]=e.index});
 
@@ -81,6 +106,7 @@ Fable.hudModules.actionBar=function(hud){
         slotButton(e.slot,ctx,{hotkey:e.hotkey,gone:e.gone,pinTip:e.index>0?'Right click or drag away to unpin':'Always on the hotbar'})+'</div>';
     });
     hotEl.innerHTML=hud.plate('<div class="row">'+hh+'</div>','sm');
+    mvKey='';paintMove(hero,ctx);
 
     var cats='';
     menu.forEach(function(c){
@@ -109,7 +135,11 @@ Fable.hudModules.actionBar=function(hud){
         '<button type="button" class="am-fold" aria-label="Hide the action menu (B)" data-tip="Hide the menu (B)" data-tip-up>'+Fable.hudIcons.svg('chevron')+'</button></div>'+
         '<div class="am-grid" role="tabpanel">'+grid+'</div></div>','sm');
     /* folded: only a thin handle remains, which brings the menu back */
-    if(folded)menuEl.innerHTML='<button type="button" class="am-unfold" aria-label="Show the action menu (B)" data-tip="Show the action menu (B)" data-tip-up>'+Fable.hudIcons.svg('chevron')+'<span>Actions</span></button>';
+    if(folded){
+      var eshapes=menu.map(function(c){return '<svg class="'+c.id+(c.used?' spent':'')+'" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+{action:'<circle class="shape" cx="12" cy="12" r="8"/>',bonus:'<path class="shape" d="M12 4 21 19H3z"/>',reaction:'<path class="shape" d="M12 3 21 12 12 21 3 12z"/>'}[c.id]+'</svg>'}).join('');
+      var state=menu.map(function(c){return c.label+(c.used?' spent':' available')}).join(', ');
+      menuEl.innerHTML='<button type="button" class="am-unfold" aria-label="Show the action menu (B). '+hud.escape(state)+'" data-tip="Show the action menu (B)\n'+hud.escape(state)+'" data-tip-up>'+Fable.hudIcons.svg('chevron')+'<span>Actions</span><span class="eshapes">'+eshapes+'</span></button>';
+    }
   }
 
   function edit(next){

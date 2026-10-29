@@ -2,6 +2,7 @@
    grid square is 15 wide. A recipe's colours can be replaced by the planner (a damage type tint), so one recipe serves several uses. */
 (function(){
 var E=Fable.content.effects;
+var BLOOD=[0x8a1414,0x6e0f0f,0xa51c1c,0x5a0c0c];
 function fx(id,name,parts){return {id:id,name:name,source:'original',parts:parts}}
 var WHITE=[0xffffff,0xfff4d6,0xdfe9f5],WARM=[0xffd27a,0xffa64a,0xff7a2a],DUST=[0x9b8a6a,0x7d6f55,0xb2a07c],GREEN=[0x9dff9d,0x5cf08a,0xd8ffd0],GOLD=[0xffe08a,0xffc94d,0xfff2c0];
 E.registerAll([
@@ -30,6 +31,13 @@ E.registerAll([
   fx('fx-land','Landing dust',[{type:'burst',count:14,speed:[14,36],spread:3.2,lift:.15,life:[.35,.7],size:[.9,1.6],end:1.7,colors:DUST,gravity:-2,drag:2,y:.6,radius:2},{type:'ring',from:1,to:9,dur:.4,color:0xb09a70,opacity:.4}]),
   fx('fx-thud','Body falls',[{type:'burst',count:18,speed:[16,40],spread:3.2,lift:.15,life:[.4,.8],size:[1,1.8],end:1.8,colors:DUST,gravity:-2,drag:2,y:.6,radius:5},{type:'ring',from:3,to:15,dur:.45,color:0xb09a70,opacity:.45}]),
   fx('fx-death','Defeat',[{type:'burst',count:26,speed:[8,26],spread:3.2,lift:1.2,life:[.7,1.4],size:[.7,1.3],end:0,colors:[0x6b6b6b,0x8a8a8a,0x4c4c4c,0xc8c0a8],gravity:-12,drag:1.2,y:3,radius:5,stagger:.2}]),
+  /* blood: a spray as a creature drops (the drops that land stain the floor), and the pool that spreads under the body and stays */
+  fx('fx-blood','Blood spray',[
+    {type:'burst',count:26,speed:[24,70],spread:3.2,lift:.75,life:[.5,.9],size:[.7,1.4],end:.5,colors:BLOOD,gravity:140,drag:.8,y:9,radius:2,stain:[1],keepColor:true},
+    {type:'burst',count:10,speed:[8,26],spread:3.2,lift:.5,life:[.4,.8],size:[.9,1.6],end:.3,colors:BLOOD,gravity:90,drag:1.4,y:6,radius:2,stain:[1.2],keepColor:true}]),
+  fx('fx-blood-pool','Blood pool',[{type:'decal',count:9,radius:6,size:[2,4.2],colors:BLOOD,grow:.9}]),
+  fx('fx-coin-glint','Coin glint',[{type:'burst',count:12,speed:[8,26],spread:3.2,lift:1.1,life:[.4,.8],size:[.5,.9],end:0,colors:GOLD,glow:true,gravity:30,drag:1.4,y:2,radius:3,keepColor:true},
+    {type:'ring',from:2,to:9,dur:.35,color:0xffe08a,opacity:.5}]),
   fx('fx-heal','Healing',[
     {type:'burst',count:22,speed:[10,26],spread:3.2,lift:1.3,life:[.7,1.3],size:[.5,1],end:0,colors:GREEN,glow:true,gravity:-16,drag:1,y:2,radius:5,stagger:.4,keepColor:true},
     {type:'ring',from:3,to:12,dur:.7,color:0x7dffa0,opacity:.7},{type:'light',color:0x80ffa0,intensity:1.6,dur:.9,y:10}]),

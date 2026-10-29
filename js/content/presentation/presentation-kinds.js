@@ -16,7 +16,7 @@ C.defineKind('effects',{
   validate:function(d,fail){
     if(!Array.isArray(d.parts)||!d.parts.length)fail('parts must be a non empty list');
     (d.parts||[]).forEach(function(p,i){
-      if(['burst','arc','ring','light','column'].indexOf(p.type)<0)fail('parts['+i+'] has unknown type "'+p.type+'"');
+      if(['burst','arc','ring','light','column','decal'].indexOf(p.type)<0)fail('parts['+i+'] has unknown type "'+p.type+'"');
       if(p.count!==undefined&&!(p.count>0&&p.count<=200))fail('parts['+i+'] count must be 1 to 200');
       (p.colors||[]).forEach(function(c){if(typeof c!=='number')fail('parts['+i+'] colors must be numbers (0xRRGGBB)')});
     });
@@ -54,6 +54,36 @@ C.defineKind('barks',{
       if(!Array.isArray(d.lines[k])||!d.lines[k].length)fail('lines.'+k+' must be a non empty list');
       d.lines[k].forEach(function(t){if(typeof t!=='string'||t.length>60)fail('lines.'+k+' entries must be short text (60 characters at most)')});
     });
+  }
+});
+/* Victory animations (implementation plan, section 17.5): how the hero celebrates a win once it has risen out of the fight. A row is
+   data, so a new one is a row (and, for a new character model, a clip); the player owns some, picks one, and can buy more with gold.
+     clips      the clip each creature definition plays (a presentation profile's own victory clip is used for a creature not listed)
+     effect     the effect played when the pose starts      sound   the sound played with it
+     rise       how it lifts clear of the fight: {to: height, dur: seconds, at: fraction of the rise at which the pose starts, bob: float amount}
+     cost       what it costs in the shop ({gp:40}), or null for one every hero starts with
+     default    true on the one used until the player picks another (exactly one)                                                    */
+C.defineKind('victoryAnimations',{
+  label:'Victory animation',required:['clips','description'],
+  refs:[{path:'clips.*',kind:'animations'},{path:'effect',kind:'effects'},{path:'sound',kind:'sounds'}],
+  validate:function(d,fail){
+    if(typeof d.description!=='string'||!d.description)fail('needs a description');
+    if(!d.clips||typeof d.clips!=='object'||Array.isArray(d.clips)||!Object.keys(d.clips).length)fail('clips must map a character id to a clip id');
+    if(d.cost!==undefined&&d.cost!==null){var why=Fable.money?Fable.money.checkCost(d.cost):null;if(why)fail('cost: '+why)}
+    if(d.default!==undefined&&typeof d.default!=='boolean')fail('default must be true or false');
+    if(d.default&&d.cost)fail('the default victory animation must be free');
+    if(d.rise!==undefined){
+      var r=d.rise;
+      if(!r||typeof r!=='object')fail('rise must be an object');
+      else{
+        ['to','dur','bob'].forEach(function(k){if(r[k]!==undefined&&!(typeof r[k]==='number'&&isFinite(r[k])&&r[k]>=0))fail('rise.'+k+' must be a number of 0 or more')});
+        if(r.dur!==undefined&&!(r.dur>0))fail('rise.dur must be above 0');
+        if(r.at!==undefined&&!(typeof r.at==='number'&&r.at>=0&&r.at<=1))fail('rise.at must be between 0 and 1');
+      }
+    }
+  },
+  crossCheck:function(d,ctx){
+    if(d.default&&ctx.list('victoryAnimations').filter(function(v){return v.default}).length!==1)ctx.fail('exactly one victory animation must be the default');
   }
 });
 C.cueNames=CUES;

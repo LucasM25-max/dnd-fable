@@ -26,6 +26,7 @@ var P={
   search:'<circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.600"/><path d="M14.500 14.500 21 21" stroke="currentColor" stroke-width="3" stroke-linecap="square"/>',
   pickup:'<path d="M12 3v11M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="square"/><path d="M4 19h16v2H4z"/>',
   move:'<path d="M12 2l4 4h-3v5h5V8l4 4-4 4v-3h-5v5h3l-4 4-4-4h3v-5H6v3l-4-4 4-4v3h5V6H8z"/>',
+  potion:'<path d="M9.500 2.500h5v1.800h-1V8c3 1.200 5 3.800 5 7 0 3.600-2.900 6.500-6.500 6.500S5.500 18.600 5.500 15c0-3.200 2-5.800 5-7V4.300h-1z"/><path d="M8 14.500c1.500-1 3.500 1 8 0v1.500c0 2.500-1.800 4.500-4 4.500s-4-2-4-4.500z" fill="#000" opacity=".4"/>',
   pin:'<path d="M9 2h6l-1 6 3 3v2h-4v7l-1 2-1-2v-7H7v-2l3-3z"/>',
   chevron:'<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="square"/>',
   check:'<path d="M3.500 12.500 9 18 20.500 6.500 19 5 9 15 5 11z"/>'

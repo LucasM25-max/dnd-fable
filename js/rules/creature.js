@@ -56,7 +56,7 @@ function base(o){
     ac:o.ac,hp:o.hp,speedFt:o.speedFt,initiative:o.initiative,abilities:o.abilities,proficiencyBonus:o.proficiencyBonus,
     attacks:o.attacks||[],actions:o.actions||[],conditions:[],cell:null,facing:0,alive:true,down:false,
     portrait:o.portrait||null,subtitle:o.subtitle||'',inspiration:!!o.inspiration,economy:null,
-    resources:o.resources||{},stock:o.stock||{},thrown:{},handlers:o.handlers||[],build:o.build||null,
+    resources:o.resources||{},stock:o.stock||{},itemsUsed:{},thrown:{},handlers:o.handlers||[],build:o.build||null,
     death:{successes:0,failures:0,stable:false,dead:false},senses:o.senses||{},ai:null,mind:null
   };
 }
