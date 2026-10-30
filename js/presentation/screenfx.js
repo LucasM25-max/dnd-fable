@@ -4,6 +4,9 @@
 
    var fx = Fable.createScreenFx({root, camera, reduced})
    fx.flash(color, alpha, sec)   fx.vignette(color, alpha, sec)   fx.letterbox(on)   fx.lowHealth(0..1)
+   fx.stage('win'|'lose'|null, {x})   the look of the end of the fight: a win is graded warm and rich with a slow fan of light behind the hero
+                                      (x is where the hero stands, as a fraction of the screen width), a defeat drains the colour and darkens
+   fx.streaks()                       speed lines racing past as the hero charges the camera
    fx.bubble(anchorFn, text, tone, sec)     anchorFn() -> {x, y, z} world point above the speaker
    fx.update(dt, w, h)   fx.clear()   fx.dispose() */
 (function(G){
@@ -13,9 +16,10 @@ var Fable=G.Fable;
 Fable.createScreenFx=function(o){
   var root=o.root,camera=o.camera,reducedFn=o.reduced||function(){return false};
   var layer=document.createElement('div');layer.className='pfx';layer.setAttribute('aria-hidden','true');
-  layer.innerHTML='<div class="pfx-flash"></div><div class="pfx-vig"></div><div class="pfx-low"></div><div class="pfx-bar top"></div><div class="pfx-bar bot"></div><div class="pfx-bubbles"></div>';
+  layer.innerHTML='<div class="pfx-grade"></div><div class="pfx-rays"></div><div class="pfx-flash"></div><div class="pfx-vig"></div><div class="pfx-low"></div><div class="pfx-streaks"></div><div class="pfx-bar top"></div><div class="pfx-bar bot"></div><div class="pfx-bubbles"></div>';
   root.insertBefore(layer,root.firstChild);
   var flashEl=layer.querySelector('.pfx-flash'),vigEl=layer.querySelector('.pfx-vig'),lowEl=layer.querySelector('.pfx-low'),bub=layer.querySelector('.pfx-bubbles');
+  var raysEl=layer.querySelector('.pfx-rays'),streakEl=layer.querySelector('.pfx-streaks');
   var anims=[],bubbles=[],low=0,vec=new THREE.Vector3();
 
   function animate(el,color,peak,sec,kind){
@@ -28,6 +32,16 @@ Fable.createScreenFx=function(o){
     vignette:function(color,alpha,sec){animate(vigEl,color,alpha,sec,'vig')},
     letterbox:function(on){layer.classList.toggle('cine',!!on&&!reducedFn())},
     lowHealth:function(f){low=Math.max(0,Math.min(1,f))},
+    stage:function(kind,o){
+      layer.classList.remove('stage-win','stage-lose');
+      if(kind==='win'||kind==='lose')layer.classList.add('stage-'+kind);
+      var x=o&&typeof o.x==='number'?o.x:.5;
+      raysEl.style.left=Math.round(x*1000)/10+'%';
+    },
+    streaks:function(){
+      if(reducedFn())return;
+      streakEl.classList.remove('go');void streakEl.offsetWidth;streakEl.classList.add('go');
+    },
     bubble:function(anchor,text,tone,sec){
       /* one at a time per speaker would be tracked by the caller; here a hard cap keeps the screen readable */
       if(bubbles.length>=3){var old=bubbles.shift();old.el.remove()}
@@ -61,7 +75,7 @@ Fable.createScreenFx=function(o){
         b.el.style.opacity=t2>.8?String(1-(t2-.8)/.2):'1';
       }
     },
-    clear:function(){anims.length=0;[flashEl,vigEl].forEach(function(e){e.style.opacity='0'});bubbles.forEach(function(b){b.el.remove()});bubbles.length=0;layer.classList.remove('cine')},
+    clear:function(){anims.length=0;[flashEl,vigEl].forEach(function(e){e.style.opacity='0'});bubbles.forEach(function(b){b.el.remove()});bubbles.length=0;layer.classList.remove('cine','stage-win','stage-lose');streakEl.classList.remove('go')},
     dispose:function(){api.clear();layer.remove()}
   };
   return api;

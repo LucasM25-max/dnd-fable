@@ -152,7 +152,7 @@ G([
    description:"A Pole is 10 feet long. You can use it to touch something up to 10 feet away. If you must make a Strength (Athletics) check as part of a High or Long Jump, you can use the Pole to vault, giving yourself Advantage on the check."},
   {id:'iron-pot',name:'Pot, Iron',cost:{gp:2},weight:10,
    description:"An Iron Pot holds up to 1 gallon."},
-  {id:'potion-of-healing',name:'Potion of Healing',cost:{gp:50},weight:0.5,magic:true,
+  {id:'potion-of-healing',name:'Potion of Healing',cost:{gp:50},weight:0.5,magic:true,visual:{model:'potion-of-healing',stow:null},
    /* use: a consumable's action while one is carried (cost: bonus, action or object); effects as for a class feature */
    use:{cost:'bonus',icon:'potion',effects:[{type:'heal',amount:'2d4 + 2'}],text:'Drink the potion as a Bonus Action to regain 2d4 + 2 Hit Points.'},
    description:"This potion is a magic item. As a Bonus Action, you can drink it or administer it to another creature within 5 feet of yourself. The creature that drinks the magical red fluid in this vial regains 2d4 + 2 Hit Points."},

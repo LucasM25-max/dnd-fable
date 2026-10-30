@@ -61,6 +61,22 @@ E.registerAll([
   fx('fx-aura-hidden','Hidden',[{type:'burst',count:1,speed:[4,8],spread:3.2,lift:.5,life:[.8,1.2],size:[.6,1],end:.2,colors:[0x6a8a58,0x4c6a3e],gravity:-3,drag:1,y:6,radius:5}]),
   fx('fx-victory','Victory motes',[{type:'burst',count:50,speed:[16,48],spread:3.2,lift:1.2,life:[1,2],size:[.7,1.4],end:.3,colors:GOLD,glow:true,gravity:-3,drag:.8,y:6,radius:22,stagger:1.2,keepColor:true},
     {type:'ring',from:3,to:40,dur:1.2,color:0xffe08a,opacity:.6},{type:'light',color:0xffe3a0,intensity:2,dur:1.6,y:20,range:120}]),
+  /* the end of the fight (director.js, the stage): the hero charges the camera, lands, and the winners are showered; the losers sit in falling ash */
+  fx('fx-stage-launch','Charge',[
+    {type:'burst',count:36,speed:[30,90],spread:3.2,lift:.15,life:[.4,.9],size:[1.2,2.4],end:1.8,colors:DUST,gravity:-2,drag:2,y:.8,radius:5},
+    {type:'ring',from:2,to:30,dur:.5,color:0xffe08a,opacity:.8},{type:'light',color:0xffe3a0,intensity:2.2,dur:.5,y:10,range:110}]),
+  fx('fx-stage-land','Landing',[
+    {type:'ring',from:3,to:64,dur:.9,color:0xffe08a,opacity:.95},{type:'ring',from:2,to:40,dur:.6,color:0xffffff,opacity:.85,delay:.05},{type:'ring',from:1,to:90,dur:1.1,color:0xffc94d,opacity:.5,delay:.12},
+    {type:'burst',count:60,speed:[40,120],spread:3.2,lift:.55,life:[.5,1.3],size:[.8,1.8],end:.2,colors:GOLD,glow:true,gravity:55,drag:1.3,y:2,radius:3,keepColor:true},
+    {type:'burst',count:44,speed:[30,90],spread:3.2,lift:.15,life:[.5,1.1],size:[1.4,2.8],end:1.8,colors:DUST,gravity:-2,drag:2,y:.8,radius:7},
+    {type:'burst',count:24,speed:[20,60],spread:3.2,lift:1,life:[.6,1.2],size:[.8,1.5],end:.1,colors:WHITE,glow:true,gravity:30,drag:1.2,y:4,radius:5,keepColor:true},
+    {type:'light',color:0xffe3a0,intensity:3.4,dur:1,y:16,range:150}]),
+  fx('fx-stage-confetti','Victory shower',[
+    {type:'burst',count:26,speed:[3,16],spread:3.2,lift:.3,life:[2,3.4],size:[1,1.7],end:1,colors:[0xf0b94d,0xa8322b,0x2f5d9e,0x6fbf5a,0xffffff,0xffd877],gravity:12,drag:.9,y:42,radius:34,stagger:.5,keepColor:true},
+    {type:'burst',count:16,speed:[3,12],spread:3.2,lift:.2,life:[1.6,2.8],size:[.6,1.1],end:0,colors:GOLD,glow:true,gravity:8,drag:1,y:40,radius:34,stagger:.5,keepColor:true}]),
+  fx('fx-stage-ash','Falling ash',[
+    {type:'burst',count:14,speed:[2,8],spread:3.2,lift:.2,life:[2.2,3.6],size:[.8,1.5],end:.6,colors:[0x4c4c4c,0x6b6b6b,0x8a8478],gravity:6,drag:.8,y:44,radius:36,stagger:.6,keepColor:true},
+    {type:'burst',count:7,speed:[2,7],spread:3.2,lift:1.2,life:[1.6,2.6],size:[.5,1],end:0,colors:[0xff6a3a,0xc02a1a,0xff9a50],glow:true,gravity:-9,drag:.8,y:1,radius:30,stagger:.6,keepColor:true}]),
   fx('fx-pop','Ambush pop',[{type:'burst',count:20,speed:[20,55],spread:3.2,lift:.8,life:[.4,.8],size:[.8,1.5],end:1.2,colors:[0x4f7a2c,0x6c9a3e,0x7d6f55],gravity:40,drag:1.2,y:2,radius:5},{type:'ring',from:2,to:12,dur:.35,color:0x8fbf5a,opacity:.5}]),
   fx('fx-trail','Projectile trail',[{type:'burst',count:2,speed:[2,6],spread:3.2,lift:0,life:[.12,.22],size:[.5,.8],end:0,colors:[0xdfe6ea,0xffffff],glow:true,gravity:0,drag:3}]),
   fx('fx-skid','Backstep dust',[{type:'burst',count:8,speed:[10,24],spread:1.2,lift:.2,life:[.3,.6],size:[.8,1.3],end:1.6,colors:DUST,gravity:-2,drag:2.5,y:.6,radius:2}])

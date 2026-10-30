@@ -106,7 +106,7 @@ A.registerAll([
     armR:{rotX:[D(0,0),D(.5,-1.2,'outBack'),D(1,-1.1),D(2.2,-1.1)],rotZ:[D(0,0),D(.5,-.3),D(2.2,-.3)]},
     torso:{rotX:[D(0,0),D(.5,-.1),D(2.2,-.1)]},head:{rotX:[D(0,0),D(.5,-.18),D(2.2,-.18)]},
     root:{posY:[D(0,0),D(.25,1.4,'outQuad'),D(.5,0,'inQuad'),D(2.2,0)]},cape:{rotX:[D(0,0),D(.6,.5),D(2.2,.3)]}},events:[{t:.5,cue:'flourish'}]}),
-  /* a second victory pose, bought in the Armory: both arms thrown up, a leap and a full turn in the air, then a held cheer */
+  /* a second victory pose, bought in the Store: both arms thrown up, a leap and a full turn in the air, then a held cheer */
   clip('fighter-victory-spin','Fighter victory spin',2.6,{layer:'upper',hold:true,tracks:{
     armR:{rotX:[D(0,0),D(.45,-2.5,'outBack'),D(2.6,-2.5)],rotZ:[D(0,0),D(.45,-.25),D(2.6,-.25)]},
     armL:{rotX:[D(0,0),D(.45,-2.5,'outBack'),D(2.6,-2.5)],rotZ:[D(0,0),D(.45,.25),D(2.6,.25)]},

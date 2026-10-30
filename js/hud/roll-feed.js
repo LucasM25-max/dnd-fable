@@ -11,9 +11,9 @@ Fable.hudModules.rollFeed=function(hud){
   var host=document.createElement('div');
   host.className='feed';host.hidden=true;host.setAttribute('aria-hidden','true');
   hud.root.appendChild(host);
-  var timer=0,queue=[],showing=false,tumble=0,settle=0;
+  var timer=0,queue=[],showing=false,tumble=0,settle=0,dice=[],starts=[];
   function slowMode(){return !!Fable.hudSettings&&Fable.hudSettings.get('speed')==='slow'}
-  function die(v,dropped,tone){return '<span class="die'+(dropped?' dropped':'')+(tone?' '+tone:'')+'">'+Fable.hudIcons.svg('d20')+'<b>'+v+'</b></span>'}
+  function die(v,dropped,tone){return '<span class="die'+(dropped?' dropped':'')+(tone?' '+tone:'')+'" data-v="'+v+'">'+Fable.hudIcons.svg('d20')+'<canvas class="d3c" aria-hidden="true"></canvas><b>'+v+'</b></span>'}
   function render(card){
     var d=card.d20,faces='';
     var keptIdx=d.rolls.length>1?(d.mode==='advantage'?(d.rolls[1]>d.rolls[0]?1:0):(d.rolls[1]<d.rolls[0]?1:0)):0;
@@ -32,6 +32,37 @@ Fable.hudModules.rollFeed=function(hud){
     return h;
   }
   function stopTumble(){clearInterval(tumble);clearTimeout(settle);tumble=0;settle=0}
+  function disposeDice(){
+    starts.forEach(clearTimeout);starts=[];
+    dice.forEach(function(d){d.dispose()});dice=[];
+  }
+  /* The 3D dice of the card on screen. Returns {ok, dur, start(onLanded)}: ok is false when WebGL is not available (the flat dice stay) */
+  function mount3d(card,centre){
+    disposeDice();
+    var D3=Fable.dice3d,els=host.querySelectorAll('.die'),none={ok:false};
+    if(!D3||!els.length||!D3.available())return none;
+    var sp=Fable.hudSettings&&Fable.hudSettings.get('speed'),calm=Fable.hudSettings.reducedMotion()||sp==='instant';
+    var dur=centre?1.3:(sp==='fast'?.5:.78),dpr=Math.min(2,window.devicePixelRatio||1)*1.25,made=[];
+    Array.prototype.forEach.call(els,function(el){
+      var cv=el.querySelector('canvas.d3c'),v=+el.getAttribute('data-v');
+      if(!cv||!(v>=1&&v<=20))return;
+      var px=Math.max(48,Math.round((el.offsetWidth||48)*dpr));cv.width=cv.height=px;
+      var tone=el.classList.contains('crit')?'crit':el.classList.contains('fumble')?'fumble':(card.team==='enemy'?'enemy':'player');
+      var d=D3.create(cv,{tone:tone,onFail:function(){el.classList.remove('live')}});
+      if(!d)return;
+      el.classList.add('live');d.show(v);made.push({d:d,v:v});dice.push(d);
+    });
+    if(!made.length)return none;
+    return {ok:true,dur:dur,calm:calm,start:function(onLanded){
+      if(calm){if(onLanded)onLanded();return}
+      var left=made.length;
+      function one(){left--;if(left<=0&&onLanded)onLanded()}
+      made.forEach(function(m,i){
+        /* both dice of an advantage roll are thrown, the second a moment after the first */
+        starts.push(setTimeout(function(){m.d.roll(m.v,{dur:dur,spins:centre?3.2:2.4},one)},i*110));
+      });
+    }};
+  }
   /* the centre panel: the dice spin through random faces, then land on the real ones and the rest of the card is revealed */
   function roll(card){
     var dice=host.querySelectorAll('.die b'),calm=Fable.hudSettings.reducedMotion(),finals=[];
@@ -42,16 +73,27 @@ Fable.hudModules.rollFeed=function(hud){
     settle=setTimeout(land,850);
   }
   function next(){
-    stopTumble();
+    stopTumble();disposeDice();
     if(!queue.length){showing=false;host.classList.remove('in');setTimeout(function(){if(!showing)host.hidden=true},260);return}
     showing=true;
     var card=queue.shift(),centre=slowMode();
     host.hidden=false;host.className='feed '+card.team+(centre?' centre':'');
     host.innerHTML=hud.plate(render(card),'fd');
     void host.offsetWidth;host.classList.add('in');
+    var d3=mount3d(card,centre);
     var secs=Fable.hudSettings?Fable.hudSettings.get('feed'):4;
-    if(centre){roll(card);timer=setTimeout(next,Math.max(3600,secs*1000)/(queue.length+1))}
-    else timer=setTimeout(next,Math.max(900,secs*1000/(queue.length+1)));
+    if(centre){
+      /* the card is revealed when the die has landed; a timer lands it anyway so a stalled frame loop never hides the result */
+      if(d3.ok){
+        var landed=false;
+        var land3d=function(){if(landed)return;landed=true;clearTimeout(settle);settle=0;host.classList.add('rolled');hud.announce(card.title+': '+card.outcome)};
+        d3.start(land3d);settle=setTimeout(land3d,Math.round(d3.dur*1000)+(d3.calm?0:700)+250);
+      }else roll(card);
+      timer=setTimeout(next,Math.max(3600,secs*1000)/(queue.length+1));
+    }else{
+      if(d3.ok)d3.start(null);
+      timer=setTimeout(next,Math.max(900,secs*1000/(queue.length+1)));
+    }
   }
   return {
     show:function(card){
@@ -62,7 +104,7 @@ Fable.hudModules.rollFeed=function(hud){
       if(queue.length>3)queue.shift();
       if(!showing){clearTimeout(timer);next()}
     },
-    clear:function(){queue=[];clearTimeout(timer);stopTumble();showing=false;host.hidden=true;host.classList.remove('in')},
+    clear:function(){queue=[];clearTimeout(timer);stopTumble();disposeDice();showing=false;host.hidden=true;host.classList.remove('in')},
     update:function(){}
   };
 };

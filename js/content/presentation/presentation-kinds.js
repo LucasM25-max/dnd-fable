@@ -60,7 +60,8 @@ C.defineKind('barks',{
    data, so a new one is a row (and, for a new character model, a clip); the player owns some, picks one, and can buy more with gold.
      clips      the clip each creature definition plays (a presentation profile's own victory clip is used for a creature not listed)
      effect     the effect played when the pose starts      sound   the sound played with it
-     rise       how it lifts clear of the fight: {to: height, dur: seconds, at: fraction of the rise at which the pose starts, bob: float amount}
+     rise       the older way of describing how the hero moved into the pose, from when it lifted clear of the fight. The hero now charges the camera
+                and lands before the pose starts (director.js, the stage), so only rise.bob is still used: how much the hero floats once it has landed
      cost       what it costs in the shop ({gp:40}), or null for one every hero starts with
      default    true on the one used until the player picks another (exactly one)                                                    */
 C.defineKind('victoryAnimations',{

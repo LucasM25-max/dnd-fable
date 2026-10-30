@@ -7,7 +7,11 @@
                                             safe = {top, bottom, left, right} as fractions of the screen kept clear for the HUD.
    Fable.camera.project(point, view)        {x, y, depth} in normalised device coordinates, to check framing
    var cd = Fable.camera.createDirector({rng, reduced})
-     cd.shot({focus, dist, yaw, pitch, fov, spin, in, hold, out, tag})   a move: eases in, holds, eases out (hold:Infinity until released)
+     cd.shot({focus, dist, yaw, pitch, fov, spin, in, hold, out, tag, abs, force, sticky})   a move: eases in, holds, eases out (hold:Infinity until released)
+                          dist, yaw and pitch are changes to the player's own camera (dist a multiple); abs:{yaw, pitch, dist} instead aims the camera
+                          exactly there while the shot is in (the victory and defeat shots frame the hero low and close that way). fov widens the lens
+                          (radians) while it is in. force: start even when the player has just moved the camera. sticky: the player moving the camera
+                          afterwards does not cancel it (the shot of the end of the fight stays until it is released).
      cd.release(tag)      start easing out the shots with this tag      cd.cancel()    the player took the camera back
      cd.shake(amp, dur)   cd.punch(fovRadians, dur)
      cd.update(dt)        real time seconds
@@ -89,12 +93,13 @@ function createDirector(o){
   }
   var api={
     shot:function(spec){
-      if(userGrace>0)return null;
+      if(userGrace>0&&!spec.force)return null;
       var calm=reduced();
       /* reduced motion keeps the framing of an action but drops the sweeping moves */
       var s={t:0,in:spec.in===undefined?.3:spec.in,hold:spec.hold===undefined?.5:spec.hold,out:spec.out===undefined?.5:spec.out,
         focus:spec.focus||null,dist:calm?1:(spec.dist===undefined?1:spec.dist),yaw:calm?0:(spec.yaw||0),pitch:calm?0:(spec.pitch||0),
-        spin:calm?0:(spec.spin||0),fov:calm?0:(spec.fov||0),shiftX:spec.shiftX||0,tag:spec.tag||null,focusW:spec.focusW===undefined?1:spec.focusW,dead:false};
+        spin:calm?0:(spec.spin||0),fov:calm?0:(spec.fov||0),shiftX:spec.shiftX||0,tag:spec.tag||null,focusW:spec.focusW===undefined?1:spec.focusW,dead:false,
+        abs:spec.abs?{yaw:spec.abs.yaw,pitch:spec.abs.pitch,dist:spec.abs.dist}:null,sticky:!!spec.sticky};
       if(calm&&s.in<.25)s.in=.25;
       shots.push(s);
       return s;
@@ -107,7 +112,7 @@ function createDirector(o){
     },
     /* the player moved the camera: every move eases out at once and none start for a moment */
     cancel:function(){
-      shots.forEach(function(s){s.hold=0;s.in=0;s.out=.25;s.t=Math.max(s.t,0)});
+      shots.forEach(function(s){if(s.sticky)return;s.hold=0;s.in=0;s.out=.25;s.t=Math.max(s.t,0)});
       userGrace=1.6;
     },
     userActive:function(){return userGrace>0},
@@ -130,9 +135,17 @@ function createDirector(o){
       var out={target:{x:view.target.x,y:view.target.y,z:view.target.z},yaw:view.yaw,pitch:view.pitch,dist:view.dist};
       shots.forEach(function(s){
         var w=envelope(s);if(w<=0)return;
-        out.dist*=1+(s.dist-1)*w;
-        out.yaw+=(s.yaw+s.spin*s.t)*w;
-        out.pitch+=s.pitch*w;
+        if(s.abs){
+          /* aim exactly: the angle takes the short way round */
+          var dy=Math.atan2(Math.sin(s.abs.yaw-out.yaw),Math.cos(s.abs.yaw-out.yaw));
+          out.yaw+=dy*w+s.spin*s.t*w;
+          out.pitch+=(s.abs.pitch-out.pitch)*w;
+          out.dist+=(s.abs.dist-out.dist)*w;
+        }else{
+          out.dist*=1+(s.dist-1)*w;
+          out.yaw+=(s.yaw+s.spin*s.t)*w;
+          out.pitch+=s.pitch*w;
+        }
         if(s.focus){
           var f=w*s.focusW;
           out.target.x+=(s.focus.x-out.target.x)*f;
@@ -156,6 +169,7 @@ function createDirector(o){
     fovAdd:function(){
       var v=0;
       punches.forEach(function(p){var k=p.t/p.dur;v+=p.fov*(k<.15?k/.15:Math.pow(1-(k-.15)/.85,2))});
+      shots.forEach(function(s){if(s.fov)v+=s.fov*Math.max(0,envelope(s))});
       return v;
     },
     /* positive slides the subject to the left of the screen. It is framing, not motion, so reduced motion keeps it. */

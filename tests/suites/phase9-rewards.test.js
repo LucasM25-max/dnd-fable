@@ -66,7 +66,7 @@ module.exports=function({suite,test}){
   });
 
   suite('phase 9 shop and victory animations',()=>{
-    test('the Potion of Healing is first in the armory at 50 gp',async()=>{
+    test('the Potion of Healing is first in the store at 50 gp',async()=>{
       const C=await H.loadData({heroes:true,shops:true});
       const b=C.characters.get('human-fighter').build,cat=Fable.character.shop.catalog('armory',b);
       assert.strictEqual(cat[0].item,'potion-of-healing');assert.strictEqual(cat[0].priceCp,5000);

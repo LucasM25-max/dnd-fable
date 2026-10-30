@@ -6,6 +6,22 @@
 .pfx-bar.top{top:0}.pfx-bar.bot{bottom:0}
 .pfx.cine .pfx-bar{height:7.5vh}
 .pfx-bubbles{position:absolute;inset:0}
+/* the end of the fight: colour grading over the picture, a slow fan of light behind a winner, speed lines as the hero charges the camera */
+.pfx-grade{position:absolute;inset:0;opacity:0;transition:opacity 1.1s ease}
+.pfx.stage-win .pfx-grade{opacity:1;backdrop-filter:saturate(1.28) contrast(1.07) brightness(1.04);-webkit-backdrop-filter:saturate(1.28) contrast(1.07) brightness(1.04);
+  background:radial-gradient(ellipse at 50% 42%,rgba(255,226,154,.10),transparent 60%)}
+.pfx.stage-lose .pfx-grade{opacity:1;backdrop-filter:grayscale(.78) contrast(1.12) brightness(.7);-webkit-backdrop-filter:grayscale(.78) contrast(1.12) brightness(.7);
+  background:radial-gradient(ellipse at 50% 50%,transparent 38%,rgba(40,0,0,.55) 100%)}
+.pfx-rays{position:absolute;left:50%;top:46%;width:190vmax;height:190vmax;margin:-95vmax 0 0 -95vmax;opacity:0;pointer-events:none;mix-blend-mode:screen;
+  background:repeating-conic-gradient(rgba(255,226,154,.20) 0 3.5deg,transparent 3.5deg 11deg);
+  -webkit-mask-image:radial-gradient(circle,#000 2%,transparent 40%);mask-image:radial-gradient(circle,#000 2%,transparent 40%);transition:opacity 1.4s ease .2s;animation:pfx-rays 46s linear infinite}
+.pfx.stage-win .pfx-rays{opacity:1}
+.pfx-streaks{position:absolute;inset:-25%;opacity:0;pointer-events:none;
+  background:repeating-conic-gradient(from 3deg at 50% 50%,rgba(255,255,255,.62) 0 .5deg,transparent .5deg 4.2deg);
+  -webkit-mask-image:radial-gradient(circle,transparent 22%,#000 62%);mask-image:radial-gradient(circle,transparent 22%,#000 62%)}
+.pfx-streaks.go{animation:pfx-streak .8s cubic-bezier(.2,.7,.2,1) both}
+@keyframes pfx-rays{to{transform:rotate(360deg)}}
+@keyframes pfx-streak{0%{opacity:0;transform:scale(1.7)}18%{opacity:.95}100%{opacity:0;transform:scale(.8)}}
 .pfx-bubble{position:absolute;left:0;top:0;max-width:210px;padding:6px 11px 7px;font:700 15px/1.15 var(--serif,Georgia,serif);color:#1c1408;background:linear-gradient(#fbf1d4,#e8d49b);
   border:2px solid #3a2a12;border-radius:10px;box-shadow:0 3px 0 rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.25) inset;white-space:nowrap;will-change:transform,opacity}
 .pfx-bubble::after{content:'';position:absolute;left:50%;bottom:-8px;width:10px;height:10px;margin-left:-6px;background:#e8d49b;border-right:2px solid #3a2a12;border-bottom:2px solid #3a2a12;transform:rotate(45deg)}
@@ -13,7 +29,7 @@
 .pfx-bubble.enemy::after{background:#b9cf80}
 .pfx-bubble.player{background:linear-gradient(#fff0c4,#f0c868)}
 .pfx-bubble.player::after{background:#f0c868}
-@media (prefers-reduced-motion:reduce){.pfx-bar{transition:none}}
+@media (prefers-reduced-motion:reduce){.pfx-bar,.pfx-grade,.pfx-rays{transition:none}.pfx-rays{animation:none}.pfx-streaks.go{animation:none}}
 /* The fight is over: the whole combat HUD goes, not just dimmer. Everything in the layer except the result menu (.prm), the screen effects
    (.pfx: letterbox, flashes, speech bubbles) and the screen reader line is faded out quickly and then taken off the screen
    (visibility:hidden after the fade), so nothing of it is left to be seen or clicked. This includes the name plates and floating

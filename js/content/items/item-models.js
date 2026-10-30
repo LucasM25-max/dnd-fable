@@ -60,6 +60,8 @@ C.itemModels.registerAll([
   H('longbow','Longbow','bow','back-diag',{height:24}),
   H('musket','Musket','firearm','back-diag',{barrel:20,stock:true}),
   H('pistol','Pistol','firearm','belt',{barrel:6,stock:false}),
+  /* Potion: a vial for shops and loot (it is drunk, not drawn on the hero) */
+  H('potion-of-healing','Potion of Healing','potion',null,{height:7,radius:3.4}),
   /* Shield: strapped on the forearm, carried on the back */
   row('shield','Shield','shield','forearm','back-flat',{w:7.4,h:9.6},{rim:0xf0b94d,face:0x2f5d9e,mark:0xe8dcc0,boss:0xf0b94d}),
   /* Light armor */

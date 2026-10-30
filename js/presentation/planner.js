@@ -276,7 +276,7 @@ Fable.createPlanner=function(o){
     cues.push({t:0,type:'call',name:'celebrate',win:win,essential:true});
     /* the hero gathers every coin that was dropped as it is lifted up into the result */
     if(win)cues.push({t:.35,type:'call',name:'collect'});
-    d=win?2.6:2.4;
+    d=win?3.4:3.8;
     return mk('over',cues,d,'over',{win:win});
   }
   function start(e){
