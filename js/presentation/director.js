@@ -182,7 +182,12 @@ Fable.createPresentation=function(o){
         vfx.play('fx-coin-glint',{x:p.x,y:2,z:p.z});
         return;
       }
-      case 'collect':{api.collectCoins();return}
+      case 'collect':{
+        /* the coins fly to the hero where it lands, not where it started */
+        var hs=heroStage();
+        if(hs&&!hs.stage.landed)hs.stage.collect=true;else api.collectCoins();
+        return;
+      }
       case 'music':{audio.music.start('bed-combat');return}
       case 'outcome':{over=true;audio.music.stop(1.4);if(fx)fx.lowHealth(0);return}
       case 'celebrate':{
@@ -195,23 +200,26 @@ Fable.createPresentation=function(o){
           var cl=x.profile&&x.profile.clips,win=c.win;
           if(!win&&x.creature.team==='enemy'&&cl&&cl.taunt)x.animator.play(cl.taunt);
         });
-        /* The hero is lifted up out of the fight into the result: it floats clear of the ground, and a win then plays the victory
-           animation up there. A defeat keeps the fallen pose and rises with it, slower. The camera slides the picture so the hero
-           stands to one side, and the result menu takes the other. */
-        var cen=heroActor?heroActor.walker.position():{x:0,z:0};
-        if(heroActor)rise(heroActor,c.win);
-        if(c.win){cam.shot({focus:{x:cen.x,y:15,z:cen.z},dist:.56,pitch:-.1,spin:.2,in:1.3,hold:Infinity,out:.8,tag:'outcome',shiftX:.2})}
-        else cam.shot({focus:{x:cen.x,y:9,z:cen.z},dist:1.2,pitch:.08,spin:-.04,in:1.8,hold:Infinity,out:.8,tag:'outcome',shiftX:.2});
-        if(fx)fx.letterbox(true);
+        /* The fight is over and the hero takes the stage: a win charges the camera, leaps up to the screen and lands in a burst of light
+           before the victory pose; a defeat drags the fallen hero slowly up to the lens under falling ash. The camera drops low and close
+           to meet it (see stage below). */
+        if(heroActor)stage(heroActor,c.win);
         return;
       }
     }
   }
-  /* ---------- the rise ---------- */
-  /* The hero is lifted out of the fight into the result. What it does up there is a victory animation (Fable.content.victoryAnimations):
-     the one the player picked (o.victory(characterId) gives its id), or the default one. Its row says the clip, effect, sound and how it
-     rises, so a new one is data. A defeat keeps the fallen pose and rises with it, slower. */
-  var RISE={win:{to:12,dur:1.9,at:.5,bob:.55},lose:{to:9,dur:2.6,at:1,bob:.55}};
+  /* ---------- the stage ---------- */
+  /* What the hero does once the fight is over is a victory animation (Fable.content.victoryAnimations): the one the player picked
+     (o.victory(characterId) gives its id), or the default one. Before the pose the hero comes to the camera:
+       win   a short crouch, then a leap along the line to the camera that lands a few strides in front of it, filling the screen
+             (speed lines, a shock ring and a burst of gold on landing, a shower of confetti and a fan of light behind it)
+       lose  the fallen hero is dragged slowly toward the camera, the colour drains from the picture and ash drifts down
+     The camera is told exactly where to stand (low and close, the lens widened), so the hero is framed the same way whatever the
+     player's own camera was doing. A skip lands the hero at once, so the result is never waiting on a hero still in the air. */
+  var STAGE={
+    win:{launch:.3,flight:.95,apex:20,dist:44,pitch:.16,camY:11,fov:.2,camIn:1.2,shift:.2},
+    lose:{launch:.6,flight:2.7,apex:0,dist:52,pitch:.15,camY:4,fov:.08,camIn:2.2,shift:.2,frac:.55}
+  };
   function victoryOf(a){
     var reg=Fable.content&&Fable.content.victoryAnimations;
     if(!reg)return null;
@@ -221,33 +229,80 @@ Fable.createPresentation=function(o){
     return d;
   }
   api.victoryOf=function(id){var a=actors[id];return a?victoryOf(a):null};
-  function rise(a,win){
-    var vic=win?victoryOf(a):null,spec=Object.assign({},win?RISE.win:RISE.lose,(vic&&vic.rise)||{}),calm=reduced(),p=a.walker.position();
-    a.rise={t:calm?spec.dur:0,dur:spec.dur,to:spec.to,at:spec.at,bob:spec.bob,win:win,fired:false,clock:0,vic:vic};
-    if(win){
-      vfx.play('fx-victory',{x:p.x,y:0,z:p.z});
-      audio.play('sfx-surge',{gain:.5,pan:panOf(p)});
-    }
-    stepRise(a,0);
+  function heroStage(){var h=null;list.forEach(function(x){if(x.stage&&x.creature.team==='player')h=h||x});return h}
+  function stage(a,win){
+    var spec=Object.assign({},win?STAGE.win:STAGE.lose),calm=reduced(),p=a.walker.position(),cp=o.camera.position;
+    var dx=cp.x-p.x,dz=cp.z-p.z,dh=Math.hypot(dx,dz)||1,ux=dx/dh,uz=dz/dh;
+    /* the hero stops where the camera will stand it: the camera ends dist*cos(pitch) behind the hero along this same line */
+    var end=spec.dist*Math.cos(spec.pitch),L=Math.max(14,dh-end);
+    if(!win)L=Math.max(10,L*spec.frac);
+    var vic=win?victoryOf(a):null,bob=vic&&vic.rise&&vic.rise.bob!==undefined?vic.rise.bob:.55;
+    a.stage={win:win,spec:spec,from:{x:p.x,z:p.z},to:{x:p.x+ux*L,z:p.z+uz*L},clock:calm?spec.launch+spec.flight:0,launched:false,landed:false,
+      after:0,nextFx:0,vic:vic,bob:bob,collect:false};
+    if(win)a.walker.turnTo(cp.x,cp.z,false);
+    var shift=window.innerWidth<900?0:spec.shift,to=a.stage.to;
+    cam.shot({focus:{x:to.x,y:spec.camY,z:to.z},abs:{yaw:Math.atan2(ux,uz),pitch:spec.pitch,dist:spec.dist},fov:spec.fov,spin:win?.01:-.008,
+      in:spec.camIn,hold:Infinity,out:.8,tag:'outcome',shiftX:shift,force:true,sticky:true});
+    if(fx){fx.letterbox(true);fx.stage(win?'win':'lose',{x:.5-shift})}
+    stepStage(a,0);
   }
-  function fireRise(a){
-    var r=a.rise;if(!r||r.fired)return;
-    r.fired=true;
-    var cl=a.profile&&a.profile.clips,vic=r.vic,clip=(vic&&vic.clips[a.creature.defId])||(cl&&cl.victory);
-    if(r.win&&clip&&a.creature.alive){
+  function launchFx(a){
+    var st=a.stage,f=st.from,cl=a.profile&&a.profile.clips;
+    if(!st.win)return;
+    vfx.play('fx-stage-launch',{x:f.x,y:0,z:f.z});
+    audio.play('sfx-surge',{gain:.8,pan:panOf(f)});
+    if(fx)fx.streaks();
+    if(cl&&cl.dash&&a.creature.alive)a.animator.play(cl.dash);
+  }
+  function landFx(a){
+    var st=a.stage,p=a.walker.position();
+    st.landed=true;st.after=0;a.animator.setHover(0);
+    if(st.win){
+      vfx.play('fx-stage-land',{x:p.x,y:0,z:p.z});
+      audio.play('sfx-thud',{gain:1.1});audio.play('sfx-crit',{gain:.85});
+      var v=a.profile&&a.profile.voice&&a.profile.voice.cheer;if(v)audio.play(v,{gain:.9});
+      cam.shake(2.6,.6);cam.punch(.09,.55);
+      if(fx)fx.flash('#fff3d2',.65,.6);
+      firePose(a);
+      if(st.collect)api.collectCoins();
+    }else{
+      vfx.play('fx-thud',{x:p.x,y:0,z:p.z});
+      audio.play('sfx-thud',{gain:.7});cam.shake(.8,.45);
+    }
+  }
+  function firePose(a){
+    var st=a.stage,cl=a.profile&&a.profile.clips,vic=st.vic,clip=(vic&&vic.clips[a.creature.defId])||(cl&&cl.victory);
+    if(st.win&&clip&&a.creature.alive){
       a.animator.play(clip,{hold:true,tag:'victory'});
       var p=a.walker.position();
       vfx.play((vic&&vic.effect)||'fx-victory',{x:p.x,y:a.animator.hover(),z:p.z});
       if(vic&&vic.sound&&vic.sound!=='sfx-surge')audio.play(vic.sound,{gain:.6,pan:panOf(p)});
     }
   }
-  function stepRise(a,dt){
-    var r=a.rise;if(!r)return;
-    r.clock+=dt;r.t=Math.min(r.dur,r.t+dt);
-    var k=r.t/r.dur,e=1-Math.pow(1-k,3);
-    var bob=(k>=1&&!reduced())?Math.sin(r.clock*1.7)*(r.bob===undefined?.55:r.bob):0;
-    a.animator.setHover(r.to*e+bob);
-    if(k>=r.at)fireRise(a);
+  function stepStage(a,dt){
+    var st=a.stage;if(!st)return;
+    var sp=st.spec;st.clock+=dt;
+    if(!st.launched&&st.clock>=sp.launch){st.launched=true;launchFx(a)}
+    if(st.launched&&!st.landed){
+      var u=Math.min(1,(st.clock-sp.launch)/sp.flight);
+      /* a win is fast at the start and settles into the landing; a defeat is a slow drag that eases in and out */
+      var e=st.win?1-Math.pow(1-u,1.8):u*u*(3-2*u);
+      a.walker.teleport(st.from.x+(st.to.x-st.from.x)*e,st.from.z+(st.to.z-st.from.z)*e);
+      a.animator.setHover(sp.apex*4*u*(1-u));
+      if(u>=1)landFx(a);
+    }
+    if(st.landed){
+      st.after+=dt;
+      a.animator.setHover(st.win&&!reduced()?(Math.sin(st.after*1.8)+1)*.5*st.bob:0);
+      if(!reduced()&&dt>0){
+        st.nextFx-=dt;
+        if(st.nextFx<=0){
+          var p=a.walker.position();
+          if(st.win){if(st.after<10)vfx.play('fx-stage-confetti',{x:p.x,y:0,z:p.z});st.nextFx=.8}
+          else{vfx.play('fx-stage-ash',{x:p.x,y:0,z:p.z});st.nextFx=.65}
+        }
+      }
+    }
   }
   function cameraCue(c){
     if(c.op==='shot'){
@@ -317,8 +372,8 @@ Fable.createPresentation=function(o){
   };
   api.busy=function(){return queue.busy()};
   function finishVisuals(){
-    /* a skip never cancels the rise: it lands it, so the hero is where the result expects it */
-    list.forEach(function(x){if(x.rise){x.rise.t=x.rise.dur;stepRise(x,0);fireRise(x)}});
+    /* a skip never cancels the stage: it lands the hero, so the hero is where the result expects it */
+    list.forEach(function(x){if(x.stage&&!x.stage.landed){x.stage.clock=x.stage.spec.launch+x.stage.spec.flight;stepStage(x,0)}});
     list.forEach(function(x){x.animator.finish();x.animator.clearLook();if(x.statuses.down)x.animator.halt()});
     vfx.clear();coins.settle();queue.timeScale=1;slowUntil=0;if(over)cam.release('attack');else cam.release();
   }
@@ -336,7 +391,7 @@ Fable.createPresentation=function(o){
     queue.update(dt);
     var gdt=dt*queue.timeScale,spd=isFinite(sp)?sp:1;
     list.forEach(function(x){
-      if(x.rise)stepRise(x,dt);
+      if(x.stage)stepStage(x,dt);
       x.walker.update(gdt);
       if(x.lookUntil&&clockReal>x.lookUntil){x.animator.clearLook();x.lookUntil=0}
       x.animator.update(gdt*(x.animator.busy()?1:1));x.animator.apply();

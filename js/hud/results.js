@@ -53,6 +53,10 @@ Fable.hudModules.results=function(hud){
       body:ctx.body||'',html:html,choices:ctx.choices||[],onChoose:ctx.onChoose,
       onClose:stop,
       onShow:function(host){
+        /* the title is not part of the plate: it slams across the screen over the hero, letter by letter, and the tally slides in after it */
+        var ttl=document.createElement('div');ttl.className='rs-title '+(win?'win':'lose');ttl.setAttribute('aria-hidden','true');
+        ttl.innerHTML=title.toUpperCase().split('').map(function(ch,i){return '<span style="--i:'+i+'">'+hud.escape(ch)+'</span>'}).join('')+'<em></em>';
+        host.insertBefore(ttl,host.firstChild);
         if(!win)return;
         var bar=host.querySelector('.rs-bar i'),up=host.querySelector('.rs-up'),gn=host.querySelector('.rs-gn'),lv=host.querySelector('.rs-lv');
         var p=r.progress,sound=ctx.sound||function(){};

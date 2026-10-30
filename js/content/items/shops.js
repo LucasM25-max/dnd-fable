@@ -2,7 +2,8 @@
      stock       [{item, price?}] listed top to bottom; price is a coin object ({gp:60}) that replaces the item's own price
      sellRate    the share of an item's price the shop pays when the hero sells it back (0 to 1)
      victories   true when the shop also sells victory animations (Fable.content.victoryAnimations that have a cost)
-   The first thing in the Armory is the Potion of Healing at 50 gp, the price the first fight's gold is meant to buy. */
+   The first thing in the Store is the Potion of Healing at 50 gp, the price the first fight's gold is meant to buy. The shop's id stays
+   'armory' so saved games and tests keep working; only its name is shown to the player. */
 (function(){
 var C=Fable.content;
 C.defineKind('shops',{
@@ -19,13 +20,19 @@ C.defineKind('shops',{
   }
 });
 C.shops.register({
-  id:'armory',name:'The Armory',source:'original',
-  description:'Potions and weapons for the road. The quartermaster pays half for anything you sell back.',
+  id:'armory',name:'The Store',source:'original',
+  description:'Potions, weapons and armor for the road. The quartermaster pays half for anything you sell back.',
   sellRate:.5,victories:true,
   stock:[
     {item:'potion-of-healing'},   /* 50 gp */
     {item:'javelin'},
-    {item:'dagger'}
+    {item:'dagger'},
+    {item:'handaxe'},
+    {item:'mace'},
+    {item:'spear'},
+    {item:'leather-armor'},
+    {item:'chain-shirt'},
+    {item:'shield'}
   ]
 });
 })();

@@ -1,4 +1,4 @@
-/* Victory animations (implementation plan, section 17.5): data rows the director reads, so the Armory can sell more of them later.
+/* Victory animations (implementation plan, section 17.5): data rows the director reads, so the Store can sell more of them later.
    Each names a clip per character, the effect and sound that go with it, and how the hero rises into it. */
 (function(){
 var C=Fable.content;

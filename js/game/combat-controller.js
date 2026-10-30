@@ -363,9 +363,15 @@ Fable.createCombatController=function(o){
     if(p.canReroll){
       dirty=true;
       var keptHit=p.roll.natural!==1&&(p.roll.natural===20||p.roll.total>=p.ac);
-      hud.prompt({title:'Heroic Inspiration',icon:'star',
-        body:'You rolled '+p.roll.natural+' ('+p.roll.total+' against AC '+p.ac+'): '+(keptHit?'a hit':'a miss')+'.\nSpend your Heroic Inspiration to reroll the d20? You must use the new roll.',
-        choices:[{id:'reroll',label:'Reroll',primary:true,key:'r',keyLabel:'R',codes:['Enter']},{id:'keep',label:'Keep the roll',key:'k',keyLabel:'K',codes:['Escape']}],
+      var nat=p.roll.natural,bonus=p.roll.total-nat,sg=(bonus<0?'- ':'+ ')+Math.abs(bonus);
+      var dieHtml='<span class="die insp-die'+(nat===20?' crit':nat===1?' fumble':'')+'" data-v="'+nat+'">'+Fable.hudIcons.svg('d20')+'<canvas class="d3c" aria-hidden="true"></canvas><b>'+nat+'</b></span>';
+      var sparks='';for(var si=0;si<10;si++)sparks+='<i style="--a:'+(si*36)+'deg;--d:'+(.15*si).toFixed(2)+'s"></i>';
+      hud.prompt({title:'Heroic Inspiration',icon:'star',tone:'inspire',
+        body:'Spend your Heroic Inspiration to throw the d20 again? You must use the new roll.',
+        html:'<div class="insp"><div class="insp-rays" aria-hidden="true"></div><div class="insp-sparks" aria-hidden="true">'+sparks+'</div>'+dieHtml+
+          '<div class="insp-math"><span>'+nat+' '+sg+' = <b>'+p.roll.total+'</b></span><span>vs AC <b>'+p.ac+'</b></span></div>'+
+          '<div class="insp-verdict '+(keptHit?'hit':'miss')+'">'+(keptHit?'This would hit':'This would miss')+'</div></div>',
+        choices:[{id:'reroll',label:'Reroll the d20',primary:true,key:'r',keyLabel:'R',codes:['Enter']},{id:'keep',label:'Keep the roll',key:'k',keyLabel:'K',codes:['Escape']}],
         onChoose:function(id){finish(id==='reroll')}});
     }else finish(false);
   }

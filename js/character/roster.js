@@ -14,7 +14,7 @@
    the shipped build, so a content update still reaches a saved hero. Loadouts and the rest start fresh each visit.
    Fable.character.roster.grant(id, {xp, cp, items:[{item, qty}]})   pay a reward; returns {ok, sheet}
    Fable.character.roster.consume(id, {itemId: count})               take used up items out of the pack
-   Fable.character.roster.purchase(id, shopId, itemId, qty) / sell(id, shopId, itemId, qty)   the Armory; returns the inventory result
+   Fable.character.roster.purchase(id, shopId, itemId, qty) / sell(id, shopId, itemId, qty)   the Store; returns the inventory result
    Fable.character.roster.xp(id)             total XP         Fable.character.roster.purseCp(id)   money in copper
    Victory animations (Fable.content.victoryAnimations): the hero owns the free ones and any bought; one is picked.
    Fable.character.roster.victory(id)        the picked id      .setVictory(id, vid)   .victoriesOwned(id)   .buyVictory(id, vid)

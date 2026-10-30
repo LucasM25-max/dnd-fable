@@ -1,4 +1,4 @@
-/* The Armory's rules (implementation plan, Phase 9). Pure: every function takes a build and returns a new one, like the inventory.
+/* The Store's rules (implementation plan, Phase 9). Pure: every function takes a build and returns a new one, like the inventory.
 
    Fable.character.shop.catalog(shopId, build)       [{item, name, description, priceCp, sellCp, owned, canAfford, canSell}] in the shop's order
    Fable.character.shop.victories(build, owned)      [{id, name, description, costCp, owned}] the victory animations the shop sells

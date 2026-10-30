@@ -3,14 +3,33 @@
    a plate with its choices, each with a key (Enter for the first, Esc for the last, or its own letter), and calls back once.
    The game waits for it: nothing resolves behind an open prompt.
    A prompt may also carry html (markup the caller built, already escaped) shown between the text and the choices, onShow(host) to animate
-   it, and onClose() to stop that; the results screen (results.js) is one. */
+   it, and onClose() to stop that; the results screen (results.js) is one.
+   Any element in that html written as <span class="die" data-v="N"><canvas class="d3c"></canvas></span> becomes a real 3D die (dice3d.js)
+   that tumbles in and lands on N (the Heroic Inspiration question shows the d20 that was rolled this way). */
 (function(){
 Fable.hudModules.prompts=function(hud){
   var host=document.createElement('div');
   host.className='prm';host.hidden=true;
   hud.root.appendChild(host);
-  var cur=null;
-  function close(){if(cur&&cur.onClose)cur.onClose();host.hidden=true;host.innerHTML='';cur=null}
+  var cur=null,dice=[],diceTimers=[];
+  function disposeDice(){diceTimers.forEach(clearTimeout);diceTimers=[];dice.forEach(function(d){d.dispose()});dice=[]}
+  /* the 3D dice inside a prompt: they tumble in once and stay on the face that was rolled */
+  function mountDice(){
+    var D3=Fable.dice3d,els=host.querySelectorAll('.die[data-v]');
+    if(!els.length||!D3||!D3.available())return;
+    var calm=Fable.hudSettings.reducedMotion()||Fable.hudSettings.get('speed')==='instant',dpr=Math.min(2,window.devicePixelRatio||1)*1.25;
+    Array.prototype.forEach.call(els,function(el,i){
+      var cv=el.querySelector('canvas.d3c'),v=+el.getAttribute('data-v');
+      if(!cv||!(v>=1&&v<=20))return;
+      var px=Math.max(64,Math.round((el.offsetWidth||96)*dpr));cv.width=cv.height=px;
+      var tone=el.classList.contains('crit')?'crit':el.classList.contains('fumble')?'fumble':'player';
+      var d=D3.create(cv,{tone:tone,onFail:function(){el.classList.remove('live')}});
+      if(!d)return;
+      el.classList.add('live');dice.push(d);d.show(v);
+      if(!calm)diceTimers.push(setTimeout(function(){d.roll(v,{dur:1.05,spins:3},null)},180+i*120));
+    });
+  }
+  function close(){if(cur&&cur.onClose)cur.onClose();disposeDice();host.hidden=true;host.innerHTML='';cur=null}
   function choose(id){
     if(!cur)return;
     var p=cur;close();
@@ -34,6 +53,7 @@ Fable.hudModules.prompts=function(hud){
       '<div class="pbs">'+btns+'</div>',spec.big?'':'sm');
     host.hidden=false;
     host.setAttribute('role','alertdialog');host.setAttribute('aria-label',spec.title);
+    disposeDice();mountDice();
     if(spec.onShow)spec.onShow(host);
     var first=host.querySelector('.primary')||host.querySelector('button');
     if(first)try{first.focus({preventScroll:true})}catch(e){}

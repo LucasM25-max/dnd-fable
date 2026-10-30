@@ -161,6 +161,22 @@ G.families.firearm=function(P,C){
   return {hand:finish(g)};
 };
 
+/* ---------- a potion vial (shops and loot; held in a hand when drunk) ---------- */
+G.families.potion=function(P,C){
+  P=def(P,{height:7,radius:3.4});
+  C=def(C,{glass:0xcfe6f2,liquid:0xc2282b,glow:0xff6a5a,cork:0x9a6a3a,band:0xf0b94d});
+  var g=grp(),r=P.radius,h=P.height;
+  /* a round flask: stepped liquid body with a pale glass shine down one side, a glass neck, a brass band and a cork */
+  B(g,0,h*.05,0,r*1.5,h*.1,r*1.5,C.liquid);
+  B(g,0,h*.3,0,r*2,h*.4,r*2,C.liquid);
+  B(g,0,h*.52,0,r*1.6,h*.08,r*1.6,C.liquid);
+  B(g,-r*.55,h*.3,r+.05,r*.35,h*.34,.3,C.glass);B(g,-r*.55,h*.5,r+.05,r*.35,h*.05,.3,C.glass);
+  B(g,0,h*.3+.6,r-.15,r*1.1,h*.2,.3,C.glow,true);
+  B(g,0,h*.65,0,r*1.0,h*.14,r*1.0,C.glass);B(g,0,h*.74,0,r*1.3,.7,r*1.3,C.band);
+  B(g,0,h*.86,0,r*.95,h*.16,r*.95,C.cork);
+  return {hand:finish(g)};
+};
+
 /* ---------- sling and whip ---------- */
 G.families.sling=function(P,C){
   C=def(C,{cord:0x8a6a42,pouch:0x6b4a2e});var g=grp();
