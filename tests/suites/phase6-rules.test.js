@@ -178,6 +178,30 @@ module.exports=function(t){
       assert.strictEqual(r.roll.rerolled.from,2);assert.strictEqual(r.roll.natural,18);assert.ok(r.hit);
       assert.strictEqual(hero.resources['heroic-inspiration'].current,0);assert.ok(!hero.inspiration);
     });
+    test('applyReroll shows the new d20 before the roll resolves, spends the pool once, and the result keeps what it replaced',async()=>{
+      const C=await world(),{s,hero,a}=fight(C,{resources:{'heroic-inspiration':1}});
+      rig(s,[d20(2),d20(18),fr(5,8)]);
+      const b=Fable.combat.beginAttack(s,hero,'longsword:melee',a),p=b.pending;
+      assert.strictEqual(p.roll.natural,2);
+      const rr=Fable.combat.applyReroll(s,p);
+      assert.ok(rr.ok);assert.strictEqual(p.roll.natural,18);assert.strictEqual(p.roll.rerolled.from,2);assert.strictEqual(p.roll.rerolled.to,18);
+      assert.strictEqual(p.roll.total,18+p.roll.bonus);
+      assert.strictEqual(hero.resources['heroic-inspiration'].current,0);
+      assert.strictEqual(s.pending,p,'the roll is still waiting to be resolved');
+      assert.ok(!Fable.combat.applyReroll(s,p).ok,'a roll is rerolled once');
+      assert.strictEqual(hero.resources['heroic-inspiration'].current,0);
+      const r=Fable.combat.completeAttack(s,p,{});
+      assert.ok(r.hit);assert.strictEqual(r.roll.natural,18);assert.strictEqual(r.roll.rerolled.from,2);
+      assert.strictEqual(s.pending,null);
+    });
+    test('applyReroll is refused when no roll is waiting or none can be rerolled',async()=>{
+      const C=await world(),f=fight(C);
+      rig(f.s,[d20(2)]);
+      assert.ok(!Fable.combat.applyReroll(f.s,null).ok);
+      const p=Fable.combat.beginAttack(f.s,f.hero,'longsword:melee',f.a).pending;
+      assert.ok(!Fable.combat.applyReroll(f.s,p).ok);
+      assert.strictEqual(p.roll.natural,2);
+    });
     test('no reroll is offered without Heroic Inspiration, and declining keeps the roll',async()=>{
       const C=await world();
       let f=fight(C);rig(f.s,[d20(2)]);

@@ -14,6 +14,8 @@
                                                        returns true to spend Heroic Inspiration on the d20
      Fable.combat.beginAttack(...) / completeAttack(s, pending, {reroll})   the same in two steps, so the player can be asked
                                                        whether to reroll between the d20 and the damage
+     Fable.combat.applyReroll(s, pending)               spend Heroic Inspiration and reroll the d20 now, so it can be shown before
+                                                       completeAttack(s, pending) resolves the roll that stands
      Fable.combat.opportunityAttack(s, reactor, mover, opts)   the Reaction attack when a creature leaves reach
      Fable.combat.applyDamage(s, source, t, amount, opts)      temporary hit points, dropping to 0, death saves and instant death
 
@@ -214,6 +216,18 @@ function rerollKept(s,roll){
 }
 Cb.rerollKept=rerollKept;
 
+/* Spends Heroic Inspiration and rerolls the d20 of a roll that is waiting for its decision, without resolving it. The HUD uses this to
+   show the new die before the damage is rolled; completeAttack then finishes the roll as it stands. A roll can be rerolled once. */
+Cb.applyReroll=function(s,p){
+  if(!p||s.pending!==p)return {ok:false,reason:'There is no roll to reroll'};
+  if(!p.canReroll)return {ok:false,reason:'This roll cannot be rerolled'};
+  var c=s.byId[p.attacker],pool=c.resources['heroic-inspiration'];
+  Cr().setResource(c,'heroic-inspiration',pool.current-1);
+  rerollKept(s,p.roll);
+  p.canReroll=false;p.rerolled=true;
+  return {ok:true,roll:p.roll};
+};
+
 Cb.beginAttack=function(s,c,attack,target,opts){
   opts=opts||{};
   var a=typeof attack==='string'?findAttack(c,attack):attack;
@@ -248,11 +262,7 @@ Cb.completeAttack=function(s,p,opts){
   opts=opts||{};
   if(!p||s.pending!==p)return {ok:false,reason:'There is no roll to finish'};
   var c=s.byId[p.attacker],t=s.byId[p.target],a=findAttack(c,p.attackId),G=Fable;
-  if(opts.reroll&&p.canReroll){
-    var pool=c.resources['heroic-inspiration'];
-    Cr().setResource(c,'heroic-inspiration',pool.current-1);
-    rerollKept(s,p.roll);
-  }
+  if(opts.reroll&&p.canReroll)Cb.applyReroll(s,p);
   var nat=p.roll.natural,hit,crit=false;
   if(nat===1)hit=false;
   else if(nat===20){hit=true;crit=true}

@@ -131,7 +131,7 @@ Fable.shopUi=(function(){
   function skeleton(def){
     root.textContent='';tiles=[];
     root.appendChild(el('div','st-bg'));
-    var page=el('div','st');page.setAttribute('role','dialog');page.setAttribute('aria-modal','true');page.setAttribute('aria-label',def.name);root.appendChild(page);
+    var page=el('div','st-page');page.setAttribute('role','dialog');page.setAttribute('aria-modal','true');page.setAttribute('aria-label',def.name);root.appendChild(page);
     var top=el('header','st-top');
     var back=el('button','st-back');back.type='button';back.setAttribute('aria-label','Leave the store');back.innerHTML='<svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="3"/></svg>';back.onclick=close;
     var ttl=el('div','st-ttl');ttl.appendChild(el('small',null,'Welcome to'));ttl.appendChild(el('h2',null,def.name));
@@ -274,7 +274,7 @@ Fable.shopUi=(function(){
     var info=el('div','st-info');
     panel.appendChild(view);panel.appendChild(info);m.appendChild(panel);root.appendChild(m);
     els.modal=m;els.info=info;
-    root.querySelector('.st').setAttribute('aria-hidden','true');
+    root.querySelector('.st-page').setAttribute('aria-hidden','true');
     try{stage=Fable.createStoreStage(cv,{heroId:state.hero,manual:manual})}
     catch(e){stage=null;m.classList.add('flat')}
     if(stage){if(kind==='pose')stage.setPose(id);else stage.setItem(id);stage.start()}
@@ -286,7 +286,7 @@ Fable.shopUi=(function(){
     var from=state.sel&&state.sel.from;
     if(stage){stage.dispose();stage=null}
     els.modal.remove();els.modal=null;els.info=null;state.sel=null;
-    var pg=root.querySelector('.st');if(pg)pg.removeAttribute('aria-hidden');
+    var pg=root.querySelector('.st-page');if(pg)pg.removeAttribute('aria-hidden');
     if(!quiet&&from&&document.contains(from))try{from.focus({preventScroll:true})}catch(e){}
   }
   function drawInfo(){
@@ -385,13 +385,15 @@ Fable.shopUi=(function(){
       return;
     }
     if(e.code==='Tab'){
-      var f2=focusables(root.querySelector('.st'));if(!f2.length)return;
+      var f2=focusables(root.querySelector('.st-page'));if(!f2.length)return;
       var i2=f2.indexOf(document.activeElement);
       if(e.shiftKey&&i2<=0){e.preventDefault();f2[f2.length-1].focus()}else if(!e.shiftKey&&(i2<0||i2===f2.length-1)){e.preventDefault();f2[0].focus()}
     }
     e.stopPropagation();
   }
 
+  /* the hub's own buttons are hidden while the Store is up, so they never ghost through its backdrop */
+  function hubDim(on){var m=document.getElementById('menu-layer');if(m)m.classList.toggle('shop-open',!!on)}
   function open(hero,shopId,opts){
     if(!root)build();
     opts=opts||{};
@@ -401,6 +403,7 @@ Fable.shopUi=(function(){
     var def=Fable.content.shops.get(state.shop);
     readData();skeleton(def);
     root.hidden=false;root.classList.remove('in');void root.offsetWidth;root.classList.add('in');
+    hubDim(true);
     try{pv=Fable.createTilePreview({heroId:state.hero})}catch(e){pv=null;if(window.console)console.warn('Store: no 3D previews ('+e.message+')')}
     document.addEventListener('keydown',onKey,true);
     off=Ro().onChange(function(){refresh()});
@@ -414,7 +417,7 @@ Fable.shopUi=(function(){
     clearTimeout(paintT);if(spinRaf){cancelAnimationFrame(spinRaf);spinRaf=0}spin=null;
     if(scrollT){cancelAnimationFrame(scrollT);scrollT=0}
     onDragEnd();
-    root.hidden=true;root.classList.remove('in');
+    root.hidden=true;root.classList.remove('in');hubDim(false);
     if(pv){pv.dispose();pv=null}
     root.textContent='';els={};tiles=[];document.removeEventListener('keydown',onKey,true);if(off)off();off=null;
     if(opener&&opener.focus&&document.contains(opener))opener.focus();

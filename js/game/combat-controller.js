@@ -104,6 +104,9 @@ Fable.createCombatController=function(o){
 
   var drops=[],busy=false,dirty=true,pointer=null,previewCell=null,ai={stage:'idle',t:0,token:0},clock=0,roundChanged=false;
   var targeting={attackId:null,hoverId:null},script=[],autoEnd=-1,overShown=false;
+  var disposed=false,lastSig='',tail=0;
+  /* once the result is on screen only cosmetic cues remain; the player gets the turn back after this long, at most */
+  var TAIL=.45;
   var raycaster=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();
 
   function entryOf(c){return entries[c.id]}
@@ -359,7 +362,7 @@ Fable.createCombatController=function(o){
     if(!b.ok){hud.announce(b.reason);labels.float(hero,b.reason,'info');return}
     targeting.attackId=null;
     var p=b.pending;
-    var finish=function(reroll){if(reroll)pres.reroll(hero.id);Cb().completeAttack(s,p,{reroll:reroll});dirty=true};
+    var finish=function(){Cb().completeAttack(s,p,{reroll:false});dirty=true};
     if(p.canReroll){
       dirty=true;
       var keptHit=p.roll.natural!==1&&(p.roll.natural===20||p.roll.total>=p.ac);
@@ -371,9 +374,38 @@ Fable.createCombatController=function(o){
         html:'<div class="insp"><div class="insp-rays" aria-hidden="true"></div><div class="insp-sparks" aria-hidden="true">'+sparks+'</div>'+dieHtml+
           '<div class="insp-math"><span>'+nat+' '+sg+' = <b>'+p.roll.total+'</b></span><span>vs AC <b>'+p.ac+'</b></span></div>'+
           '<div class="insp-verdict '+(keptHit?'hit':'miss')+'">'+(keptHit?'This would hit':'This would miss')+'</div></div>',
-        choices:[{id:'reroll',label:'Reroll the d20',primary:true,key:'r',keyLabel:'R',codes:['Enter']},{id:'keep',label:'Keep the roll',key:'k',keyLabel:'K',codes:['Escape']}],
-        onChoose:function(id){finish(id==='reroll')}});
-    }else finish(false);
+        choices:[{id:'reroll',label:'Reroll the d20',primary:true,hold:true,key:'r',keyLabel:'R',codes:['Enter']},{id:'keep',label:'Keep the roll',key:'k',keyLabel:'K',codes:['Escape']}],
+        onChoose:function(id,h){if(id==='reroll'&&h)spendInspiration(p,h,finish);else finish()}});
+    }else finish();
+  }
+  /* Heroic Inspiration is spent with the panel still open: the rules roll the new d20 at once (Cb.applyReroll), the die in the panel is thrown
+     again and lands on it, the sum and the verdict change to match, the panel rests a moment so the new roll can be read, and only then does
+     it close and the attack resolve with the roll that stands. */
+  function spendInspiration(p,h,finish){
+    var from=p.roll.natural,r=Cb().applyReroll(s,p);
+    if(!r.ok){h.close();finish();return}
+    pres.reroll(hero.id);
+    var host=h.host,speed=Fable.hudSettings.get('speed'),calm=Fable.hudSettings.reducedMotion()||speed==='instant';
+    host.classList.add('rerolling');
+    var math=host.querySelector('.insp-math');if(math)math.classList.add('dim');
+    var lead=host.querySelector('.prm>.plate p,.plate .in>p');if(lead)lead.textContent='Inspiration spent. The new roll stands.';
+    h.reroll(p.roll.natural,{fast:speed==='fast'},function(){
+      if(disposed)return;
+      var nat=p.roll.natural,bonus=p.roll.total-nat,sg=(bonus<0?'- ':'+ ')+Math.abs(bonus),hit=nat!==1&&(nat===20||p.roll.total>=p.ac);
+      if(math){
+        math.classList.remove('dim');
+        math.innerHTML='<span>'+nat+' '+sg+' = <b>'+p.roll.total+'</b></span><span>vs AC <b>'+p.ac+'</b></span>';
+      }
+      var old=host.querySelector('.insp-verdict'),fresh=document.createElement('div');
+      fresh.className='insp-verdict '+(hit?'hit':'miss');fresh.textContent=hit?'Now it hits':'Still a miss';
+      if(old&&old.parentNode)old.parentNode.replaceChild(fresh,old);
+      var was=document.createElement('div');was.className='insp-was';was.textContent='Rerolled from '+from;
+      if(math&&math.parentNode)math.parentNode.insertBefore(was,fresh);
+      host.classList.remove('rerolling');host.classList.add('rerolled');
+      hud.announce('Heroic Inspiration: rerolled '+from+' to '+nat+'. '+(hit?'It hits.':'It misses.'));
+      var rest=calm?250:speed==='fast'?700:1400;
+      setTimeout(function(){if(disposed)return;h.close();finish()},rest);
+    });
   }
   function slotList(){return Fable.hudModels.actionBar(s,hero,targeting.attackId)}
   function useSlot(id){
@@ -460,9 +492,9 @@ Fable.createCombatController=function(o){
     if(!c||c.team==='player'||s.phase!=='running'||!settled())return;
     if(ai.stage==='thinking'||ai.stage==='ask'||ai.stage==='idle')return;
     ai.t+=dt;
-    if(ai.stage==='think'&&ai.t>.7){ai.replans=0;ai.attacked=false;requestPlan(c)}
+    if(ai.stage==='think'&&ai.t>.4){ai.replans=0;ai.attacked=false;requestPlan(c)}
     else if(ai.stage==='step'&&ai.t>ai.gap)nextStep(c);
-    else if(ai.stage==='wait'&&ai.t>.7){
+    else if(ai.stage==='wait'&&ai.t>.35){
       ai={stage:'idle',t:0,token:ai.token};
       Cb().endTurn(s);dirty=true;
     }
@@ -601,6 +633,11 @@ Fable.createCombatController=function(o){
       if(s.phase==='over'&&!overShown&&settled()&&!hud.promptActive()){overShown=true;setTimeout(function(){if(ctrl.active)showOutcome()},450)}
       var a=Cb().active(s);
       if(a&&busy){var w=entryOf(a).walker.position();marks.follow(w.x,w.z)}
+      /* the HUD only repaints when asked to, so a change in whether the player may act (a script or cue finishing, a prompt
+         closing, the turn changing hands) has to ask. Without this the End turn button stayed dimmed until the pointer moved. */
+      if(!script.length&&holds===0&&!busy&&!s.pending&&!hud.promptActive()&&pres.busy()){tail+=dt;if(tail>TAIL){tail=0;pres.skip()}}else tail=0;
+      var sig=(locked()?'L':'U')+(a?a.id:'-')+s.phase+s.round;
+      if(sig!==lastSig){lastSig=sig;dirty=true}
       if(dirty&&holds===0)redraw();
       updateTargetMarks();
       marks.update(clock);
@@ -611,6 +648,7 @@ Fable.createCombatController=function(o){
     }
   };
   ctrl.dispose=function(){
+    disposed=true;
     inp.handlers.hover=inp.handlers.leave=inp.handlers.click=inp.handlers.context=inp.handlers.key=inp.handlers.escape=null;
     setCursor('');ai.token++;runner.dispose();pres.dispose();mp.dispose();marks.dispose();items.dispose();labels.dispose();hud.destroy();
   };

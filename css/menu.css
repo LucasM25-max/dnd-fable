@@ -57,10 +57,11 @@
    tabs along the top jump along it. Every tile holds a small 3D preview; a click opens a big one. */
 #shop{position:fixed;inset:0;z-index:30;color:var(--text);overflow:hidden}
 #shop[hidden]{display:none}
+#menu-layer.shop-open #ui,#menu-layer.shop-open .fade{visibility:hidden}
 #shop.in{animation:st-in .4s cubic-bezier(.2,.8,.2,1) both}
 @keyframes st-in{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 .st-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0,rgba(90,52,16,.55),transparent 60%),linear-gradient(rgba(14,8,4,.9),rgba(10,6,3,.96));backdrop-filter:blur(6px)}
-.st{position:absolute;inset:0;display:flex;flex-direction:column;padding:max(14px,env(safe-area-inset-top,0px)) 0 max(12px,env(safe-area-inset-bottom,0px));min-height:0}
+.st-page{position:absolute;inset:0;display:flex;flex-direction:column;padding:max(14px,env(safe-area-inset-top,0px)) 0 max(12px,env(safe-area-inset-bottom,0px));min-height:0}
 .st-top{display:flex;align-items:center;gap:14px;padding:0 clamp(14px,3vw,40px)}
 .st-back{all:unset;cursor:pointer;flex:none;width:46px;height:46px;display:grid;place-items:center;background:var(--panel);border:2px solid var(--edge);box-shadow:0 4px 0 #000a;color:var(--text);transition:transform .12s,border-color .12s,color .12s}
 .st-back svg{width:24px;height:24px}

@@ -340,6 +340,13 @@
 .insp-verdict.hit{color:var(--hud-gold);border-color:var(--hud-gold-lo);background:rgba(240,185,77,.12)}
 .insp-verdict.miss{color:var(--hud-blood-hi);border-color:var(--hud-blood);background:rgba(168,50,43,.16)}
 #hud-layer .prm.inspire .pb.primary{animation:insp-glow 1.8s ease-in-out infinite}
+/* after Reroll is pressed the panel stays open: the buttons fade while the die is thrown again, then the new sum and verdict are shown */
+.prm.locked .pbs{opacity:0;pointer-events:none;transition:opacity .2s}
+.insp-math{transition:opacity .2s}.insp-math.dim{opacity:.3}
+.prm.rerolling .insp-verdict{visibility:hidden}
+.insp-was{position:relative;z-index:1;margin-top:8px;font:700 15px/1 var(--serif);letter-spacing:.06em;color:var(--hud-gold);animation:hud-pop .3s both}
+.prm.rerolled .insp-math b{animation:hud-pop .3s both}
+.prm.rerolled .insp-verdict{animation:hud-pop .35s .15s both}
 @keyframes insp-spin{to{transform:rotate(360deg)}}
 @keyframes insp-star{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.14) rotate(8deg)}}
 @keyframes insp-spark{0%{opacity:0;transform:rotate(var(--a)) translateY(-56px) scale(.6)}15%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) translateY(-168px) scale(.2)}}
@@ -468,7 +475,7 @@
   .ov-p .plate>.edge>.in{padding:12px 14px 16px}.shabil{grid-template-columns:repeat(3,1fr)}.shtwo{grid-template-columns:1fr}
 }
 @media (max-width:480px){.fl{font-size:24px}.prm .plate>.edge>.in{padding:16px 14px 18px}.pbs{gap:8px}#hud-layer .pb{padding:9px 14px 10px;font-size:16px}}
-@media (prefers-reduced-motion:reduce){.insp-rays,.insp-sparks i,.prm.inspire .pi,#hud-layer .prm.inspire .pb.primary,.insp-verdict{animation:none}.insp-sparks{display:none}}
+@media (prefers-reduced-motion:reduce){.insp-rays,.insp-sparks i,.prm.inspire .pi,#hud-layer .prm.inspire .pb.primary,.insp-verdict,.insp-was,.prm.rerolled .insp-math b{animation:none}.insp-sparks{display:none}}
 @media (prefers-reduced-motion:reduce){
   .slotb,.slotb .frame,.feed,.die,.fd-out,.fd-dmg,.prm>.plate,.tg-bar i{transition:none;animation:none}
   .feed.centre.rolled .fd-roll .op,.feed.centre.rolled .fd-roll .eq,.feed.centre.rolled .fd-roll .vs,.feed.centre.rolled .fd-out,.feed.centre.rolled .fd-dmg{animation:none;opacity:1}

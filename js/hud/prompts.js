@@ -5,7 +5,11 @@
    A prompt may also carry html (markup the caller built, already escaped) shown between the text and the choices, onShow(host) to animate
    it, and onClose() to stop that; the results screen (results.js) is one.
    Any element in that html written as <span class="die" data-v="N"><canvas class="d3c"></canvas></span> becomes a real 3D die (dice3d.js)
-   that tumbles in and lands on N (the Heroic Inspiration question shows the d20 that was rolled this way). */
+   that tumbles in and lands on N (the Heroic Inspiration question shows the d20 that was rolled this way).
+   A choice with hold:true does not close the prompt. The buttons lock, the keys are swallowed, and onChoose(id, handle) gets a handle:
+     handle.host                  the prompt's element, so the caller can update its text
+     handle.reroll(n, o, done)    the die in the prompt is thrown again and lands on n (o.fast: a shorter throw), then done() is called
+     handle.close()               close the prompt (the caller does this when it is finished with it) */
 (function(){
 Fable.hudModules.prompts=function(hud){
   var host=document.createElement('div');
@@ -30,9 +34,46 @@ Fable.hudModules.prompts=function(hud){
     });
   }
   function close(){if(cur&&cur.onClose)cur.onClose();disposeDice();host.hidden=true;host.innerHTML='';cur=null}
+  function choiceOf(p,id){
+    for(var i=0;i<p.choices.length;i++)if(p.choices[i].id===id)return p.choices[i];
+    return null;
+  }
+  /* throw the die of a held prompt again: the number, its colour and the 3D die all change together; without WebGL the flat die flickers through numbers */
+  function rethrow(v,o,done){
+    o=o||{};
+    var el=host.querySelector('.die[data-v]'),b=el&&el.querySelector('b'),d=dice[0],finished=false;
+    function land(){
+      if(finished)return;finished=true;
+      if(b)b.textContent=String(v);
+      if(done)done();
+    }
+    if(!el){land();return}
+    el.setAttribute('data-v',String(v));
+    el.classList.toggle('crit',v===20);el.classList.toggle('fumble',v===1);
+    var calm=Fable.hudSettings.reducedMotion()||Fable.hudSettings.get('speed')==='instant';
+    if(d){
+      d.setTone(v===20?'crit':v===1?'fumble':'player');
+      if(calm){d.show(v);land();return}
+      d.roll(v,{dur:o.fast?.6:1.05,spins:3},land);
+      /* a stalled frame loop must never leave the prompt waiting */
+      diceTimers.push(setTimeout(land,(o.fast?.6:1.05)*1000+900));
+      return;
+    }
+    if(calm||!b){land();return}
+    var flick=setInterval(function(){b.textContent=String(1+Math.floor(Math.random()*20))},65);
+    diceTimers.push(setTimeout(function(){clearInterval(flick);land()},o.fast?450:800));
+  }
   function choose(id){
-    if(!cur)return;
-    var p=cur;close();
+    if(!cur||cur.locked)return;
+    var p=cur,ch=choiceOf(p,id);
+    if(ch&&ch.hold){
+      p.locked=true;host.classList.add('locked');
+      Array.prototype.forEach.call(host.querySelectorAll('button'),function(x){x.disabled=true});
+      var handle={host:host,reroll:rethrow,close:function(){if(cur===p)close()}};
+      if(p.onChoose)p.onChoose(id,handle);
+      return;
+    }
+    close();
     if(p.onChoose)p.onChoose(id);
   }
   host.addEventListener('click',function(e){
@@ -62,6 +103,7 @@ Fable.hudModules.prompts=function(hud){
   hud.promptActive=function(){return !!cur};
   hud.promptKey=function(e){
     if(!cur)return false;
+    if(cur.locked)return true;
     var code=e.code,k=(e.key||'').toLowerCase();
     for(var i=0;i<cur.choices.length;i++){
       var c=cur.choices[i];
