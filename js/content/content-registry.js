@@ -113,14 +113,8 @@ C.encounters={
       if(typeof group.spawnZone!=='string')fail('Encounter',id,'enemies['+i+'] needs a spawnZone id');
       if(!num(group.count)||group.count<1||Math.floor(group.count)!==group.count)fail('Encounter',id,'enemies['+i+'] needs a positive integer count');
     });
-    if(def.tutorial!==undefined){
-      var WHEN=['move','attack','second-wind','endturn'];
-      if(!Array.isArray(def.tutorial))fail('Encounter',id,'tutorial must be an array');
-      def.tutorial.forEach(function(st,i){
-        if(!st||typeof st.id!=='string'||typeof st.text!=='string'||!st.text)fail('Encounter',id,'tutorial['+i+'] needs an id and text');
-        if(WHEN.indexOf(st.when)<0)fail('Encounter',id,'tutorial['+i+'].when must be one of '+WHEN.join(', '));
-      });
-    }
+    /* the companion who talks the player through the fight: the id of a dialogue script (Fable.dialogue, js/content/dialogue/) */
+    if(def.dialogue!==undefined&&(typeof def.dialogue!=='string'||!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(def.dialogue)))fail('Encounter',id,'dialogue must be the id of a dialogue script');
     if(def.ai!==undefined){
       if(!def.ai||typeof def.ai!=='object'||Array.isArray(def.ai))fail('Encounter',id,'ai must be an object');
       else if(C.checkAiBlock)C.checkAiBlock(def.ai,function(m){fail('Encounter',id,'ai: '+m)},'');

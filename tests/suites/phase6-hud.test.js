@@ -195,12 +195,12 @@ module.exports=function(t){
       assert.ok(v.resources.some(r=>r.name==='Second Wind'));
       assert.ok(v.features.length>3);
     });
-    test('the encounter tutorial steps are validated: known events only',async()=>{
+    test('an encounter names its dialogue script by id, and only by id',async()=>{
       await world();
       const E=Fable.content.encounters;
-      assert.throws(()=>E.register({id:'t-bad',name:'x',map:'m',enemies:[],tutorial:[{id:'a',text:'x',when:'dance'}]}),/when must be one of/);
-      assert.throws(()=>E.register({id:'t-bad2',name:'x',map:'m',enemies:[],tutorial:[{id:'a',when:'move'}]}),/needs an id and text/);
-      E.register({id:'t-ok',name:'x',map:'m',enemies:[],tutorial:[{id:'a',text:'Move',when:'move'}]});
+      assert.throws(()=>E.register({id:'t-bad',name:'x',map:'m',enemies:[],dialogue:['a']}),/dialogue must be the id of a dialogue script/);
+      assert.throws(()=>E.register({id:'t-bad2',name:'x',map:'m',enemies:[],dialogue:'Not An Id'}),/dialogue must be the id/);
+      E.register({id:'t-ok',name:'x',map:'m',enemies:[],dialogue:'elminster-first-fight'});
     });
     test('the knowledge policy hides enemy AC and exact hit points unless the encounter reveals them',async()=>{
       const C=await world(),{s,hero,a}=fight(C);
