@@ -36,9 +36,9 @@ function overlay(id,base){
   if(!p||typeof p!=='object')return base;
   var b=clone(base);
   if(Number.isInteger(p.xp)&&p.xp>=0)b.xp=p.xp;
-  if(p.currency&&typeof p.currency==='object'&&!Array.isArray(p.currency)&&Ch.checkRecord(Object.assign(clone(b),{currency:p.currency})).every(function(i){return i.severity!=='error'}))b.currency=p.currency;
+  if(p.currency&&typeof p.currency==='object'&&!Array.isArray(p.currency)&&Ch.checkRecord(Ch.normalize(Object.assign(clone(b),{currency:p.currency}))).every(function(i){return i.severity!=='error'}))b.currency=p.currency;
   if(Array.isArray(p.inventory)){
-    var t=Object.assign(clone(b),{inventory:p.inventory});
+    var t=Ch.normalize(Object.assign(clone(b),{inventory:p.inventory}));
     /* only a pack the rules still accept, with every item still in the game, replaces the shipped one */
     var known=p.inventory.every(function(e){return e&&Fable.content.items.has(e.item)});
     if(known&&Ch.checkRecord(t).every(function(i){return i.severity!=='error'}))b.inventory=p.inventory;
