@@ -31,6 +31,19 @@ module.exports=function({suite,test}){
       const js=read('js/menu/shop-ui.js');
       ['Featured','Character','Equipment','Cosmetics','Subclasses','Species','Feats','Weapons','Adventuring Gear','Armour','Skins','Victory Animations','Backgrounds'].forEach(w=>assert.ok(js.includes(w),w));
     });
+    test('a saved game loads: progress saved by the Store brings the game up instead of a black screen',async()=>{
+      await H.loadData({heroes:true,shops:true});
+      const store={};
+      globalThis.window.localStorage={getItem:k=>k in store?store[k]:null,setItem:(k,v)=>{store[k]=String(v)},removeItem:k=>{delete store[k]}};
+      H.runFile('js/character/roster.js');
+      const R=Fable.character.roster;
+      store['dicebound.progress.v1']=JSON.stringify({v:1,heroes:{'human-fighter':{xp:10,currency:{gp:7},inventory:[{item:'dagger',qty:2},{item:'potion-of-healing',qty:2}],victory:{owned:['victory-spin'],selected:'victory-spin'}}}});
+      R.forget();store['dicebound.progress.v1']=JSON.stringify({v:1,heroes:{'human-fighter':{xp:10,currency:{gp:7},inventory:[{item:'dagger',qty:2},{item:'potion-of-healing',qty:2}],victory:{owned:['victory-spin'],selected:'victory-spin'}}}});
+      const b=R.build('human-fighter');
+      assert.strictEqual(b.xp,10);assert.strictEqual(R.purseCp('human-fighter'),700);
+      assert.ok(b.inventory.some(e=>e.item==='potion-of-healing'&&e.qty===2));
+      delete globalThis.window.localStorage;
+    });
     test('the potion model shows its liquid (the glass does not hide it)',()=>{
       const js=read('js/engine/gear-models.js'),i=js.indexOf('G.families.potion'),body=js.slice(i,js.indexOf('/* ---------- sling and whip'));
       assert.ok(/C\.liquid\);\s*\n?\s*B\(g,0,h\*\.3,0,r\*2,h\*\.4,r\*2,C\.liquid\)/.test(body));
