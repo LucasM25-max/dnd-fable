@@ -101,6 +101,9 @@ function drawProfile(){
   set('pf-sub',cls+', level '+p.level+(p.nextLevelXp===null?' (maximum)':' ('+p.xp.toLocaleString('en-GB')+' / '+p.nextLevelXp.toLocaleString('en-GB')+' XP)'));
   var bar=document.getElementById('pf-xp');if(bar)bar.style.width=Math.round(p.fraction*100)+'%';
   set('pf-gp',Fable.money.format(R.purseCp(heroId)));
+  /* the portrait is the hero's real voxel head, drawn once (and again only if the gear on the head ever changes) */
+  var ava=document.querySelector('.prof .ava');
+  if(ava&&Fable.headPortrait&&Fable.headPortrait.fill(ava,'hero',{heroId:heroId,w:46,h:46,yaw:-.4}))ava.classList.add('has3d');
   show();
 }
 Fable.character.roster.onChange(function(id,sheet){if(id===heroId){drawSheet(sheet);drawProfile()}});

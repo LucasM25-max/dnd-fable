@@ -47,7 +47,11 @@ Fable.hudModules.healthBar=function(hud){
       var key=JSON.stringify([m,death,pools,conds]);
       if(key===last)return;
       last=key;
-      if(!portraitDone&&hero.portrait){el.port.innerHTML=Fable.hudModels.portraitSvg(hero.portrait);portraitDone=true}
+      if(!portraitDone&&hero.portrait){
+        /* the player's portrait is the hero's voxel head in 3D; the flat picture only stands in when WebGL is unavailable */
+        if(!(Fable.headPortrait&&Fable.headPortrait.fill(el.port,'hero',{heroId:hero.defId,w:68,h:80})))el.port.innerHTML=Fable.hudModels.portraitSvg(hero.portrait);
+        portraitDone=true;
+      }
       el.name.textContent=m.name;el.sub.textContent=m.subtitle?'- '+m.subtitle:'';
       el.acNum.textContent=m.ac;el.ac.setAttribute('data-tip',m.acTip);el.ac.setAttribute('aria-label',m.acTip.replace(/\n/g,', '));
       el.fill.style.width=m.pct+'%';el.chip.style.width=m.pct+'%';

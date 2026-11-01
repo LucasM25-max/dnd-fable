@@ -34,5 +34,5 @@
    (.pfx: letterbox, flashes, speech bubbles) and the screen reader line is faded out quickly and then taken off the screen
    (visibility:hidden after the fade), so nothing of it is left to be seen or clicked. This includes the name plates and floating
    numbers (.wl), the dark edge of the HUD (.hud-vignette) and any open panel. */
-#hud-layer.outcome>*:not(.prm):not(.pfx):not(.sr-only){opacity:0;visibility:hidden;pointer-events:none;transition:opacity .3s ease,visibility 0s linear .3s}
+#hud-layer.outcome>*:not(.prm):not(.pfx):not(.elm):not(.sr-only){opacity:0;visibility:hidden;pointer-events:none;transition:opacity .3s ease,visibility 0s linear .3s}
 @media (prefers-reduced-motion:reduce){#hud-layer.outcome>*{transition:none}}

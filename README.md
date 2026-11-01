@@ -18,7 +18,7 @@ The engine is deliberately separated from game content:
 
 js/core/               renderer and voxel primitives
 js/rules/              pure rules code (seeded rng, formulas, dice, money, tables, grid, stat blocks, creatures, combat, enemy turns); no DOM and no Three.js
-js/hud/                combat HUD modules (view only) and their pure view models
+js/hud/                combat HUD modules (view only), their pure view models, Elminster's dialogue box and engine, and the 3D head portraits
 css/hud.css            HUD tokens and styles, matching the menu
 js/engine/             generic world building and instanced block batching
 js/game/               player input, movement and scene runner
@@ -42,7 +42,7 @@ Encounters can then reference it as:
 
 ## Adding an encounter
 
-Create js/content/encounters/<new-id>/index.js and definition.js. Reference the map and monsters by IDs. The menu will discover enabled encounters automatically once the content package is added to content-manifest.js.
+Create js/content/encounters/<new-id>/index.js and definition.js. Reference the map and monsters by IDs. The menu will discover enabled encounters automatically once the content package is added to content-manifest.js. An encounter can name a companion who talks the player through the fight with `dialogue:'<script-id>'` (see Elminster, below).
 
 ## Current content tree
 
@@ -80,6 +80,19 @@ js/content/
 Default encounter: Goblin Ambush. It loads the Forest Clearing map, creates the default Human Fighter, and spawns two Goblin Minions in the map's path-ambush zone.
 
 The fighter and player remain as before: 3D voxel character, camera tour, and movement controller. Combat systems can later consume the same encounter definitions without changing how content is packaged.
+
+### Elminster, the tutorial companion
+
+Elminster Aumar, the Sage of Shadowdale, talks the player through the first fight in a dialogue box at the top centre of the screen, with his voxel head beside the words. The old list of tips on the left is gone.
+
+- The opening spiel always plays when the fight begins (greeting, moving, attacking, the three-part turn, Second Wind, ending the turn). A line in it is dropped unspoken if the player has already done the thing it teaches.
+- Over fifty reactive lines answer what the player does: the first hit, miss, critical or fumble, a kill, a goblin's attack, getting Bloodied, Second Wind, Heroic Inspiration, falling and the death saves, a goblin fleeing, a new round, a long wait, victory and defeat. Most are said once; some are chatter that only fills a silence.
+- A click finishes the line being typed, and the next click moves on. The eye button in his box mutes the comments on what the player does (the spiel and the urgent lines still play).
+- The script is data: `js/content/dialogue/elminster-first-fight.js`. The engine that chooses which line to say and when is `js/hud/dialogue-engine.js` (no DOM, covered by `tests/suites/dialogue.test.js`); the box is `js/hud/elminster.js`. The controller reports events with `hud.coach(kind, data)`; the kinds and their data are listed in the script's header.
+
+### 3D head portraits
+
+The player's portrait in the health bar, on the initiative ribbon and on the menu profile is the hero's real voxel head, drawn in 3D by one shared hidden WebGL renderer (`js/hud/head-portrait.js`, `Fable.headPortrait`). The flat picture only stands in when WebGL is unavailable. Goblins keep their flat portraits.
 
 ## Rules foundations (implementation plan, Phase 0)
 
