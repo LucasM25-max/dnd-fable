@@ -6,9 +6,10 @@
 
 Open index.html in a browser, or serve the folder with GitHub Pages/Vercel. Three.js r128 loads from cdnjs.
 
-The game opens into the default registered encounter. Add ?encounter=<id> to select a specific encounter. For compatibility, ?map=<id> selects the first enabled encounter on that map. Add &zones to draw the map spawn zones.
+The first time the game is opened it plays the scripted tutorial (Elminster, below). After that it opens on the main menu, where Play generates an ordinary, unscripted fight for the chosen difficulty (see Encounter generator). Add ?tutorial=1 to play the tutorial again. For development, ?encounter=<id> starts a registered encounter directly, and ?map=<id> selects the first enabled encounter on that map. Add &zones to draw the map spawn zones.
 
 Examples:
+- index.html?tutorial=1
 - index.html?encounter=tutorial-goblin-ambush
 - index.html?map=forest-clearing&zones
 
@@ -18,7 +19,7 @@ The engine is deliberately separated from game content:
 
 js/core/               renderer and voxel primitives
 js/rules/              pure rules code (seeded rng, formulas, dice, money, tables, grid, stat blocks, creatures, combat, enemy turns); no DOM and no Three.js
-js/hud/                combat HUD modules (view only), their pure view models, Elminster's dialogue box and engine, and the 3D head portraits
+js/hud/                combat HUD modules (view only), their pure view models, Elminster's box and the tutorial pointer, and the 3D head and equipment pictures
 css/hud.css            HUD tokens and styles, matching the menu
 js/engine/             generic world building and instanced block batching
 js/game/               player input, movement and scene runner
@@ -42,7 +43,7 @@ Encounters can then reference it as:
 
 ## Adding an encounter
 
-Create js/content/encounters/<new-id>/index.js and definition.js. Reference the map and monsters by IDs. The menu will discover enabled encounters automatically once the content package is added to content-manifest.js. An encounter can name a companion who talks the player through the fight with `dialogue:'<script-id>'` (see Elminster, below).
+Create js/content/encounters/<new-id>/index.js and definition.js. Reference the map and monsters by IDs. The menu will discover enabled encounters automatically once the content package is added to content-manifest.js. An encounter can be the scripted first-launch lesson by naming a tutorial script with `tutorial:'<script-id>'` (see Elminster, below). Ordinary play does not use registered encounters at all: the generator builds one (see Encounter generator).
 
 ## Current content tree
 
@@ -81,18 +82,33 @@ Default encounter: Goblin Ambush. It loads the Forest Clearing map, creates the 
 
 The fighter and player remain as before: 3D voxel character, camera tour, and movement controller. Combat systems can later consume the same encounter definitions without changing how content is packaged.
 
-### Elminster, the tutorial companion
+### Elminster and the scripted tutorial
 
-Elminster Aumar, the Sage of Shadowdale, talks the player through the first fight in a dialogue box at the top centre of the screen, with his voxel head beside the words. The old list of tips on the left is gone.
+The tutorial plays only the first time the game is opened (`Fable.flags.tutorialDone()`, saved in `dicebound.flags.v1`), or with `?tutorial=1`. It is the only place Elminster appears, and it is scripted end to end so every new player is taught the same way:
 
-- The opening spiel always plays when the fight begins (greeting, moving, attacking, the three-part turn, Second Wind, ending the turn). A line in it is dropped unspoken if the player has already done the thing it teaches.
-- Over fifty reactive lines answer what the player does: the first hit, miss, critical or fumble, a kill, a goblin's attack, getting Bloodied, Second Wind, Heroic Inspiration, falling and the death saves, a goblin fleeing, a new round, a long wait, victory and defeat. Most are said once; some are chatter that only fills a silence.
-- A click finishes the line being typed, and the next click moves on. The eye button in his box mutes the comments on what the player does (the spiel and the urgent lines still play).
-- The script is data: `js/content/dialogue/elminster-first-fight.js`. The engine that chooses which line to say and when is `js/hud/dialogue-engine.js` (no DOM, covered by `tests/suites/dialogue.test.js`); the box is `js/hud/elminster.js`. The controller reports events with `hud.coach(kind, data)`; the kinds and their data are listed in the script's header.
+- Elminster speaks one short line at a time in a box at the top centre, with his voxel head beside the words. The box has "Skip tutorial" in its footer; Escape asks whether to leave.
+- The lesson walks through one whole round: Move (the Move button is framed, then glowing squares beside the goblin), Attack (the Longsword is framed, then the goblin is ringed), ending the turn (End Turn is framed), a Bonus Action (Second Wind), and a miss followed by Heroic Inspiration (the Reroll button is framed), then the player finishes the last goblin alone.
+- Only what the current step asks for can be clicked; anything else shakes the box and says so. The player cannot get stuck or lose.
+- The rules still decide every result. The script only fixes the turn order (`Combat.start(s, {order})`), the dice of each attack (`s.fixed`, a queue of `{d20, reroll, damage:{sides, faces}}` consumed by `beginAttack`) and what each goblin does on each of its turns.
+- It is data: `js/content/tutorials/goblin-ambush.js` (format in the header of `js/game/tutorial.js`, which is the director; the box is `js/hud/elminster.js` and the frame is `js/hud/tutorial-coach.js`). The ground highlights are `setHints` and `setBeacon` in `js/hud/world-marks.js`. The pure parts are covered by `tests/suites/scripted-fight.test.js`.
+- It is marked done when the player wins or skips it. Its results screen offers the main menu or the tutorial again.
+
+### Encounter generator and ordinary play
+
+Play on the main menu starts an unscripted fight with no Elminster. The difficulty selector (Low, Moderate, High, remembered between visits) replaces the old encounter picker; each is the 2024 XP budget for the hero's level. `Fable.encounterGen.generate` (`js/rules/encounter-gen.js`, pure and seeded) then chooses a map and the enemies:
+
+1. Maps are those with an enemy spawn zone. Monsters fit a map by their `environments` tags (an untagged monster fits anywhere, at a lower score).
+2. It lists every mix of up to two kinds of monster, at most two per player character, within the budget, and keeps those that cannot take one more creature, so the budget is spent as fully as it can be (the unused part is in `meta.unused`).
+3. Each (map, group) is scored for budget fit, environment fit, theme (one family), tactical variety (roles) and a penalty for what was played recently (`Fable.flags.recent()`); a seeded jitter breaks ties. The group must fit a spawn zone.
+4. If nothing fits, it falls back to one of the cheapest creature and says so in `meta.fallback`.
+
+The result is an ordinary encounter object (`generated:true`) that the game scene, the combat controller and the rewards code treat like authored content, with performance bonuses on and the enemies' AC and HP hidden. A short encounter card (`js/menu/encounter-preview.js`: map, difficulty, enemies with their 3D heads, reward) shows, then the opening camera tour plays. "Fight again" generates a fresh encounter at the same difficulty. With one monster and one map every difficulty gives the same two goblins today, but the whole pipeline runs. Monster definitions carry `environments`, `family` and `role` for the generator.
 
 ### 3D head portraits
 
-The player's portrait in the health bar, on the initiative ribbon and on the menu profile is the hero's real voxel head, drawn in 3D by one shared hidden WebGL renderer (`js/hud/head-portrait.js`, `Fable.headPortrait`). The flat picture only stands in when WebGL is unavailable. Goblins keep their flat portraits.
+Every face in the HUD and the menu is the creature's real voxel head, drawn in 3D by one shared hidden WebGL renderer (`js/hud/head-portrait.js`, `Fable.headPortrait`): the hero's in the health bar, ribbon and menu profile, every monster's on the initiative ribbon and the encounter card (any monster whose rig has a head joint works, with no per-monster code), and Elminster's in his box. The flat picture only stands in when WebGL is unavailable.
+
+Equipment on the hotbar and in the action menu is the real voxel model of the item too (`Fable.headPortrait.itemStill`, drawn by the same renderer from the Store's item models), including the thrown slant for javelins and daggers. Things that are not objects (Move, Dodge, Second Wind, a bare fist) keep their glyphs.
 
 ## Rules foundations (implementation plan, Phase 0)
 

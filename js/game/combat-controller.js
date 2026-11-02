@@ -10,6 +10,8 @@
 
    var ctrl = Fable.createCombatController({world, scene, camera, encounter, hero, heroModel, spawned, seed})
    ctrl.begin()        start the fight (initiative is rolled, the HUD appears); called when the intro ends
+   A fight whose encounter names a `tutorial` is the scripted first-launch lesson (js/game/tutorial.js): fixed turn order and dice, scripted
+   goblins, and clicks gated to the step. Every other fight has none of that.
    ctrl.update(ms, dt) every frame
    ctrl.focus()        {x, z} the camera should look at: the creature whose turn it is
    ctrl.dispose()      take the HUD and the overlays down
@@ -100,13 +102,18 @@ Fable.createCombatController=function(o){
   var runner=Fable.createAiRunner({base:(function(){try{return new URL('js/',document.baseURI).href}catch(e){return ''}})()});
   var mp=Fable.createMovePreview({scene:scene,camera:camera,grid:grid,hud:hud});
   var labels=Fable.createWorldLabels({camera:camera,hud:hud,anchor:function(c){var w=entryOf(c).walker.position();return {x:w.x,y:c.kind==='hero'?19:14,z:w.z}}});
-  if(o.encounter&&o.encounter.dialogue&&hud.mods.elminster)hud.mods.elminster.setScript(o.encounter.dialogue);
+  var tut=null;
+  if(o.encounter&&o.encounter.tutorial&&Fable.tutorials.get(o.encounter.tutorial)){
+    tut=Fable.createTutorial({id:o.encounter.tutorial,state:s,hero:hero,foes:creatures.filter(function(c){return c.team!=='player'}),hud:hud,marks:marks,grid:grid,
+      announce:function(m){hud.announce(m);labels.float(hero,'Not yet','info')},
+      leave:function(){Fable.enterMenu()},
+      finish:function(win,skipped){Fable.flags.setTutorialDone(true);if(skipped)Fable.enterMenu()}});
+  }
+  ctrl.tutorial=tut;
 
   var drops=[],busy=false,dirty=true,pointer=null,previewCell=null,ai={stage:'idle',t:0,token:0},clock=0,roundChanged=false;
   var targeting={attackId:null,hoverId:null},script=[],autoEnd=-1,overShown=false;
   var disposed=false,lastSig='',tail=0;
-  /* what the tutorial companion needs to know about how the player is doing (Elminster hears of it through hud.coach) */
-  var coachState={attacked:false,missStreak:0,hitStreak:0,idle:0,idleStage:0,hpSaid:''};
   /* once the result is on screen only cosmetic cues remain; the player gets the turn back after this long, at most */
   var TAIL=.45;
   var raycaster=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();
@@ -217,30 +224,9 @@ Fable.createCombatController=function(o){
     hud.rollFeed(r);
     if(r.hit)labels.float(t,r.crit?r.damage.total+'!':String(r.damage.total),r.crit?'crit':'hit');
     else labels.float(t,'Miss','miss');
-    coachAttack(r,a,t);
+    if(tut&&a===hero)tut.event('attack',{hit:!!r.hit});
     flushDrops();
     holds=Math.max(0,holds-1);dirty=true;
-  }
-  function enemiesAlive(){return s.creatures.filter(function(x){return x.team!=='player'&&x.alive&&!x.down}).length}
-  function heroPct(){return Math.round(100*Math.max(0,hero.hp.current)/Math.max(1,hero.hp.max))}
-  /* Elminster hears what the player's attack did, what a goblin's attack did to the player, and how the hit points stand after it */
-  function coachAttack(r,a,t){
-    if(a===hero){
-      coachState.attacked=true;coachState.idle=0;coachState.idleStage=0;
-      coachState.missStreak=r.hit?0:coachState.missStreak+1;coachState.hitStreak=r.hit?coachState.hitStreak+1:0;
-      hud.coach('attack',{hit:!!r.hit,crit:!!r.crit,fumble:r.roll.natural===1,kill:!t.alive||t.down,ranged:r.attack.mode!=='melee',thrown:r.attack.mode==='thrown',
-        nat:r.roll.natural,enemiesLeft:enemiesAlive(),missStreak:coachState.missStreak,hitStreak:coachState.hitStreak});
-    }else if(t===hero){
-      hud.coach('enemy-attack',{hit:!!r.hit,crit:!!r.crit,ranged:r.attack.mode!=='melee',dmg:r.hit&&r.damage?r.damage.total:0,hpPct:heroPct(),who:a.name});
-      if(r.hit)coachHp();
-    }
-  }
-  function coachHp(){
-    var pct=heroPct(),wind=hero.resources&&hero.resources['second-wind-uses'],tag=pct<=0?'down':pct<25?'low':pct<=50?'bloodied':'ok';
-    if(tag===coachState.hpSaid)return;
-    coachState.hpSaid=tag;
-    if(tag==='ok'||tag==='down')return;
-    hud.coach('hp',{pct:pct,bloodied:tag==='bloodied'||tag==='low',low:tag==='low',windLeft:wind?wind.current:0});
   }
   /* a thrown weapon lands when the throw does: the rules report the drop first, so it waits for the attack that threw it */
   function flushDrops(){
@@ -250,12 +236,12 @@ Fable.createCombatController=function(o){
   function onPickup(e){
     say(e);
     (e.result.items||[]).forEach(function(i){items.remove(i.id)});
-    if(e.result.creature.team==='player'){labels.float(s.byId[e.result.creature.id],'Picked up','info');hud.coach('pickup')}
+    if(e.result.creature.team==='player')labels.float(s.byId[e.result.creature.id],'Picked up','info');
     dirty=true;
   }
   function onMorale(e){
     var c=s.byId[e.id];say(e);
-    if(c&&e.result==='flee'){labels.float(c,'Fleeing!','miss');hud.coach('flee')}
+    if(c&&e.result==='flee')labels.float(c,'Fleeing!','miss');
     dirty=true;
   }
   function onRecovered(e){say(e);items.sync(s.ground);dirty=true}
@@ -265,9 +251,7 @@ Fable.createCombatController=function(o){
     var w=entryOf(c).walker.position();marks.follow(w.x,w.z);
     hud.banner((roundChanged||(e.index===0&&s.round===1)?'Round '+s.round+'  -  ':'')+Fable.hudModels.turnText(s,c),c.team==='player'?'player':'enemy');
     hud.announce((roundChanged?'Round '+s.round+'. ':'')+Fable.hudModels.turnText(s,c));
-    if(c===hero){coachState.attacked=false;coachState.idle=0;coachState.idleStage=0}
-    if(roundChanged&&s.round>1)hud.coach('round',{n:s.round});
-    hud.coach(c===hero?'hero-turn':'enemy-turn',{round:s.round,hpPct:heroPct()});
+    if(tut&&c===hero)tut.event('hero-turn');
     roundChanged=false;say(e);
     ai={stage:'think',t:0,token:ai.token||0,queue:[],replans:0,attacked:false};targeting.attackId=null;
     autoEnd=-1;
@@ -279,7 +263,7 @@ Fable.createCombatController=function(o){
     say(e);
     if(r.heal)labels.float(who,'+'+r.heal.applied,'heal');
     else labels.float(who,r.name,'info');
-    if(who===hero&&r.id==='second-wind'){coachState.idle=0;coachState.idleStage=0;hud.coach('second-wind',{healed:r.heal?r.heal.applied:0});coachHp()}
+    if(tut&&who===hero)tut.event('action',{id:r.id});
     dirty=true;
   }
   function onSwap(e){
@@ -291,14 +275,12 @@ Fable.createCombatController=function(o){
   function onDown(e){
     var d=s.byId[e.id];say(e);
     if(d.kind==='monster')labels.float(d,'Defeated','info');
-    if(d===hero)hud.coach('hero-down');
     dirty=true;
   }
   function onDeathSave(e){
     var x=e.result,h=s.byId[e.id];say(e);
     var words={success:'Death save: success',fail:'Death save: failure',fail2:'Death save: two failures',stable:'Stable',dead:'Dead',revive:'Back on your feet'};
     labels.float(h,words[x.outcome]||'Death save','info');
-    hud.coach('deathsave',{outcome:x.outcome});
     hud.banner((words[x.outcome]||'Death save')+'  ('+x.roll+')',x.outcome==='success'||x.outcome==='stable'||x.outcome==='revive'?'player':'enemy');
     dirty=true;
   }
@@ -310,7 +292,7 @@ Fable.createCombatController=function(o){
     if(hud.overlayOpen())hud.closeOverlay();
     hud.clearTransient();
     hud.root.classList.add('outcome');
-    if(e.winner==='player')hud.coach('victory',{hpPct:heroPct(),rounds:s.round});else hud.coach('defeat');
+    if(tut)tut.event('over',{win:e.winner==='player'});
   }
 
   function handle(e){
@@ -324,11 +306,6 @@ Fable.createCombatController=function(o){
         break;
       case 'move':{
         var mover=s.byId[e.id],pts=e.path.slice(1).map(worldOf);
-        if(mover===hero){
-          coachState.idle=0;coachState.idleStage=0;
-          var near=s.creatures.some(function(x){return x.team!=='player'&&x.alive&&!x.down&&x.cell&&hero.cell&&Math.max(Math.abs(x.cell.c-hero.cell.c),Math.abs(x.cell.r-hero.cell.r))<=1});
-          hud.coach('move',{adjacent:near,attacked:coachState.attacked,enemiesLeft:enemiesAlive()});
-        }
         /* the attacks of opportunity the move provokes play first, then the walk */
         (e.reactions||[]).forEach(function(rr){holds++;pres.enqueue({type:'attack',result:rr.result})});
         if(!pts.length)break;
@@ -338,6 +315,7 @@ Fable.createCombatController=function(o){
             busy=false;
             if(Cb().active(s)===mover)marks.setActive(mover.cell,mover.team);
             refreshReach();dirty=true;
+            if(tut&&mover===hero)tut.event('moved');
           }});
         break;
       }
@@ -361,6 +339,7 @@ Fable.createCombatController=function(o){
   }
   function endHeroTurn(force){
     if(locked()||!heroTurn()||hero.down)return;
+    if(tut&&!tut.allowEnd())return;
     if(force!==true&&Fable.hudSettings.get('confirmEnd')&&wastingAction()){
       hud.prompt({title:'End your turn?',icon:'step',body:'You have not used your Action, and an enemy is within reach.',
         choices:[{id:'end',label:'End turn',key:'e',keyLabel:'E',codes:['Space']},{id:'keep',label:'Keep playing',primary:true,key:'k',keyLabel:'Esc',codes:['Escape','Enter']}],
@@ -368,8 +347,8 @@ Fable.createCombatController=function(o){
       dirty=true;return;
     }
     previewCell=null;targeting.attackId=null;
-    hud.coach('endturn',{unspentAction:!hero.economy.action});
     Cb().endTurn(s);
+    if(tut)tut.event('endturn');
     dirty=true;
   }
   function tryMove(cell){
@@ -391,7 +370,7 @@ Fable.createCombatController=function(o){
     go();
   }
   function doAttack(attackId,target){
-    var b=Cb().beginAttack(s,hero,attackId,target,{});
+    var b=Cb().beginAttack(s,hero,attackId,target,tut?tut.attackOpts():{});
     if(!b.ok){hud.announce(b.reason);labels.float(hero,b.reason,'info');return}
     targeting.attackId=null;
     var p=b.pending;
@@ -402,14 +381,14 @@ Fable.createCombatController=function(o){
       var nat=p.roll.natural,bonus=p.roll.total-nat,sg=(bonus<0?'- ':'+ ')+Math.abs(bonus);
       var dieHtml='<span class="die insp-die'+(nat===20?' crit':nat===1?' fumble':'')+'" data-v="'+nat+'">'+Fable.hudIcons.svg('d20')+'<canvas class="d3c" aria-hidden="true"></canvas><b>'+nat+'</b></span>';
       var sparks='';for(var si=0;si<10;si++)sparks+='<i style="--a:'+(si*36)+'deg;--d:'+(.15*si).toFixed(2)+'s"></i>';
-      hud.coach('inspiration-offer',{hit:keptHit});
+      if(tut)tut.event('insp-offer');
       hud.prompt({title:'Heroic Inspiration',icon:'star',tone:'inspire',
         body:'Spend your Heroic Inspiration to throw the d20 again? You must use the new roll.',
         html:'<div class="insp"><div class="insp-rays" aria-hidden="true"></div><div class="insp-sparks" aria-hidden="true">'+sparks+'</div>'+dieHtml+
           '<div class="insp-math"><span>'+nat+' '+sg+' = <b>'+p.roll.total+'</b></span><span>vs AC <b>'+p.ac+'</b></span></div>'+
           '<div class="insp-verdict '+(keptHit?'hit':'miss')+'">'+(keptHit?'This would hit':'This would miss')+'</div></div>',
-        choices:[{id:'reroll',label:'Reroll the d20',primary:true,hold:true,key:'r',keyLabel:'R',codes:['Enter']},{id:'keep',label:'Keep the roll',key:'k',keyLabel:'K',codes:['Escape']}],
-        onChoose:function(id,h){if(id==='reroll'&&h)spendInspiration(p,h,finish);else{hud.coach('inspiration-kept',{hit:keptHit});finish()}}});
+        choices:(function(c){return tut?tut.rerollChoices(c):c})([{id:'reroll',label:'Reroll the d20',primary:true,hold:true,key:'r',keyLabel:'R',codes:['Enter']},{id:'keep',label:'Keep the roll',key:'k',keyLabel:'K',codes:['Escape']}]),
+        onChoose:function(id,h){if(id==='reroll'&&h)spendInspiration(p,h,finish);else finish()}});
     }else finish();
   }
   /* Heroic Inspiration is spent with the panel still open: the rules roll the new d20 at once (Cb.applyReroll), the die in the panel is thrown
@@ -435,7 +414,6 @@ Fable.createCombatController=function(o){
       if(old&&old.parentNode)old.parentNode.replaceChild(fresh,old);
       var was=document.createElement('div');was.className='insp-was';was.textContent='Rerolled from '+from;
       if(math&&math.parentNode)math.parentNode.insertBefore(was,fresh);
-      hud.coach('inspiration-used',{from:from,to:nat,hit:hit});
       host.classList.remove('rerolling');host.classList.add('rerolled');
       hud.announce('Heroic Inspiration: rerolled '+from+' to '+nat+'. '+(hit?'It hits.':'It misses.'));
       var rest=calm?250:speed==='fast'?700:1400;
@@ -445,12 +423,13 @@ Fable.createCombatController=function(o){
   function slotList(){return Fable.hudModels.actionBar(s,hero,targeting.attackId)}
   function useSlot(id){
     if(locked()||!heroTurn()){return}
+    if(tut&&!tut.allowSlot(id))return;
     if(id==='move'){
       var mv=Fable.hudModels.moveSlot(s,hero,targeting.attackId);
       if(!mv.ok){hud.announce('Move: '+mv.reason);labels.float(hero,mv.reason,'info');return}
       var was=targeting.attackId;targeting.attackId=null;
       hud.announce(was?'Attack cancelled. Click a square to move.':'Click a square to move');
-      dirty=true;return;
+      dirty=true;if(tut)tut.event('slot',{id:'move'});return;
     }
     var sl=slotList().filter(function(x){return x.id===id})[0];
     if(!sl){hud.announce('That slot is not available right now');return}
@@ -458,7 +437,7 @@ Fable.createCombatController=function(o){
     if(sl.kind==='attack'){
       targeting.attackId=targeting.attackId===sl.attackId?null:sl.attackId;
       hud.announce(targeting.attackId?sl.name+' ready. Pick a target.':'Attack cancelled');
-      mp.hide();dirty=true;return;
+      mp.hide();dirty=true;if(tut&&targeting.attackId)tut.event('slot',{id:id});return;
     }
     targeting.attackId=null;
     var r=sl.kind==='pickup'?Cb().pickup(s,hero):sl.kind==='swap'?Cb().swapLoadout(s,hero,sl.loadoutId):Cb().useAction(s,hero,sl.actionId,{});
@@ -479,6 +458,11 @@ Fable.createCombatController=function(o){
     return t&&t!=='auto'?{tier:t}:{};
   }
   function requestPlan(c){
+    /* the tutorial's goblins do what the lesson wrote, with no planning and no replanning */
+    if(tut){
+      var tp=tut.enemyPlan(c);
+      ai.plan=tp;ai.queue=tp.intents.slice();ai.stage='step';ai.t=0;ai.gap=.3;return;
+    }
     ai.stage='thinking';
     var token=++ai.token;
     runner.plan(s,c,tierOpts(),function(plan,err){
@@ -491,7 +475,7 @@ Fable.createCombatController=function(o){
     });
   }
   function replan(c){
-    if(ai.replans>=3){ai.queue=[];return}
+    if(tut||ai.replans>=3){ai.queue=[];return}
     ai.replans++;requestPlan(c);
   }
   function performStep(c,it,reactions){
@@ -574,9 +558,21 @@ Fable.createCombatController=function(o){
     var win=s.winner==='player',r;
     try{r=settleRewards(win)}catch(e){console.error('Rewards: '+e.message);r=null}
     var rows=[['Rounds',String(s.round)],['Hit points left',hero.hp.current+' / '+hero.hp.max]];
-    var choices=[{id:'again',label:'Fight again',primary:true,key:'f',keyLabel:'F',codes:['Enter']},{id:'menu',label:'Return to menu',key:'m',keyLabel:'M',codes:['Escape']}];
-    function onChoose(id){if(id==='again')Fable.enterWorld(o.encounter&&o.encounter.id);else Fable.enterMenu()}
-    var body=win?'The clearing is quiet again.':(hero.alive?'You could not hold the line.':hero.name+' has fallen.');
+    var choices,onChoose,body=win?'The clearing is quiet again.':(hero.alive?'You could not hold the line.':hero.name+' has fallen.');
+    if(tut){
+      /* the tutorial: the main menu is next; the lesson can be played once more from here */
+      choices=[{id:'menu',label:win?'To the main menu':'Return to menu',primary:win,key:'m',keyLabel:'M',codes:win?['Enter']:['Escape']},
+        {id:'again',label:win?'Play the tutorial again':'Try again',primary:!win,key:'t',keyLabel:'T',codes:win?['Escape']:['Enter']}];
+      onChoose=function(id){if(id==='again')Fable.startTutorial();else Fable.enterMenu()};
+    }else{
+      choices=[{id:'again',label:'Fight again',primary:true,key:'f',keyLabel:'F',codes:['Enter']},{id:'menu',label:'Return to menu',key:'m',keyLabel:'M',codes:['Escape']}];
+      /* an ordinary fight asks the generator for a fresh encounter at the same difficulty; a registered one (the development shortcuts) replays itself */
+      onChoose=function(id){
+        if(id!=='again')Fable.enterMenu();
+        else if(o.encounter&&o.encounter.generated)Fable.startRun(o.encounter.difficulty,{fromGame:true});
+        else Fable.enterWorld(o.encounter&&o.encounter.id);
+      };
+    }
     if(r&&hud.showResults)hud.showResults(r,{rows:rows,body:body,choices:choices,onChoose:onChoose,sound:function(id){try{pres.audio.play(id)}catch(e){}}});
     else hud.prompt({title:win?'Victory':'Defeat',big:true,tone:win?'win':'lose',icon:win?'star':'skull',body:body,rows:rows,choices:choices,onChoose:onChoose});
     dirty=true;
@@ -602,6 +598,7 @@ Fable.createCombatController=function(o){
       var tc=creatureAt(cell);targeting.hoverId=tc&&tc!==hero?tc.id:null;dirty=true;return;
     }
     var c=creatureAt(cell);
+    if(tut&&!tut.allowClick(cell,c&&c!==hero?c:null,currentAttack()))return;
     if(c&&c!==hero&&c.team!==hero.team){
       var atk=currentAttack();
       if(!atk){hud.announce('No attack ready');return}
@@ -611,7 +608,7 @@ Fable.createCombatController=function(o){
     if(hero.down)return;
     tryMove(cell);
   };
-  inp.handlers.context=function(){if(!disarm()){previewCell=null;dirty=true}};
+  inp.handlers.context=function(){if(tut)return;if(!disarm()){previewCell=null;dirty=true}};
   inp.handlers.key=function(e){
     if(!ctrl.active)return false;
     if(hud.promptActive())return hud.promptKey(e);
@@ -639,6 +636,7 @@ Fable.createCombatController=function(o){
   inp.handlers.escape=function(e){
     if(hud.promptActive()){hud.promptKey({code:'Escape',key:'Escape'});return}
     if(hud.overlayOpen()){hud.closeOverlay();return}
+    if(tut){tut.askLeave();return}
     if(disarm())return;
     Fable.enterMenu();
   };
@@ -652,9 +650,9 @@ Fable.createCombatController=function(o){
     ctrl.active=true;
     /* the goblins spring their ambush before the first turn */
     pres.ambush(creatures.filter(function(c){return c.team!=='player'}).map(function(c){return c.id}));
-    Cb().start(s);
+    Cb().start(s,tut?{order:tut.order()}:undefined);
     hud.show();dirty=true;
-    hud.coach('start');
+    if(tut)tut.begin();
   };
   ctrl.focus=function(){
     var a=Cb().active(s)||hero;
@@ -672,12 +670,6 @@ Fable.createCombatController=function(o){
       /* the HUD only repaints when asked to, so a change in whether the player may act (a script or cue finishing, a prompt
          closing, the turn changing hands) has to ask. Without this the End turn button stayed dimmed until the pointer moved. */
       if(!script.length&&holds===0&&!busy&&!s.pending&&!hud.promptActive()&&pres.busy()){tail+=dt;if(tail>TAIL){tail=0;pres.skip()}}else tail=0;
-      /* a player who has not acted for a while gets a nudge from Elminster: after 14 s, 28 s and 50 s of a turn that is theirs to play */
-      if(heroTurn()&&!locked()&&!targeting.attackId){
-        coachState.idle+=dt;
-        var st=coachState.idle>50?3:coachState.idle>28?2:coachState.idle>14?1:0;
-        if(st>coachState.idleStage){coachState.idleStage=st;hud.coach('idle',{stage:st,spent:!!hero.economy.action})}
-      }
       var sig=(locked()?'L':'U')+(a?a.id:'-')+s.phase+s.round;
       if(sig!==lastSig){lastSig=sig;dirty=true}
       if(dirty&&holds===0)redraw();

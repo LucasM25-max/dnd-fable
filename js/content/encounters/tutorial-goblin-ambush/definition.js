@@ -11,10 +11,10 @@ Fable.content.encounters.register({
   /* the knowledge policy (plan 13.9): enemy Armor Class and exact hit points are hidden unless the encounter reveals them; the
      tutorial reveals both to teach attack rolls */
   reveal:{ac:true,hp:true},
-  /* Elminster talks the player through the fight: the script is js/content/dialogue/elminster-first-fight.js */
   /* how the goblins think here (plan 16.6): the Cunning tier with the three tricks the tutorial teaches by example */
   ai:{tier:'cunning',tricks:['throw-from-cover','hit-and-run','focus-fire']},
-  dialogue:'elminster-first-fight',
+  /* the first-launch tutorial: Elminster, the fixed dice and the goblins' moves are all in js/content/tutorials/goblin-ambush.js */
+  tutorial:'goblin-ambush',
   enemies:[
     {
       monster:'goblin-minion',

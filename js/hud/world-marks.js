@@ -8,7 +8,9 @@
    wm.setTarget(info)            mark the creature the pointer is on: info {x, z, ok, others:[{x,z}]} or null. One circle on the floor under the
                                  target, and a fainter one under each other enemy the armed attack could reach. Nothing else: no brackets, no
                                  arrow, no line. The colours are the movement colours: blue when the attack can be made, red when it cannot.
-   wm.update(t)                  pulse the ring and the target circle */
+   wm.setHints(cells)            the tutorial only: glow the squares in cells [{c, r}] (the ones the player is asked to click); [] or null clears them
+   wm.setBeacon(pos)             the tutorial only: a pulsing gold ring under the creature the player is asked to attack, {x, z} or null
+   wm.update(t)                  pulse the ring, the target circle and the tutorial marks */
 (function(){
 var RADIUS=9,Y=.4;
 function reduced(){try{return window.matchMedia('(prefers-reduced-motion:reduce)').matches}catch(e){return false}}
@@ -49,6 +51,17 @@ Fable.createWorldMarks=function(o){
   for(var fi=0;fi<4;fi++){var fm=new THREE.Mesh(tRingGeo,faintMat);fm.renderOrder=4;fm.visible=false;fm.scale.set(.9,1,.9);group.add(fm);faint.push(fm)}
   var targetOk=true;
 
+  /* tutorial marks: glowing squares and a beacon ring, drawn only while a lesson asks for them */
+  var HINT_MAX=12,hintGeo=new THREE.PlaneGeometry(cell*.92,cell*.92);hintGeo.rotateX(-Math.PI/2);
+  var hintMat=new THREE.MeshBasicMaterial({color:0xf6d36b,transparent:true,opacity:.35,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
+  var hints=new THREE.InstancedMesh(hintGeo,hintMat,HINT_MAX);hints.count=0;hints.frustumCulled=false;hints.renderOrder=5;group.add(hints);
+  var hintEdgeGeo=new THREE.RingGeometry(cell*.38,cell*.44,4,1,Math.PI/4);hintEdgeGeo.rotateX(-Math.PI/2);
+  var hintEdges=new THREE.InstancedMesh(hintEdgeGeo,new THREE.MeshBasicMaterial({color:0xfff1c4,transparent:true,opacity:.9,depthWrite:false,side:THREE.DoubleSide}),HINT_MAX);
+  hintEdges.count=0;hintEdges.frustumCulled=false;hintEdges.renderOrder=6;group.add(hintEdges);
+  var beaconMat=new THREE.MeshBasicMaterial({color:0xf6d36b,transparent:true,opacity:.95,depthWrite:false,side:THREE.DoubleSide});
+  var beaconGeo=new THREE.RingGeometry(cell*.56,cell*.66,48);beaconGeo.rotateX(-Math.PI/2);
+  var beacon=new THREE.Mesh(beaconGeo,beaconMat);beacon.renderOrder=6;beacon.visible=false;group.add(beacon);
+
   var dummy=new THREE.Object3D();
 
   return {
@@ -88,7 +101,23 @@ Fable.createWorldMarks=function(o){
         if(q){f.position.set(q.x,Y+.1,q.z);f.visible=true}else f.visible=false;
       });
     },
+    setHints:function(list){
+      list=(list||[]).slice(0,HINT_MAX);
+      list.forEach(function(q,i){
+        var p=G.center(grid,q.c,q.r);
+        dummy.position.set(p.x,Y+.2,p.z);dummy.updateMatrix();
+        hints.setMatrixAt(i,dummy.matrix);hintEdges.setMatrixAt(i,dummy.matrix);
+      });
+      hints.count=hintEdges.count=list.length;
+      hints.instanceMatrix.needsUpdate=true;hintEdges.instanceMatrix.needsUpdate=true;
+    },
+    setBeacon:function(pos){
+      if(!pos){beacon.visible=false;return}
+      beacon.position.set(pos.x,Y+.25,pos.z);beacon.visible=true;
+    },
     update:function(t){
+      if(hints.count){hintMat.opacity=reduced()?.4:.28+.2*(.5+.5*Math.sin(t*4))}
+      if(beacon.visible){var bk=reduced()?1:1+Math.sin(t*4.5)*.09;beacon.scale.set(bk,1,bk)}
       if(tgt.visible){
         var rm=reduced(),k=rm?1:1+Math.sin(t*5)*.05;
         tRing.scale.set(k,1,k);
@@ -96,7 +125,7 @@ Fable.createWorldMarks=function(o){
       if(reduced()){ring.scale.set(1,1,1);return}
       var k2=1+Math.sin(t*3)*.05;ring.scale.set(k2,1,k2);
     },
-    dispose:function(){o.scene.remove(group)}
+    dispose:function(){o.scene.remove(group);hintGeo.dispose();hintEdgeGeo.dispose();beaconGeo.dispose()}
   };
 };
 })();
