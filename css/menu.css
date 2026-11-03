@@ -205,3 +205,9 @@
 @keyframes ep-out{from{opacity:1}to{opacity:0}}
 @keyframes ep-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes ep-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* replay the tutorial: a quiet text button under Play */
+.tutl{all:unset;cursor:pointer;align-self:flex-end;font:600 14px var(--serif);color:var(--muted);text-shadow:0 1px 3px #000;padding:2px 4px;border-bottom:1px solid transparent;transition:color .12s,border-color .12s}
+.tutl:hover{color:var(--text);border-bottom-color:var(--edge)}
+.tutl:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+@media (max-width:620px){.tutl{align-self:center}}

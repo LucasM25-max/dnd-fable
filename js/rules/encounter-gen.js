@@ -37,7 +37,9 @@ function listOf(reg){return Array.isArray(reg)?reg:reg&&reg.list?reg.list():[]}
 function overlap(a,b){return (a||[]).filter(function(x){return (b||[]).indexOf(x)>=0})}
 
 /* the zones of a map that can hold n creatures in a line */
-function zoneCapacity(z){return Math.max(0,Math.floor((z.w||0)/CELL))}
+function zoneCols(z){return Math.max(0,Math.floor((z.w||0)/CELL))}
+function zoneRows(z){return Math.max(0,Math.floor((z.d||0)/CELL))}
+function zoneCapacity(z){return zoneCols(z)*zoneRows(z)}
 function pickZone(map,count){
   var best=null;
   (map.enemySpawns||[]).forEach(function(z){
@@ -104,8 +106,21 @@ function summary(list){
   return list.map(function(e){return e.n+' '+e.m.name+(e.n>1&&!/s$/.test(e.m.name)?'s':'')}).join(', ');
 }
 
+/* the AI tier per difficulty. The balance sim shows no real gradient between tiers, so every difficulty plays 'cunning' for now;
+   the table is the one place to change that once the tiers differ */
+var AI_BY_DIFFICULTY={low:'cunning',moderate:'cunning',high:'cunning'};
+EG.AI_BY_DIFFICULTY=AI_BY_DIFFICULTY;
+
+/* par: the rounds a party deals the group's total hit points in at about 6 damage per player a round, plus one for closing in */
+function parRounds(g,players){
+  var hp=0;
+  g.list.forEach(function(e){var h=e.m.hp;hp+=((typeof h==='number'?h:h&&h.average)||5)*e.n});
+  return Math.max(2,Math.ceil(hp/(6*Math.max(1,players)))+1);
+}
+EG.parRounds=parRounds;
+
 function build(o,map,zone,g,meta){
-  var total=g.count,xpRounds=Math.max(2,Math.ceil(total*1.5)+1);
+  var xpRounds=parRounds(g,o.levels.length);
   return {
     id:'generated-'+o.difficulty+'-'+o.seed,
     name:summary(g.list),
@@ -115,11 +130,16 @@ function build(o,map,zone,g,meta){
     generated:true,difficulty:o.difficulty,seed:o.seed,
     /* the knowledge policy for an ordinary fight: armor class and hit points stay hidden (plan 13.9) */
     reveal:{ac:false,hp:false},
-    ai:{tier:'cunning',tricks:['throw-from-cover','hit-and-run','focus-fire']},
+    ai:{tier:AI_BY_DIFFICULTY[o.difficulty]||'cunning',tricks:['throw-from-cover','hit-and-run','focus-fire']},
     rewards:{xp:'auto',gold:'auto',bonuses:true,par:{rounds:xpRounds},items:[]},
-    enemies:g.list.map(function(e){
-      return {monster:e.m.id,spawnZone:zone.id,count:e.n,formation:{type:'line',axis:'x',spacing:12,offsetZ:5}};
-    }),
+    enemies:(function(){
+      var start=0,rows=Math.max(1,zoneRows(zone));
+      return g.list.map(function(e){
+        var f={type:'grid',columns:Math.max(1,zoneCols(zone)),rows:rows,spacing:12,start:start,offsetZ:5};
+        start+=e.n;
+        return {monster:e.m.id,spawnZone:zone.id,count:e.n,formation:f};
+      });
+    })(),
     meta:meta
   };
 }
@@ -142,7 +162,7 @@ EG.generate=function(o){
     var mons=all.filter(function(m){return envFit(m,map)>0});
     var gs=groups(mons,budget,maxCount),full=gs.filter(function(g){return isFull(g,mons,budget,maxCount)});
     (full.length?full:gs).forEach(function(g){
-      var zone=pickZone(map,Math.max.apply(null,g.list.map(function(e){return e.n})));
+      var zone=pickZone(map,g.count);
       if(!zone)return;                                           /* spawn validity: a line of that many has to fit the zone */
       var envs=g.list.reduce(function(n,e){return n+envFit(e.m,map)},0)/g.list.length;
       var key=EG.key({map:map.id,enemies:g.list.map(function(e){return {monster:e.m.id,count:e.n}})});

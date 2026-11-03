@@ -100,9 +100,19 @@ Play on the main menu starts an unscripted fight with no Elminster. The difficul
 1. Maps are those with an enemy spawn zone. Monsters fit a map by their `environments` tags (an untagged monster fits anywhere, at a lower score).
 2. It lists every mix of up to two kinds of monster, at most two per player character, within the budget, and keeps those that cannot take one more creature, so the budget is spent as fully as it can be (the unused part is in `meta.unused`).
 3. Each (map, group) is scored for budget fit, environment fit, theme (one family), tactical variety (roles) and a penalty for what was played recently (`Fable.flags.recent()`); a seeded jitter breaks ties. The group must fit a spawn zone.
+   The zone is a grid of 15-unit cells (`floor(w/15)` columns by `floor(d/15)` rows) and holds every creature of every group together: groups get consecutive slots of one `grid` formation (`columns`, `rows`, `start`, `spacing`), so two kinds never stand on each other.
 4. If nothing fits, it falls back to one of the cheapest creature and says so in `meta.fallback`.
 
-The result is an ordinary encounter object (`generated:true`) that the game scene, the combat controller and the rewards code treat like authored content, with performance bonuses on and the enemies' AC and HP hidden. A short encounter card (`js/menu/encounter-preview.js`: map, difficulty, enemies with their 3D heads, reward) shows, then the opening camera tour plays. "Fight again" generates a fresh encounter at the same difficulty. With one monster and one map every difficulty gives the same two goblins today, but the whole pipeline runs. Monster definitions carry `environments`, `family` and `role` for the generator.
+The result is an ordinary encounter object (`generated:true`) that the game scene, the combat controller and the rewards code treat like authored content, with performance bonuses on and the enemies' AC and HP hidden. A short encounter card (`js/menu/encounter-preview.js`: map, difficulty, enemies with their 3D heads, reward) shows, then the opening camera tour plays. "Fight again" generates a fresh encounter at the same difficulty. The enemy AI tier comes from `Fable.encounterGen.AI_BY_DIFFICULTY`; the balance sim shows no real gradient between tiers, so all three difficulties use `cunning` until they differ. The par for the speed bonus is `ceil(total enemy HP / (6 x players)) + 1` rounds (at least 2). With one monster and one map every difficulty gives the same two goblins today, but the whole pipeline runs. Monster definitions carry `environments`, `family` and `role` for the generator.
+
+### Play-feel details
+
+- The main menu has a "Replay the tutorial" link under Play (the same as `?tutorial=1`).
+- Heroic Inspiration is offered only when the roll would miss; a hit that stands is never interrupted.
+- Escape or the menu button in a fight asks "Leave the fight?" (Keep fighting / Leave) instead of leaving at once.
+- The game loop catches up in sub-steps of 0.05 s (up to five a frame) rather than slowing down on a slow frame.
+- Elminster's head is rendered from a small cache of poses, so his idle bob costs no WebGL draws; defeated creatures on the ribbon carry a cross over their face; the hotbar icons repaint when the page's pixel ratio changes (zoom, moving screens).
+- The Store tile previews borrow the head renderer's WebGL context.
 
 ### 3D head portraits
 

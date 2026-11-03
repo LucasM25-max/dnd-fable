@@ -36,6 +36,8 @@ function ready(){
   }catch(e){failed=true;R=null;return false}
 }
 HP.available=function(){return ready()};
+/* the one hidden renderer, lent to other 2D-copy previews (the Store tiles) so the page does not hold a context apiece; callers size it, render and copy at once */
+HP.sharedRenderer=function(){return ready()?R:null};
 
 /* ---------- Elminster's head ---------- */
 /* Built like the fighter's head (box parts, then converted to voxels), facing +z: a battered wide-brimmed hat, long white hair and a

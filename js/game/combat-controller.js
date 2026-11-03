@@ -73,7 +73,7 @@ Fable.createCombatController=function(o){
   var ctrl={state:s,grid:grid,hero:hero,entries:entries,active:false,seed:seed,pres:null};
   var hud=Fable.createHud({intents:{
     endTurn:function(){endHeroTurn()},
-    menu:function(){Fable.enterMenu()},
+    menu:function(){leaveFight()},
     slot:function(id){useSlot(id)},
     denied:function(reason){if(reason)hud.announce(reason)},
     sheet:function(){hud.openOverlay('sheet',s)},
@@ -375,9 +375,11 @@ Fable.createCombatController=function(o){
     targeting.attackId=null;
     var p=b.pending;
     var finish=function(){Cb().completeAttack(s,p,{reroll:false});dirty=true};
-    if(p.canReroll){
+    /* Heroic Inspiration is only offered on a roll that would miss: a roll that already hits has nothing to gain from a reroll (and the
+       new roll must be kept), so asking would only interrupt the player. */
+    var keptHit=p.roll.natural!==1&&(p.roll.natural===20||p.roll.total>=p.ac);
+    if(p.canReroll&&!keptHit){
       dirty=true;
-      var keptHit=p.roll.natural!==1&&(p.roll.natural===20||p.roll.total>=p.ac);
       var nat=p.roll.natural,bonus=p.roll.total-nat,sg=(bonus<0?'- ':'+ ')+Math.abs(bonus);
       var dieHtml='<span class="die insp-die'+(nat===20?' crit':nat===1?' fumble':'')+'" data-v="'+nat+'">'+Fable.hudIcons.svg('d20')+'<canvas class="d3c" aria-hidden="true"></canvas><b>'+nat+'</b></span>';
       var sparks='';for(var si=0;si<10;si++)sparks+='<i style="--a:'+(si*36)+'deg;--d:'+(.15*si).toFixed(2)+'s"></i>';
@@ -442,6 +444,15 @@ Fable.createCombatController=function(o){
     targeting.attackId=null;
     var r=sl.kind==='pickup'?Cb().pickup(s,hero):sl.kind==='swap'?Cb().swapLoadout(s,hero,sl.loadoutId):Cb().useAction(s,hero,sl.actionId,{});
     if(!r.ok){hud.announce(r.reason);labels.float(hero,r.reason,'info')}
+    dirty=true;
+  }
+  /* leaving a fight in progress asks first (Escape and the menu button); a finished fight just goes */
+  function leaveFight(){
+    if(tut){tut.askLeave();return}
+    if(s.phase!=='running'||hud.promptActive()){if(s.phase!=='running')Fable.enterMenu();return}
+    hud.prompt({title:'Leave the fight?',icon:'step',body:'Your progress in this fight is lost.',
+      choices:[{id:'stay',label:'Keep fighting',primary:true,key:'k',keyLabel:'K',codes:['Enter','Escape']},{id:'leave',label:'Leave',key:'l',keyLabel:'L'}],
+      onChoose:function(id){if(id==='leave')Fable.enterMenu();dirty=true}});
     dirty=true;
   }
   function disarm(){
@@ -638,7 +649,7 @@ Fable.createCombatController=function(o){
     if(hud.overlayOpen()){hud.closeOverlay();return}
     if(tut){tut.askLeave();return}
     if(disarm())return;
-    Fable.enterMenu();
+    leaveFight();
   };
 
   /* ---------- lifecycle ---------- */

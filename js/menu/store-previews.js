@@ -9,7 +9,8 @@
 Fable.createTilePreview=function(o){
   o=o||{};
   var T=THREE,M=Fable.storeModels,R,S,cam,entries={},seen=null;
-  R=new T.WebGLRenderer({alpha:true,antialias:true});
+  var shared=!!(Fable.headPortrait&&Fable.headPortrait.sharedRenderer&&Fable.headPortrait.sharedRenderer());
+  R=shared?Fable.headPortrait.sharedRenderer():new T.WebGLRenderer({alpha:true,antialias:true});
   R.setPixelRatio(1);R.setClearColor(0x000000,0);
   S=new T.Scene();
   S.add(new T.HemisphereLight(0xe6d2ae,0x3a2616,1));
@@ -59,13 +60,13 @@ Fable.createTilePreview=function(o){
       e.visible=true;seen=e;e.rotation.y=angle||0;
       var w=canvas.width,h=canvas.height;
       if(R.domElement.width!==w||R.domElement.height!==h){R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
-      R.render(S,cam);
+      R.setClearColor(0x000000,0);R.render(S,cam);
       var g=canvas.getContext('2d');g.clearRect(0,0,w,h);g.drawImage(R.domElement,0,0,w,h);
       return true;
     },
     dispose:function(){
       S.traverse(function(x){if(x.isInstancedMesh&&x.dispose)x.dispose();else if(x.geometry&&x.geometry.dispose)x.geometry.dispose()});
-      R.dispose();entries={};
+      if(!shared)R.dispose();entries={};
     }
   };
 };

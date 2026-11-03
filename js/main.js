@@ -73,9 +73,13 @@ Fable.startRun=function(difficulty,o){
   return true;
 };
 
+/* A slow frame is played as several short steps (up to a quarter of a second of catching up) instead of being clipped to one, so a slow
+   machine drops frames rather than running the game in slow motion. A longer gap (a hidden tab) is cut off. */
+var STEP=.05,MAX_STEPS=5;
 function loop(ms){
-  var dt=Math.min((ms-last)/1000,.05);last=ms;
-  if(cur)cur.update(ms,dt);
+  var raw=Math.max(0,Math.min((ms-last)/1000,STEP*MAX_STEPS));last=ms;
+  var n=Math.max(1,Math.ceil(raw/STEP-1e-6)),dt=raw/n;
+  if(cur)for(var i=0;i<n;i++)cur.update(ms,dt);
   R.render(cur.scene,cur.camera);requestAnimationFrame(loop);
 }
 

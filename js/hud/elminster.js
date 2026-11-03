@@ -32,10 +32,25 @@ Fable.hudModules.elminster=function(hud){
 
   function now(){return window.performance&&performance.now?performance.now():Date.now()}
   function calm(){return hud.root.classList.contains('calm')}
+  /* The head sways and nods a little while he talks. Every pose is rendered in 3D once, kept as a small picture and reused, so the
+     animation costs a picture copy and not a WebGL draw (the poses are rounded to a few steps, so there are only a few dozen of them). */
+  var poses={};
+  function snap(v,step){return Math.round(v/step)*step}
+  function pose(yaw,pitch,bob){
+    var key=yaw.toFixed(2)+'|'+pitch.toFixed(3)+'|'+bob.toFixed(3),c=poses[key];
+    if(c===undefined){
+      c=document.createElement('canvas');c.width=canvas.width;c.height=canvas.height;
+      poses[key]=Fable.headPortrait&&Fable.headPortrait.draw(c,'elminster',{yaw:yaw,pitch:pitch,bob:bob,margin:1.06,lift:.0})?c:null;
+      c=poses[key];
+    }
+    return c;
+  }
   function drawHead(t,talking){
     var yaw=-.38,bob=0,pitch=0;
     if(!calm()){yaw+=Math.sin(t/1700)*.09;pitch=Math.sin(t/2300)*.03;if(talking)bob=Math.abs(Math.sin(t/110))*.045}
-    if(!Fable.headPortrait||!Fable.headPortrait.draw(canvas,'elminster',{yaw:yaw,pitch:pitch,bob:bob,margin:1.06,lift:.0})){host.classList.add('flat')}
+    var c=pose(snap(yaw,.03),snap(pitch,.015),snap(bob,.015));
+    if(!c){host.classList.add('flat');return}
+    var g=canvas.getContext('2d');g.clearRect(0,0,canvas.width,canvas.height);g.drawImage(c,0,0);
   }
   function paint(){
     if(!line)return;

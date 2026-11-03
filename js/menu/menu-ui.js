@@ -138,5 +138,7 @@ function setDifficulty(id){if(Fable.flags.setDifficulty(id))paintDifficulty()}
   });
 })();
 document.getElementById('play').onclick=function(){Fable.startRun(Fable.flags.difficulty())};
+var replay=document.getElementById('tutorial-replay');
+if(replay)replay.onclick=function(){Fable.startTutorial()};
 Fable.content.whenReady(function(){drawProfile()});
 })();

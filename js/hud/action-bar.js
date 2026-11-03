@@ -222,13 +222,22 @@ Fable.hudModules.actionBar=function(hud){
   Fable.hudSettings.onChange(function(k){if((k==='menu'||k==='*')&&host.isConnected)render(true)});
   hud.hotbarId=function(i){var e=null;try{e=M.hotbar(pinsNow,[],memory)[i]}catch(x){}return e&&e.id?e.id:null};
   hud.toggleMenu=function(){Fable.hudSettings.set('menu',!Fable.hudSettings.get('menu'))};
+  /* the item pictures are drawn for the screen's pixel density: zooming the page or moving the window to another screen changes it,
+     and then the bar is painted again so they are drawn sharp for the new density */
+  var dprNow=window.devicePixelRatio||1;
+  function onScale(){
+    var d=window.devicePixelRatio||1;
+    if(d!==dprNow){dprNow=d;if(host.isConnected)render(true)}
+  }
+  window.addEventListener('resize',onScale);
   return {
     update:function(s,ctx){
       var hero=s.creatures.filter(function(c){return c.team==='player'})[0];
       if(!hero||s.phase==='setup')return;
       lastS=s;lastCtx=ctx;
       render(false);
-    }
+    },
+    destroy:function(){window.removeEventListener('resize',onScale)}
   };
 };
 })();

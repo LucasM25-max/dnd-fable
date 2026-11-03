@@ -3,7 +3,7 @@ const assert=require('assert'),H=require('../harness');
 
 /* The ordinary-play encounter generator (gameplay vision, section 3). */
 const MAP={id:'forest-clearing',name:'Forest Clearing',environments:['forest','grassland'],enemySpawns:[{id:'path-ambush',x:50,z:130,w:48,d:36}]};
-const gob=(o)=>Object.assign({id:'goblin-minion',name:'Goblin Minion',challenge:{xp:25},environments:['forest','grassland','ruins'],family:'goblinoid',role:'skirmisher'},o||{});
+const gob=(o)=>Object.assign({id:'goblin-minion',name:'Goblin Minion',challenge:{xp:25},hp:{average:7},environments:['forest','grassland','ruins'],family:'goblinoid',role:'skirmisher'},o||{});
 async function setup(){
   await H.loadData({});
   H.runFile('js/rules/encounter-gen.js');
@@ -75,6 +75,29 @@ module.exports=function(t){
       const tiny=Object.assign({},MAP,{id:'tiny',enemySpawns:[{id:'z',x:0,z:0,w:16,d:16}]});
       const r=G.generate({levels:[1],difficulty:'low',seed:1,maps:[tiny,MAP],monsters:[gob()]});
       assert.strictEqual(r.encounter.map,'forest-clearing');
+    });
+    test('groups share a zone on a grid without overlapping, and the zone is counted in total creatures',async()=>{
+      const G=await setup();
+      const e=G.generate({levels:[1,1,1,1],difficulty:'high',seed:3,maps:[MAP],monsters:[gob(),gob({id:'goblin-b',name:'Goblin B'})]}).encounter;
+      const z=MAP.enemySpawns[0],cols=Math.floor(z.w/15),rows=Math.floor(z.d/15),slots=new Set();let n=0;
+      e.enemies.forEach(g=>{assert.strictEqual(g.formation.type,'grid');for(let i=0;i<g.count;i++){slots.add(g.formation.start+i);n++}});
+      assert.strictEqual(slots.size,n);assert.ok(n<=cols*rows);
+    });
+    test('a zone that is one cell deep holds one row of creatures',async()=>{
+      const G=await setup();
+      const thin=Object.assign({},MAP,{id:'thin',enemySpawns:[{id:'z',x:0,z:0,w:48,d:16}]});
+      const r=G.generate({levels:[1,1,1,1],difficulty:'high',seed:2,maps:[thin],monsters:[gob()]});
+      assert.ok(r.encounter.enemies.reduce((a,g)=>a+g.count,0)<=3);
+    });
+    test('the AI tier comes from the difficulty table and par follows the group hit points',async()=>{
+      const G=await setup();
+      ['low','moderate','high'].forEach(d=>{
+        const r=G.generate({levels:[1],difficulty:d,seed:1,maps:[MAP],monsters:[gob()]});
+        assert.strictEqual(r.encounter.ai.tier,G.AI_BY_DIFFICULTY[d]);
+      });
+      const r=G.generate({levels:[1],difficulty:'moderate',seed:1,maps:[MAP],monsters:[gob()]}).encounter;
+      const hp=r.enemies.reduce((a,g)=>a+g.count*7,0);
+      assert.strictEqual(r.rewards.par.rounds,Math.max(2,Math.ceil(hp/6)+1));
     });
     test('when nothing fits the budget it falls back to the cheapest single creature and says so',async()=>{
       const G=await setup();
