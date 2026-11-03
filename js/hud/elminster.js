@@ -1,109 +1,105 @@
-/* Top centre: the tutorial companion's dialogue box. Elminster, the Sage of Shadowdale, walks the player through the first fight in a
-   brass plate with his voxel head in a frame beside the words (this replaces the old list of tips on the left).
+/* Top centre: Elminster's box, used only by the scripted first-launch tutorial (js/game/tutorial.js). Elminster, the Sage of Shadowdale,
+   speaks one short line at a time in a brass plate with his voxel head in a frame beside the words. He says exactly what the lesson step
+   in front of the player needs and nothing else: there is no running commentary, so an ordinary fight never shows this box.
 
-   The words come from a script (js/content/dialogue/*.js, named by the encounter) and the choosing is done by the dialogue engine
-   (js/hud/dialogue-engine.js). This file only draws: the box rises in, the line types itself out, the head sways a little while he talks,
-   and the box leaves when he is done. A click finishes the line being typed, and the next click moves on. The speaker icon beside his
-   name mutes his comments on what you do (the opening spiel and the urgent lines still play, so the lesson is never lost).
+   The line types itself out and the head sways a little while he talks. A click finishes the line being typed. A line that asks for a
+   click shows "Click to continue" once it is typed and goes on when the player clicks; any other line stays until the lesson replaces it.
+   "Skip tutorial" sits in the box's footer for as long as he is talking.
 
-     hud.mods.elminster.setScript(id)       choose the script (the controller does this from the encounter)
-     hud.coach(kind, data)                  an event from the fight; 'start' begins the opening spiel (see the script's header for the kinds)
-     hud.mods.elminster.current()           the line being spoken, for the tests */
+     hud.mods.elminster.say({text, click, onClick})   speak a line (click: wait for a click on the box, then call onClick)
+     hud.mods.elminster.hide()                        send him away
+     hud.mods.elminster.onSkip(fn)                    what "Skip tutorial" does
+     hud.mods.elminster.nudge()                       a small shake: the player tried something the lesson is not asking for
+     hud.mods.elminster.current()                     {text, click, typed} for the tests, or null */
 (function(){
-var MUTE='dicebound.coach.mute';
+var NAME='Elminster',TITLE='Sage of Shadowdale',TYPE_MS=18;
 Fable.hudModules.elminster=function(hud){
   var host=document.createElement('div');
-  host.className='elm';host.hidden=true;host.setAttribute('role','group');host.setAttribute('aria-label','Elminster');
+  host.className='elm';host.hidden=true;host.setAttribute('role','group');host.setAttribute('aria-label',NAME);
   host.innerHTML=hud.plate(
     '<div class="elm-in">'+
       '<div class="elm-port" aria-hidden="true"><canvas width="112" height="112"></canvas><i></i></div>'+
       '<div class="elm-main">'+
-        '<header><b class="elm-name"></b><small class="elm-title"></small>'+
-          '<button type="button" class="elm-mute" aria-pressed="false" data-tip="Mute comments on what you do" data-tip-left>'+Fable.hudIcons.svg('hide')+'</button></header>'+
+        '<header><b class="elm-name">'+NAME+'</b><small class="elm-title">'+TITLE+'</small></header>'+
         '<p class="elm-line"></p>'+
-        '<footer><span class="elm-go">Click to continue</span></footer>'+
+        '<footer><button type="button" class="elm-skip">Skip tutorial</button><span class="elm-go">Click to continue</span></footer>'+
       '</div>'+
     '</div>','elm-plate');
   hud.root.appendChild(host);
   var q=function(s){return host.querySelector(s)};
-  var canvas=q('.elm-port canvas'),lineEl=q('.elm-line'),goEl=q('.elm-go'),muteBtn=q('.elm-mute'),nameEl=q('.elm-name'),titleEl=q('.elm-title');
-  var engine=null,script=null,shownId=null,shownChars=-1,full='',timer=0,hideT=0,drawn=0,dead=false;
-  var muted=false;
-  try{muted=window.localStorage.getItem(MUTE)==='1'}catch(e){}
-  paintMute();
+  var canvas=q('.elm-port canvas'),lineEl=q('.elm-line'),goEl=q('.elm-go'),skipBtn=q('.elm-skip');
+  var line=null,chars=0,t0=0,timer=0,hideT=0,drawn=0,dead=false,skipFn=null,nudgeT=0;
 
   function now(){return window.performance&&performance.now?performance.now():Date.now()}
-  function paintMute(){
-    muteBtn.setAttribute('aria-pressed',muted?'true':'false');
-    muteBtn.classList.toggle('on',muted);
-    muteBtn.setAttribute('data-tip',muted?'Comments muted. Click to hear them again':'Mute comments on what you do');
-    muteBtn.setAttribute('aria-label',muteBtn.getAttribute('data-tip'));
-  }
   function calm(){return hud.root.classList.contains('calm')}
+  /* The head sways and nods a little while he talks. Every pose is rendered in 3D once, kept as a small picture and reused, so the
+     animation costs a picture copy and not a WebGL draw (the poses are rounded to a few steps, so there are only a few dozen of them). */
+  var poses={};
+  function snap(v,step){return Math.round(v/step)*step}
+  function pose(yaw,pitch,bob){
+    var key=yaw.toFixed(2)+'|'+pitch.toFixed(3)+'|'+bob.toFixed(3),c=poses[key];
+    if(c===undefined){
+      c=document.createElement('canvas');c.width=canvas.width;c.height=canvas.height;
+      poses[key]=Fable.headPortrait&&Fable.headPortrait.draw(c,'elminster',{yaw:yaw,pitch:pitch,bob:bob,margin:1.06,lift:.0})?c:null;
+      c=poses[key];
+    }
+    return c;
+  }
   function drawHead(t,talking){
     var yaw=-.38,bob=0,pitch=0;
     if(!calm()){yaw+=Math.sin(t/1700)*.09;pitch=Math.sin(t/2300)*.03;if(talking)bob=Math.abs(Math.sin(t/110))*.045}
-    if(!Fable.headPortrait||!Fable.headPortrait.draw(canvas,'elminster',{yaw:yaw,pitch:pitch,bob:bob,margin:1.06,lift:.0})){host.classList.add('flat')}
+    var c=pose(snap(yaw,.03),snap(pitch,.015),snap(bob,.015));
+    if(!c){host.classList.add('flat');return}
+    var g=canvas.getContext('2d');g.clearRect(0,0,canvas.width,canvas.height);g.drawImage(c,0,0);
   }
-  function show(l,t){
-    shownId=l.id;full=l.text;shownChars=-1;
-    clearTimeout(hideT);
-    nameEl.textContent=l.speaker.name;titleEl.textContent=l.speaker.title||'';
-    host.hidden=false;void host.offsetWidth;host.classList.add('on');
-    lineEl.setAttribute('aria-label',full);
-    hud.announce(l.speaker.name+': '+full);
-  }
-  function hideNow(){
-    host.classList.remove('on');shownId=null;
-    clearTimeout(hideT);
-    hideT=setTimeout(function(){if(!dead&&!shownId)host.hidden=true},420);
+  function paint(){
+    if(!line)return;
+    var full=line.text,n=chars;
+    lineEl.innerHTML='<span>'+hud.escape(full.slice(0,n))+'</span><span class="rest">'+hud.escape(full.slice(n))+'</span>';
+    goEl.classList.toggle('on',!!line.click&&n>=full.length);
   }
   function step(){
-    if(dead||!engine)return;
-    var t=now(),c=engine.tick(t);
-    if(!c){if(shownId)hideNow();return}
-    if(c.id!==shownId)show(c,t);
-    var elapsed=t-c.started,n=calm()?full.length:Math.min(full.length,Math.floor(elapsed/20));
-    if(n!==shownChars){
-      shownChars=n;
-      /* the words not yet typed are there but invisible, so the box never changes size while he talks */
-      lineEl.innerHTML='<span>'+hud.escape(full.slice(0,n))+'</span><span class="rest">'+hud.escape(full.slice(n))+'</span>';
-    }
-    var typing=n<full.length;
-    goEl.classList.toggle('on',!typing);
-    if(t-drawn>(typing?50:140)){drawn=t;drawHead(t,typing)}
+    if(dead)return;
+    if(!line){return}
+    var t=now(),full=line.text,n=calm()?full.length:Math.min(full.length,Math.floor((t-t0)/TYPE_MS));
+    if(n!==chars){chars=n;paint()}
+    var typing=chars<full.length;
+    if(t-drawn>(typing?50:220)){drawn=t;drawHead(t,typing)}
   }
-  function ensureTimer(){if(!timer)timer=setInterval(step,50)}
+  function ensureTimer(){if(!timer)timer=setInterval(step,40)}
 
   host.addEventListener('click',function(e){
-    if(e.target.closest&&e.target.closest('.elm-mute')){
-      muted=!muted;try{window.localStorage.setItem(MUTE,muted?'1':'0')}catch(x){}
-      if(engine)engine.mute(muted);paintMute();hud.hideTip();return;
-    }
-    if(!engine)return;
-    var c=engine.current();if(!c)return;
-    if(shownChars<full.length){c.started=now()-full.length*20-1;step();return}   /* finish typing first */
-    engine.advance(now());step();
+    if(e.target.closest&&e.target.closest('.elm-skip')){if(skipFn)skipFn();return}
+    if(!line)return;
+    if(chars<line.text.length){t0=now()-line.text.length*TYPE_MS-1;step();return}   /* finish typing first */
+    if(line.click){var fn=line.onClick;if(fn)fn()}
   });
-  /* the box is only for reading, so it never takes a click meant for the game unless the click is on the box itself */
+
   return {
-    setScript:function(id){
-      script=id&&Fable.dialogue.get(id);
-      engine=script?Fable.dialogue.create(script,{muted:muted}):null;
-      shownId=null;
-      if(engine)ensureTimer();
-      host.hidden=true;host.classList.remove('on');
+    say:function(o){
+      line={text:String(o.text||''),click:!!o.click,onClick:o.onClick||null};
+      chars=0;t0=now();
+      clearTimeout(hideT);
+      host.hidden=false;void host.offsetWidth;host.classList.add('on');
+      host.classList.toggle('waits',line.click);
+      lineEl.setAttribute('aria-label',line.text);
+      hud.announce(NAME+': '+line.text);
+      paint();ensureTimer();step();
     },
-    event:function(kind,data){
-      if(!engine)return;
-      var t=now();
-      if(kind==='start')engine.start(t);else engine.event(kind,data,t);
-      ensureTimer();step();
+    hide:function(){
+      line=null;host.classList.remove('on');
+      clearTimeout(hideT);
+      hideT=setTimeout(function(){if(!dead&&!line)host.hidden=true},420);
     },
-    current:function(){return engine?engine.current():null},
-    engine:function(){return engine},
+    onSkip:function(fn){skipFn=fn;skipBtn.hidden=!fn},
+    nudge:function(){
+      if(!line||calm())return;
+      host.classList.remove('nudge');void host.offsetWidth;host.classList.add('nudge');
+      clearTimeout(nudgeT);nudgeT=setTimeout(function(){host.classList.remove('nudge')},500);
+    },
+    current:function(){return line?{text:line.text,click:line.click,typed:chars>=line.text.length}:null},
     update:function(){},
-    destroy:function(){dead=true;clearInterval(timer);timer=0;clearTimeout(hideT)}
+    destroy:function(){dead=true;clearInterval(timer);timer=0;clearTimeout(hideT);clearTimeout(nudgeT)}
   };
 };
 })();

@@ -204,11 +204,11 @@ Cb.canReroll=function(s,c){
 };
 
 /* Rerolls the die a d20 roll kept (the higher with Advantage, the lower with Disadvantage) and works out the new total. */
-function rerollKept(s,roll){
+function rerollKept(s,roll,face){
   var rolls=roll.rolls,idx=0;
   if(roll.mode==='advantage')idx=rolls[1]>rolls[0]?1:0;
   else if(roll.mode==='disadvantage')idx=rolls[1]<rolls[0]?1:0;
-  var from=rolls[idx],to=Fable.dice.roll('1d20',s.rng).total;
+  var from=rolls[idx],to=Fable.dice.roll('1d20',face?Cb.scriptedRng([[face,20]],s.rng):s.rng).total;
   rolls[idx]=to;
   roll.natural=roll.mode==='advantage'?Math.max.apply(null,rolls):roll.mode==='disadvantage'?Math.min.apply(null,rolls):rolls[0];
   roll.total=roll.natural+roll.bonus;
@@ -223,10 +223,27 @@ Cb.applyReroll=function(s,p){
   if(!p.canReroll)return {ok:false,reason:'This roll cannot be rerolled'};
   var c=s.byId[p.attacker],pool=c.resources['heroic-inspiration'];
   Cr().setResource(c,'heroic-inspiration',pool.current-1);
-  rerollKept(s,p.roll);
+  rerollKept(s,p.roll,p.fixed&&p.fixed.reroll);
   p.canReroll=false;p.rerolled=true;
   return {ok:true,roll:p.roll};
 };
+
+/* Scripted dice (the tutorial only). A random function that hands out the listed faces [[face, sides], ...] in order, as the dice
+   would roll them, and then carries on with the fallback. Everything else about the roll, the modifiers, the armor class check, the
+   damage rules, is the normal rules code, so a scripted fight can never disagree with a real one about what a roll means. */
+Cb.scriptedRng=function(entries,fallback){
+  var q=entries.slice();
+  return function(){
+    var e=q.shift();
+    if(!e)return fallback();
+    return Math.min(.999999,Math.max(0,(e[0]-.5)/e[1]));
+  };
+};
+/* s.fixed is a queue of plans {d20 (a face, or a list of faces when the roll has Advantage or Disadvantage), reroll, damage:{sides, faces:[...]}}; the next attack made (not a reaction) takes the first one. */
+function takeFixed(s,opts){
+  if(!s.fixed||!s.fixed.length||opts.reaction)return null;
+  return s.fixed.shift();
+}
 
 Cb.beginAttack=function(s,c,attack,target,opts){
   opts=opts||{};
@@ -246,13 +263,14 @@ Cb.beginAttack=function(s,c,attack,target,opts){
   }
   if(a.mode==='thrown'&&a.item)c.thrown[a.item]=(c.thrown[a.item]||0)+1;
   var rs=Cb.attackRollState(s,c,a,target,tc);
-  var d=Fable.dice.d20(s.rng,{mode:rs.state,bonus:a.bonus.value});
+  var fx=takeFixed(s,opts);
+  var d=Fable.dice.d20(fx&&fx.d20?Cb.scriptedRng([].concat(fx.d20).map(function(f){return [f,20]}),s.rng):s.rng,{mode:rs.state,bonus:a.bonus.value});
   /* a Sapped creature's next attack roll is the one that uses it up, hit or miss */
   (rs.consume||[]).forEach(function(id){St().remove(s,c,id,'used')});
   var p={type:'attack',attacker:c.id,target:target.id,attackId:a.id,cost:st.cost,reaction:!!opts.reaction,silent:!!opts.silent,
     roll:{rolls:d.rolls.slice(),natural:d.natural,bonus:d.bonus,total:d.total,mode:d.mode,rerolled:null},
     state:{state:rs.state,advantage:rs.advantage,disadvantage:rs.disadvantage,autoCrit:rs.autoCrit},
-    band:tc.band,distanceFt:tc.distanceFt,ac:Cb.targetAc(s,c,target,tc),cover:tc.cover?tc.cover.name:'none',canReroll:false};
+    band:tc.band,distanceFt:tc.distanceFt,ac:Cb.targetAc(s,c,target,tc),cover:tc.cover?tc.cover.name:'none',canReroll:false,fixed:fx};
   p.canReroll=!opts.noReroll&&c.alive&&Cb.canReroll(s,c);
   s.pending=p;
   return {ok:true,pending:p};
@@ -277,10 +295,11 @@ Cb.completeAttack=function(s,p,opts){
     damage:null,effects:[],statuses:[]};
   if(hit){
     var expr=a.damage.expression;
-    var first=Fable.dice.roll(expr,s.rng,{crit:crit}),used=first,second=null,savage=false;
+    var dmgRng=p.fixed&&p.fixed.damage?Cb.scriptedRng(p.fixed.damage.faces.map(function(f){return [f,p.fixed.damage.sides]}),s.rng):s.rng;
+    var first=Fable.dice.roll(expr,dmgRng,{crit:crit}),used=first,second=null,savage=false;
     var fired=H().fire(s,c,'onDamageRoll',{attack:a,target:t,crit:crit,roll:first});
     if(fired.some(function(f){return f.result.rollTwice})){
-      second=Fable.dice.roll(expr,s.rng,{crit:crit});savage=true;
+      second=Fable.dice.roll(expr,dmgRng,{crit:crit});savage=true;
       used=second.total>first.total?second:first;
     }
     var amount=Math.max(0,used.total);

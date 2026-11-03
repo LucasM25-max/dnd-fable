@@ -46,7 +46,7 @@ M.actionBar=function(s,hero,selectedAttackId){
     else tip+='\nReach '+(a.reach||5)+' ft';
     if(a.mastery&&a.mastery.usable)tip+='\nMastery: '+a.mastery.name;
     slots.push({id:'attack:'+a.id,kind:'attack',attackId:a.id,name:a.mode==='light-extra'?a.name+' (off-hand)':a.mode==='thrown'?a.name+' (thrown)':weaponName(a),
-      sub:a.damage.expression+' '+a.damage.type,icon:iconFor(a),cost:st.cost||(a.mode==='light-extra'?'bonus':'action'),group:'attack',
+      sub:a.damage.expression+' '+a.damage.type,icon:iconFor(a),item:a.item||null,thrown:a.mode==='thrown',cost:st.cost||(a.mode==='light-extra'?'bonus':'action'),group:'attack',
       ok:st.ok&&mine,reason:st.ok&&mine?'':reason,selected:selectedAttackId===a.id,tip:tip,mastery:a.mastery&&a.mastery.usable?a.mastery.name:null});
   });
   (hero.actions||[]).forEach(function(a){
@@ -62,7 +62,7 @@ M.actionBar=function(s,hero,selectedAttackId){
     var left=hero.stock[a.itemId]||0;
     if(left<1)return;
     var st=Cb().actionState(s,hero,a.id);
-    slots.push({id:'action:'+a.id,kind:'action',actionId:a.id,name:a.name,sub:left+' left',icon:a.icon||'potion',cost:a.cost,group:'item',
+    slots.push({id:'action:'+a.id,kind:'action',actionId:a.id,name:a.name,sub:left+' left',icon:a.icon||'potion',item:a.itemId,cost:a.cost,group:'item',
       ok:st.ok&&mine,reason:st.ok&&mine?'':(mine?st.reason:'Not your turn'),selected:false,uses:{current:left,max:left},tip:a.description||''});
   });
   ['dash','disengage','dodge','hide','search'].forEach(function(id){
@@ -199,14 +199,14 @@ M.pinRemove=function(layout,index){
    `memory` is an object the caller keeps between calls to remember what each id looked like. */
 M.hotbar=function(layout,slots,memory){
   memory=memory||{};
-  var byId={};slots.forEach(function(x){byId[x.id]=x;memory[x.id]={name:x.name,icon:x.icon,cost:x.cost,costLabel:x.costLabel,kind:x.kind}});
+  var byId={};slots.forEach(function(x){byId[x.id]=x;memory[x.id]={name:x.name,icon:x.icon,item:x.item,thrown:x.thrown,cost:x.cost,costLabel:x.costLabel,kind:x.kind}});
   return M.normalizePins(layout).map(function(id,i){
     var e={index:i,hotkey:M.hotkeyFor(i),id:id,slot:null,gone:false};
     if(!id)return e;
     if(byId[id])e.slot=byId[id];
     else if(memory[id]){
       var m=memory[id];e.gone=true;
-      e.slot={id:id,kind:m.kind,name:m.name,sub:'',icon:m.icon,cost:m.cost,costLabel:m.costLabel,ok:false,reason:'Not available right now',selected:false,tip:'',pinnable:true};
+      e.slot={id:id,kind:m.kind,name:m.name,sub:'',icon:m.icon,item:m.item,thrown:m.thrown,cost:m.cost,costLabel:m.costLabel,ok:false,reason:'Not available right now',selected:false,tip:'',pinnable:true};
     }
     return e;
   });

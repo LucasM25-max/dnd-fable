@@ -113,8 +113,8 @@ C.encounters={
       if(typeof group.spawnZone!=='string')fail('Encounter',id,'enemies['+i+'] needs a spawnZone id');
       if(!num(group.count)||group.count<1||Math.floor(group.count)!==group.count)fail('Encounter',id,'enemies['+i+'] needs a positive integer count');
     });
-    /* the companion who talks the player through the fight: the id of a dialogue script (Fable.dialogue, js/content/dialogue/) */
-    if(def.dialogue!==undefined&&(typeof def.dialogue!=='string'||!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(def.dialogue)))fail('Encounter',id,'dialogue must be the id of a dialogue script');
+    /* the scripted first-launch lesson this encounter plays: the id of a tutorial script (Fable.tutorials, js/content/tutorials/) */
+    if(def.tutorial!==undefined&&(typeof def.tutorial!=='string'||!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(def.tutorial)))fail('Encounter',id,'tutorial must be the id of a tutorial script');
     if(def.ai!==undefined){
       if(!def.ai||typeof def.ai!=='object'||Array.isArray(def.ai))fail('Encounter',id,'ai must be an object');
       else if(C.checkAiBlock)C.checkAiBlock(def.ai,function(m){fail('Encounter',id,'ai: '+m)},'');

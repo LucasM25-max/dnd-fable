@@ -76,6 +76,7 @@
 .chip.bloodied .face{background:linear-gradient(#5a1f1a,var(--hud-wood-2))}
 .chip.bloodied .face::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(168,50,43,.28) 6px 9px)}
 .chip.defeated{filter:grayscale(1) brightness(.6);transform:scale(.92)}
+.chip.defeated .face::before{content:"";position:absolute;inset:0;z-index:2;background:linear-gradient(45deg,transparent 47%,#000b 47% 53%,transparent 53%),linear-gradient(-45deg,transparent 47%,#000b 47% 53%,transparent 53%)}
 .chip:not(.active):hover{transform:translateY(-2px)}
 .chip:focus-visible{outline:2px solid var(--hud-text);outline-offset:4px}
 

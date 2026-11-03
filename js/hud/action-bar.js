@@ -43,6 +43,15 @@ Fable.hudModules.actionBar=function(hud){
     if(pin)t+='\n'+pin;
     return t;
   }
+  /* equipment shows its real voxel model; everything that is not a thing (Move, Dodge, Second Wind, a fist) keeps its glyph */
+  function iconHtml(sl){
+    var hp=Fable.headPortrait,url=null;
+    if(sl.item&&hp&&hp.itemStill){
+      var dpr=Math.min(window.devicePixelRatio||1,2),px=Math.round(42*dpr);
+      url=hp.itemStill(sl.item,px,px,{slant:true});
+    }
+    return url?'<img class="item3d" alt="" aria-hidden="true" draggable="false" src="'+url+'">':Fable.hudIcons.svg(sl.icon);
+  }
   function slotButton(sl,ctx,opts){
     opts=opts||{};
     var disabled=!sl.ok||ctx.busy,passive=!!sl.passive;
@@ -50,7 +59,7 @@ Fable.hudModules.actionBar=function(hud){
     return '<button type="button" class="'+cls+'" data-id="'+hud.escape(sl.id)+'" data-reason="'+hud.escape(opts.gone?'Not available right now':(sl.reason||''))+'" '+
       'data-tip="'+hud.escape(tipOf(sl,opts.pinTip))+'" data-tip-up aria-disabled="'+(disabled||passive||opts.gone?'true':'false')+'" aria-pressed="'+(sl.selected?'true':'false')+'" '+
       'aria-label="'+hud.escape(sl.name+', '+sl.costLabel+(sl.sub?', '+sl.sub:'')+(sl.reason&&disabled&&!passive?', unavailable: '+sl.reason:''))+'"'+(opts.hotkey?' aria-keyshortcuts="'+opts.hotkey+'"':'')+'>'+
-      '<span class="frame">'+Fable.hudIcons.svg(sl.icon)+'</span>'+
+      '<span class="frame">'+iconHtml(sl)+'</span>'+
       (opts.hotkey?'<kbd class="hk">'+opts.hotkey+'</kbd>':'')+costMark(sl.cost)+
       (sl.uses?'<b class="uses">'+sl.uses.current+'</b>':'')+
       '</button>';
@@ -213,13 +222,22 @@ Fable.hudModules.actionBar=function(hud){
   Fable.hudSettings.onChange(function(k){if((k==='menu'||k==='*')&&host.isConnected)render(true)});
   hud.hotbarId=function(i){var e=null;try{e=M.hotbar(pinsNow,[],memory)[i]}catch(x){}return e&&e.id?e.id:null};
   hud.toggleMenu=function(){Fable.hudSettings.set('menu',!Fable.hudSettings.get('menu'))};
+  /* the item pictures are drawn for the screen's pixel density: zooming the page or moving the window to another screen changes it,
+     and then the bar is painted again so they are drawn sharp for the new density */
+  var dprNow=window.devicePixelRatio||1;
+  function onScale(){
+    var d=window.devicePixelRatio||1;
+    if(d!==dprNow){dprNow=d;if(host.isConnected)render(true)}
+  }
+  window.addEventListener('resize',onScale);
   return {
     update:function(s,ctx){
       var hero=s.creatures.filter(function(c){return c.team==='player'})[0];
       if(!hero||s.phase==='setup')return;
       lastS=s;lastCtx=ctx;
       render(false);
-    }
+    },
+    destroy:function(){window.removeEventListener('resize',onScale)}
   };
 };
 })();

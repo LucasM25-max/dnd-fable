@@ -36,6 +36,12 @@ Fable.createGameScene=function(encounter){
       if((formation.axis||'x')==='z')return {x:zone.x+ox,z:zone.z+oz+delta};
       return {x:zone.x+ox+delta,z:zone.z+oz};
     }
+    if(type==='grid'){
+      /* rows of columns across the zone; start lets several groups share one zone without overlapping */
+      var cols=Math.max(1,formation.columns||Math.floor((zone.w||spacing)/spacing)||1),slot=(formation.start||0)+index;
+      var col=slot%cols,row=Math.floor(slot/cols),rows=Math.max(1,formation.rows||1);
+      return {x:zone.x+ox+(col-(cols-1)/2)*spacing,z:zone.z+oz+(row-(rows-1)/2)*spacing};
+    }
     if(type==='random')return world.enemySpawnPoint(rnd,formation.margin||4,zone.id);
     return {x:zone.x+ox,z:zone.z+oz};
   }

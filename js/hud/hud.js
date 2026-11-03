@@ -12,7 +12,7 @@
      hud.banner(text, team)           the turn and round banner ('player' or 'enemy')
      hud.announce(text)               polite screen reader line
      hud.toggleMenu() / hud.hotbarId(i)   fold the action menu; the slot id pinned at hotbar index i (0 is Move)
-     hud.coach(kind, data)            an event for Elminster, the tutorial companion (js/hud/elminster.js)
+     hud.mods.elminster / hud.mods.tutorialCoach   the tutorial's voice and pointer (js/hud/elminster.js, js/hud/tutorial-coach.js)
      hud.clearTransient()             drop what is still arriving (the dice card) when the fight ends
      hud.show() / hud.hide() / hud.destroy()
    Each module is Fable.hudModules.<name>(hud) returning {update(s, ctx)}; a new HUD part is a new file that adds itself there. */
@@ -25,7 +25,7 @@ function plate(inner,cls,attrs){
   return '<div class="plate'+(cls?' '+cls:'')+'"'+(attrs||'')+'><span class="edge"><span class="in">'+inner+'</span></span></div>';
 }
 
-var MODULE_ORDER=['initiativeRibbon','targetPanel','healthBar','actionBar','endTurn','controls','combatLog','rollFeed','elminster','prompts','results','overlays'];
+var MODULE_ORDER=['initiativeRibbon','targetPanel','healthBar','actionBar','endTurn','controls','combatLog','rollFeed','elminster','tutorialCoach','prompts','results','overlays'];
 
 Fable.createHud=function(opts){
   opts=opts||{};
@@ -110,7 +110,6 @@ Fable.createHud=function(opts){
   hud.hideTip=hideTip;
   hud.rollFeed=function(result){var m=hud.mods.rollFeed;if(m)m.show(M.rollCard(result,hud.state))};
   hud.logEvent=function(e,s){var m=hud.mods.combatLog,entry=M.logEntry(e,s);if(m&&entry)m.push(entry);return entry};
-  hud.coach=function(kind,data){var m=hud.mods.elminster;if(m)m.event(kind,data)};
   function applySettings(){
     var S=Fable.hudSettings;
     /* the HUD also shrinks on small windows so every plate fits (a phone held sideways, a small laptop window) */

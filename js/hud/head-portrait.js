@@ -4,11 +4,14 @@
    context) draws a head and copies it onto a small 2D canvas, or hands back a still picture for an <img>.
 
      Fable.headPortrait.available()            false when WebGL cannot be had (callers keep their flat portrait then)
-     Fable.headPortrait.has(who)               'hero' (the player's character, with its helm) or 'elminster'
-     Fable.headPortrait.draw(canvas, who, {yaw, pitch, bob, heroId})   draw the head onto a 2D canvas; true when it drew
+     Fable.headPortrait.has(who)               'hero' (the player's character, with its helm), 'monster' (any monster with a rig head joint) or 'elminster'
+     Fable.headPortrait.draw(canvas, who, {yaw, pitch, bob, heroId, monsterId})   draw the head onto a 2D canvas; true when it drew
      Fable.headPortrait.still(who, w, h, opts) -> a data URL of the head at rest (cached), or null
      Fable.headPortrait.fill(el, who, opts)    puts a still of the head in el (an <img>), sized from el; false when 3D is not available
      Fable.headPortrait.forHero(heroId)        the head of the hero the player plays, used by every HUD and menu portrait
+     Fable.headPortrait.itemStill(itemId, w, h, opts)  the real voxel model of an item (a sword, a potion) as a data URL (cached), or null;
+                                               opts {slant: lay a long thin item on a diagonal, yaw}. It shares this renderer, so no extra WebGL context.
+     Fable.headPortrait.itemFill(el, itemId, opts)     puts that still in el (an <img class="item3d">); false when there is no model
 
    Only the head is drawn: for the hero everything but the head joint is hidden on a private copy of the model, and the camera is fitted
    to the head alone. Nothing here changes a model the game uses. */
@@ -33,6 +36,8 @@ function ready(){
   }catch(e){failed=true;R=null;return false}
 }
 HP.available=function(){return ready()};
+/* the one hidden renderer, lent to other 2D-copy previews (the Store tiles) so the page does not hold a context apiece; callers size it, render and copy at once */
+HP.sharedRenderer=function(){return ready()?R:null};
 
 /* ---------- Elminster's head ---------- */
 /* Built like the fighter's head (box parts, then converted to voxels), facing +z: a battered wide-brimmed hat, long white hair and a
@@ -62,25 +67,36 @@ function buildElminster(){
 }
 
 /* ---------- the player's hero: the real model, only its head ---------- */
+/* everything outside the head joint is hidden on this private copy of a model */
+function headOnly(root,head){
+  root.updateMatrixWorld(true);
+  root.traverse(function(o){
+    if(o===head||!(o.isMesh||o.isInstancedMesh))return;
+    var inside=false,p=o.parent;while(p){if(p===head){inside=true;break}p=p.parent}
+    if(!inside)o.visible=false;
+  });
+  return {root:root,head:head};
+}
 function buildHero(heroId){
   var M=Fable.storeModels;
   if(!M)return null;
   var h=M.makeHero(heroId),head=h.fg.rig&&h.fg.rig.joints&&h.fg.rig.joints.head;
   if(!head)return null;
-  h.fg.root.updateMatrixWorld(true);
-  var keep=[];head.traverse(function(o){keep.push(o)});
-  h.fg.root.traverse(function(o){
-    if(o===head||keep.indexOf(o)>=0||!(o.isMesh||o.isInstancedMesh))return;
-    var inside=false,p=o.parent;while(p){if(p===head){inside=true;break}p=p.parent}
-    if(!inside)o.visible=false;
-  });
-  return {root:h.fg.root,head:head};
+  return headOnly(h.fg.root,head);
 }
-function modelFor(who,heroId){
-  var key=who==='hero'?'hero:'+(heroId||'human-fighter'):who;
+/* a monster: its own factory builds a fresh copy, so nothing the game uses is touched */
+function buildMonster(monsterId){
+  var reg=Fable.content&&Fable.content.monsters;
+  if(!reg||!monsterId||!reg.get(monsterId))return null;
+  var m=reg.create(monsterId),head=m&&m.rig&&m.rig.joints&&m.rig.joints.head;
+  if(!head)return null;
+  return headOnly(m.root,head);
+}
+function modelFor(who,heroId,monsterId){
+  var key=who==='hero'?'hero:'+(heroId||'human-fighter'):who==='monster'?'monster:'+monsterId:who;
   if(models[key]!==undefined)return models[key];
   var m=null;
-  try{m=who==='elminster'?buildElminster():who==='hero'?buildHero(heroId||'human-fighter'):null}
+  try{m=who==='elminster'?buildElminster():who==='hero'?buildHero(heroId||'human-fighter'):who==='monster'?buildMonster(monsterId):null}
   catch(e){m=null;if(window.console)console.warn('Head portrait '+who+': '+e.message)}
   if(m){
     /* the size of the head alone, read from its voxels (a Box3 would only see the one tiny cube they share) */
@@ -116,11 +132,11 @@ function frame(m,w,h,o){
   cam.aspect=asp;cam.position.set(0,m.radius*(o.lift||.04),dist);cam.lookAt(0,0,0);cam.updateProjectionMatrix();
 }
 
-HP.has=function(who){return who==='hero'||who==='elminster'};
+HP.has=function(who){return who==='hero'||who==='elminster'||who==='monster'};
 HP.draw=function(canvas,who,o){
   o=o||{};
   if(!HP.has(who)||!ready())return false;
-  var m=modelFor(who,o.heroId);
+  var m=modelFor(who,o.heroId,o.monsterId);
   if(!m)return false;
   var w=canvas.width,h=canvas.height;if(!w||!h)return false;
   try{
@@ -132,7 +148,7 @@ HP.draw=function(canvas,who,o){
 };
 HP.still=function(who,w,h,o){
   o=o||{};
-  var k=who+'|'+(o.heroId||'')+'|'+w+'x'+h+'|'+(o.yaw===undefined?'':o.yaw);
+  var k=who+'|'+(o.heroId||'')+'|'+(o.monsterId||'')+'|'+w+'x'+h+'|'+(o.yaw===undefined?'':o.yaw);
   if(stills[k]!==undefined)return stills[k];
   var c=document.createElement('canvas');c.width=w;c.height=h;
   stills[k]=HP.draw(c,who,o)?c.toDataURL('image/png'):null;
@@ -148,10 +164,63 @@ HP.fill=function(el,who,o){
   if(!img){img=document.createElement('img');img.className='head3d';img.alt='';img.setAttribute('aria-hidden','true');img.draggable=false;el.appendChild(img)}
   img.src=url;return true;
 };
+/* ---------- items: the same renderer draws the real voxel model of a weapon or potion ---------- */
+var itemModels={},itemStills={};
+function itemModel(id,slant){
+  var k=id+'|'+(slant?1:0);
+  if(itemModels[k]!==undefined)return itemModels[k];
+  var m=null;
+  try{
+    var M=Fable.storeModels,g=M&&M.itemGroup(id);
+    if(g){
+      g.updateMatrixWorld(true);
+      var b=M.bounds(g),sz=new THREE.Vector3(),c=new THREE.Vector3();b.getSize(sz);b.getCenter(c);
+      var long=Math.max(sz.x,sz.y,sz.z),mid=sz.x+sz.y+sz.z-long-Math.min(sz.x,sz.y,sz.z);
+      var radius=Math.max(sz.length()/2*.78,long/2);
+      var inner=new THREE.Group();g.position.sub(c);inner.add(g);inner.scale.setScalar(.5/radius*.94);
+      var tilt=new THREE.Group();tilt.add(inner);
+      if(slant&&long/Math.max(mid,.01)>2.4)tilt.rotation.z=-.62;
+      var holder=new THREE.Group();holder.add(tilt);holder.visible=false;S.add(holder);
+      m={holder:holder};
+    }
+  }catch(e){m=null;if(window.console)console.warn('Item icon '+id+': '+e.message)}
+  itemModels[k]=m;return m;
+}
+HP.itemStill=function(id,w,h,o){
+  o=o||{};
+  var k=id+'|'+w+'x'+h+'|'+(o.slant?1:0)+'|'+(o.yaw===undefined?'':o.yaw);
+  if(itemStills[k]!==undefined)return itemStills[k];
+  itemStills[k]=null;
+  if(!ready())return null;
+  var m=itemModel(id,o.slant);
+  if(!m)return null;
+  try{
+    if(current)current.visible=false;
+    m.holder.visible=true;m.holder.rotation.set(.12,o.yaw===undefined?-.5:o.yaw,0);m.holder.position.set(0,0,0);
+    if(R.domElement.width!==w||R.domElement.height!==h)R.setSize(w,h,false);
+    var icam=new THREE.PerspectiveCamera(28,w/h,.1,50);icam.position.set(0,.15,2.1);icam.lookAt(0,0,0);
+    R.render(S,icam);
+    m.holder.visible=false;
+    if(current)current.visible=true;
+    var c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(R.domElement,0,0,w,h);
+    itemStills[k]=c.toDataURL('image/png');
+  }catch(e){itemStills[k]=null}
+  return itemStills[k];
+};
+HP.itemFill=function(el,id,o){
+  o=o||{};
+  if(!el||!id)return false;
+  var dpr=Math.min(window.devicePixelRatio||1,2),w=Math.round((o.w||el.clientWidth||48)*dpr),h=Math.round((o.h||el.clientHeight||48)*dpr);
+  var url=HP.itemStill(id,w,h,o);
+  if(!url)return false;
+  var img=el.tagName==='IMG'?el:el.querySelector('img.item3d');
+  if(!img){img=document.createElement('img');img.className='item3d';img.alt='';img.setAttribute('aria-hidden','true');img.draggable=false;el.appendChild(img)}
+  img.src=url;return true;
+};
 HP.forHero=function(heroId){return {who:'hero',heroId:heroId||'human-fighter'}};
 HP.dispose=function(){
   if(!R)return;
   S.traverse(function(x){if(x.isInstancedMesh&&x.dispose)x.dispose()});
-  R.dispose();R=null;S=null;cam=null;models={};stills={};current=null;
+  R.dispose();R=null;S=null;cam=null;models={};stills={};itemModels={};itemStills={};current=null;
 };
 })(typeof window!=='undefined'?window:globalThis);

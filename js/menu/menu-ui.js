@@ -4,30 +4,45 @@ var toast=document.getElementById('toast'),tt;
 function say(m){toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove('show')},1800)}
 document.querySelectorAll('[data-t]').forEach(function(b){b.addEventListener('click',function(){say('Mockup: this opens '+b.dataset.t+'.')})});
 
-var E=[],ei=0;
-/* what an encounter pays, worked out by the same rules that pay it */
+var heroId='human-fighter';
+/* What an encounter pays, worked out by the same rules that pay it. */
 function rewardText(e){
   try{
-    var est=Fable.rewards.estimate(e,heroLevels(e)),bits=[];
+    var est=Fable.rewards.estimate(e,heroLevels()),bits=[];
     if(est.xp)bits.push(est.xp+' XP');
     if(est.gold)bits.push(est.maxGold>est.gold?est.gold+' to '+est.maxGold+' gp':est.gold+' gp');
     return bits.length?'Reward: '+bits.join(' and '):'';
   }catch(err){return ''}
 }
-function heroLevels(e){
-  var b=Fable.character.roster.build((e&&e.playerCharacter)||'human-fighter'),n=0;
+function heroLevels(){
+  var b=Fable.character.roster.build(heroId),n=0;
   ((b&&b.classLevels)||[]).forEach(function(c){n+=c.level||0});
   return [Math.max(1,n)];
 }
-function show(){
-  var name=document.getElementById('en'),desc=document.getElementById('ed'),rw=document.getElementById('rw');
-  if(!E.length){name.textContent='No encounters';desc.textContent='Add an encounter package to continue';rw.textContent='';return}
-  var e=E[ei];
-  name.textContent=e.name;desc.textContent=e.description||e.map;showHero(e);rw.textContent=rewardText(e);
-  document.getElementById('prev').disabled=E.length<2;document.getElementById('next').disabled=E.length<2;
+/* The difficulty selector (gameplay vision, section 3): Low, Moderate and High are XP budgets for the party's level. */
+var DIFFS={
+  low:{name:'Low',text:'A light skirmish. You should come out of it with most of your strength.'},
+  moderate:{name:'Moderate',text:'A fair fight that rewards good choices.'},
+  high:{name:'High',text:'A hard fight. Expect to be pushed to the edge.'}
+};
+function paintDifficulty(){
+  var cur=Fable.flags.difficulty(),box=document.getElementById('diff');
+  if(!box)return;
+  box.querySelectorAll('.dbtn').forEach(function(b){
+    var on=b.dataset.d===cur;
+    b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;
+  });
+  var d=DIFFS[cur],budget=Fable.encounterGen.budget(heroLevels(),cur);
+  document.getElementById('dn').textContent=d.name+', XP budget '+budget;
+  document.getElementById('dd').textContent=d.text;
+  var rw=document.getElementById('rw');
+  /* a dry run of the generator shows what this difficulty is worth right now */
+  var g=Fable.encounterGen.generate({levels:heroLevels(),difficulty:cur,seed:1});
+  rw.textContent=g.ok?rewardText(g.encounter):'';
 }
+function show(){showHero({playerCharacter:heroId});paintDifficulty()}
 /* The hub's stat strip reads the hero's computed sheet instead of hard coded numbers (implementation plan, section 13). */
-var heroId='human-fighter',loadoutBox=null;
+var loadoutBox=null;
 function showHero(e){
   heroId=(e&&e.playerCharacter)||'human-fighter';
   var def=Fable.content.characters.get(heroId);
@@ -110,11 +125,20 @@ Fable.character.roster.onChange(function(id,sheet){if(id===heroId){drawSheet(she
 function openShop(){Fable.shopUi.open(heroId,'armory',{say:say})}
 document.getElementById('open-shop').onclick=openShop;
 document.getElementById('pf-gold').onclick=openShop;
-function refresh(){
-  E=Fable.content.encounters.enabled();ei=Math.min(ei,Math.max(0,E.length-1));show();
-}
-document.getElementById('prev').onclick=function(){if(E.length){ei=(ei+E.length-1)%E.length;show()}};
-document.getElementById('next').onclick=function(){if(E.length){ei=(ei+1)%E.length;show()}};
-document.getElementById('play').onclick=function(){if(E[ei])Fable.enterWorld(E[ei].id)};
-Fable.content.whenReady(function(){refresh();drawProfile()});
+function setDifficulty(id){if(Fable.flags.setDifficulty(id))paintDifficulty()}
+(function(){
+  var box=document.getElementById('diff');
+  if(!box)return;
+  box.addEventListener('click',function(e){var b=e.target.closest('.dbtn');if(b)setDifficulty(b.dataset.d)});
+  box.addEventListener('keydown',function(e){
+    var ids=['low','moderate','high'],i=ids.indexOf(Fable.flags.difficulty()),n=-1;
+    if(e.key==='ArrowRight'||e.key==='ArrowDown')n=(i+1)%3;else if(e.key==='ArrowLeft'||e.key==='ArrowUp')n=(i+2)%3;else return;
+    e.preventDefault();setDifficulty(ids[n]);
+    var nb=box.querySelector('[data-d="'+ids[n]+'"]');if(nb)nb.focus();
+  });
+})();
+document.getElementById('play').onclick=function(){Fable.startRun(Fable.flags.difficulty())};
+var replay=document.getElementById('tutorial-replay');
+if(replay)replay.onclick=function(){Fable.startTutorial()};
+Fable.content.whenReady(function(){drawProfile()});
 })();

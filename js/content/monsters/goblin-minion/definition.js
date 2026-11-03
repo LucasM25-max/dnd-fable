@@ -7,7 +7,11 @@ Fable.content.monsters.register({
   source:'srd52',
   creatureType:'Fey',
   alignment:'Chaotic Neutral',
-  tags:['goblin','goblinoid','tutorial'],
+  tags:['goblin','goblinoid'],
+  /* what the encounter generator (js/rules/encounter-gen.js) matches on: where this creature turns up, what it is grouped with, what it does */
+  environments:['forest','grassland','ruins'],
+  family:'goblinoid',
+  role:'skirmisher',
   /* The stat block (implementation plan, section 14.2). Fable.statblock checks every derivable number at load time:
      Passive Perception 9 = 10 + Wis -1, Stealth +6 = Dex +2 + expertise (2 x PB 2), attack +4 = Dex +2 + PB 2. */
   abilities:{str:8,dex:15,con:10,int:10,wis:8,cha:8},

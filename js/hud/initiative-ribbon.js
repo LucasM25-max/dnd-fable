@@ -12,13 +12,12 @@ Fable.hudModules.initiativeRibbon=function(hud){
     m.chips.forEach(function(c){
       var li=document.createElement('li');
       li.className='chip';li.tabIndex=0;
-      li.innerHTML='<div class="face">'+(c.team==='player'?'':Fable.hudModels.portraitSvg(c.portrait))+'<i class="mark"></i><i class="team"></i><div class="sliver" hidden><i></i></div></div><b class="num"></b>';
+      li.innerHTML='<div class="face"><i class="mark"></i><i class="team"></i><div class="sliver" hidden><i></i></div></div><b class="num"></b>';
       list.appendChild(li);nodes[c.id]=li;
-      /* the player's chip carries the hero's voxel head in 3D; goblins keep their pictures */
-      if(c.team==='player'){
-        var face=li.querySelector('.face'),cr=hud.state&&hud.state.byId&&hud.state.byId[c.id];
-        if(!(Fable.headPortrait&&Fable.headPortrait.fill(face,'hero',{heroId:cr&&cr.defId,w:48,h:56})))face.insertAdjacentHTML('afterbegin',Fable.hudModels.portraitSvg(c.portrait));
-      }
+      /* every chip carries the real voxel head of its creature; the flat picture is only the fallback when WebGL is missing */
+      var face=li.querySelector('.face'),cr=hud.state&&hud.state.byId&&hud.state.byId[c.id],hp=Fable.headPortrait,ok=false;
+      if(hp&&cr)ok=c.team==='player'?hp.fill(face,'hero',{heroId:cr.defId,w:48,h:56}):hp.fill(face,'monster',{monsterId:cr.defId,w:48,h:56});
+      if(!ok)face.insertAdjacentHTML('afterbegin',Fable.hudModels.portraitSvg(c.portrait));
     });
   }
   return {

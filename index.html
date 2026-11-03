@@ -43,8 +43,16 @@
     </div>
     <div class="go">
       <div class="rw" id="rw"></div>
-      <div class="enc"><button class="ar" id="prev" aria-label="Previous encounter">&lt;</button><div><b id="en"></b><span id="ed"></span></div><button class="ar" id="next" aria-label="Next encounter">&gt;</button></div>
+      <div class="diff-box">
+        <div class="diff" id="diff" role="radiogroup" aria-label="Difficulty">
+          <button type="button" role="radio" class="dbtn" data-d="low" aria-checked="false">Low</button>
+          <button type="button" role="radio" class="dbtn" data-d="moderate" aria-checked="false">Moderate</button>
+          <button type="button" role="radio" class="dbtn" data-d="high" aria-checked="false">High</button>
+        </div>
+        <div class="diff-info"><b id="dn"></b><span id="dd"></span></div>
+      </div>
       <button class="playb" id="play">Play</button>
+      <button type="button" class="tutl" id="tutorial-replay">Replay the tutorial</button>
     </div>
   </footer>
 </div>
@@ -60,6 +68,7 @@
 <script src="js/rules/money.js"></script>
 <script src="js/rules/tables.js"></script>
 <script src="js/rules/rewards.js"></script>
+<script src="js/rules/encounter-gen.js"></script>
 <script src="js/rules/stats.js"></script>
 <script src="js/rules/grid.js"></script>
 <script src="js/engine/block-batch.js"></script>
@@ -87,6 +96,7 @@
 <script src="js/rules/ai-planner.js"></script>
 <script src="js/rules/ai.js"></script>
 <script src="js/character/roster.js"></script>
+<script src="js/character/flags.js"></script>
 <script src="js/content/content-manifest.js"></script>
 <script src="js/content/content-groups.js"></script>
 <script src="js/content/content-loader.js"></script>
@@ -94,6 +104,7 @@
 <script src="js/menu/store-stage.js"></script>
 <script src="js/menu/store-previews.js"></script>
 <script src="js/menu/shop-ui.js"></script>
+<script src="js/menu/encounter-preview.js"></script>
 <script src="js/menu/menu-ui.js"></script>
 <script src="js/menu/menu-scene.js"></script>
 <script src="js/game/input.js"></script>
@@ -112,10 +123,9 @@
 <script src="js/hud/prompts.js"></script>
 <script src="js/hud/results.js"></script>
 <script src="js/hud/overlays.js"></script>
-<script src="js/hud/dialogue-engine.js"></script>
-<script src="js/content/dialogue/elminster-first-fight.js"></script>
 <script src="js/hud/head-portrait.js"></script>
 <script src="js/hud/elminster.js"></script>
+<script src="js/hud/tutorial-coach.js"></script>
 <script src="js/hud/end-turn.js"></script>
 <script src="js/hud/controls.js"></script>
 <script src="js/hud/world-labels.js"></script>
@@ -132,6 +142,8 @@
 <script src="js/presentation/planner.js"></script>
 <script src="js/presentation/screenfx.js"></script>
 <script src="js/presentation/director.js"></script>
+<script src="js/game/tutorial.js"></script>
+<script src="js/content/tutorials/goblin-ambush.js"></script>
 <script src="js/game/ai-runner.js"></script>
 <script src="js/game/walker.js"></script>
 <script src="js/game/combat-controller.js"></script>

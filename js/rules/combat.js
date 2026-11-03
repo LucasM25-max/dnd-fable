@@ -143,6 +143,18 @@ Cb.start=function(s,opts){
     });
   }
   rolls.sort(function(a,b){return compare(a,b,s)});
+  /* opts.order (the tutorial only): the same totals, handed out in a fixed order so the lesson always begins the same way */
+  if(Array.isArray(opts.order)){
+    var ids=rolls.map(function(r){return r.id}),want=opts.order;
+    if(want.length!==ids.length||want.some(function(id){return ids.indexOf(id)<0})||new Set(want).size!==want.length)throw new Error('Combat: start order must list every creature once');
+    var totals=rolls.map(function(r){return r.total}),byId={};
+    rolls.forEach(function(r){byId[r.id]=r});
+    rolls=want.map(function(id,i){
+      var r=byId[id];r.total=totals[i];
+      var nat=r.total-r.bonus;if(nat>=1&&nat<=20){r.natural=nat;r.rolls=[nat]}
+      r.forced=true;return r;
+    });
+  }
   s.initiativeRolls=rolls;
   s.order=rolls.map(function(r){return r.id});
   s.phase='running';s.round=1;s.turn=-1;
