@@ -15,6 +15,10 @@
      Fable.senses.searchTargets(s, c)           hidden enemies within 30 ft that c could find
      Fable.senses.search(s, c)                  the Search action: one Wisdom (Perception) check against every hidden enemy in range
      Fable.senses.revalidate(s, {except})       reveals Hidden creatures an enemy can now see (see below)
+   Tactical Mind (Fighter level 2): a failed Hide or Search carries res.tacticalMind, an offer {kind, dice, resource, total, dc}, when
+   the creature has the feature and a Second Wind use left
+     Fable.senses.useTacticalMind(s, c, res)   roll the 1d10, add it to the check, and spend the Second Wind use only if that turns the
+                                               failure into a success; emits a 'tactical-mind' event
    A Hidden creature cannot be targeted, and its first attack roll has Advantage (Fable.status). It stays Hidden when it moves, so a
    goblin can step out of cover and strike; it is found by a Search, by attacking, and by being seen: revalidate runs when an enemy
    finishes a move and when a creature's turn ends, but never for the creature that is moving now. Noise and Invisibility spells
@@ -122,8 +126,15 @@ Se.hide=function(s,c){
   if(success){
     var r=St().add(s,c,{id:'hidden',source:{id:'hide',name:'Hide',creature:c.id},data:{stealth:d.total}});
     res.status={creature:c.id,id:'hidden',change:r.added?'added':'refreshed',status:r.entry};
-  }
+  }else res.tacticalMind=Se.tacticalMindOffer(s,c,{kind:'hide',skill:'Stealth',total:d.total,dc:Se.HIDE_DC});
   return res;
+};
+/* The offer a failed ability check carries when the creature has Tactical Mind (the handler decides) and the pool it spends is not empty. */
+Se.tacticalMindOffer=function(s,c,info){
+  if(!Fable.handlers||!c||!c.handlers||!c.handlers.length)return null;
+  var fired=Fable.handlers.fire(s,c,'onAbilityCheck',{check:info}).filter(function(f){return f.result&&f.result.dice})[0];
+  if(!fired)return null;
+  return Object.assign({dice:fired.result.dice,resource:fired.result.resource,done:false},info);
 };
 /* The chance a hide attempt succeeds, for the planner (exact: 20 sided die with Advantage or Disadvantage). */
 Se.hideChance=function(c){
@@ -152,7 +163,53 @@ Se.search=function(s,c){
       found.push(t.id);statuses.push({creature:t.id,id:'hidden',change:'removed',status:e});
     }else missed.push(t.id);
   });
-  return {ok:true,roll:{rolls:d.rolls.slice(),natural:d.natural,bonus:bonus,total:d.total,mode:d.mode},found:found,missed:missed,statuses:statuses};
+  var out={ok:true,roll:{rolls:d.rolls.slice(),natural:d.natural,bonus:bonus,total:d.total,mode:d.mode},found:found,missed:missed,statuses:statuses};
+  /* a Search that finds a hidden creature has not failed; only one that left somebody hidden can be pushed with Tactical Mind */
+  if(missed.length){
+    var need=Math.min.apply(null,missed.map(function(id){return hiddenDc(s.byId[id])}));
+    out.tacticalMind=Se.tacticalMindOffer(s,c,{kind:'search',skill:'Perception',total:d.total,dc:need});
+  }
+  return out;
+};
+function hiddenDc(t){
+  var e=St().get(t,'hidden');
+  return e&&e.data&&e.data.stealth!==undefined?e.data.stealth:Se.HIDE_DC;
+}
+/* Tactical Mind: roll the die, add it to the failed check, and spend the Second Wind use only when the check now succeeds. */
+Se.useTacticalMind=function(s,c,res){
+  var chk=res&&(res.hide||res.search),offer=chk&&chk.tacticalMind;
+  if(!offer||offer.done)return {ok:false,reason:'There is no failed check to push'};
+  var pool=c.resources&&c.resources[offer.resource];
+  if(!pool||pool.current<1)return {ok:false,reason:'No uses of Second Wind left'};
+  var roll=Fable.dice.roll(offer.dice,s.rng),total=offer.total+roll.total,Cb_=Cb();
+  var out={ok:true,kind:offer.kind,skill:offer.skill,die:roll.total,expression:offer.dice,base:offer.total,total:total,dc:offer.dc,success:false,spent:false,statuses:[],found:[]};
+  offer.done=true;
+  if(offer.kind==='hide'){
+    if(total>=Se.HIDE_DC){
+      var r=St().add(s,c,{id:'hidden',source:{id:'hide',name:'Hide',creature:c.id},data:{stealth:total}});
+      out.success=true;
+      var st={creature:c.id,id:'hidden',change:r.added?'added':'refreshed',status:r.entry};
+      out.statuses.push(st);
+      chk.success=true;chk.status=st;
+      Cb_.emit(s,{type:'status',change:st.change,id:c.id,status:st.status});
+    }
+  }else{
+    chk.missed.slice().forEach(function(id){
+      var t=s.byId[id],e=St().get(t,'hidden'),dc=hiddenDc(t);
+      if(total<dc)return;
+      St().remove(s,t,'hidden','found');
+      chk.missed.splice(chk.missed.indexOf(id),1);chk.found.push(id);out.found.push(id);
+      chk.statuses.push({creature:id,id:'hidden',change:'removed',status:e});
+      out.statuses.push({creature:id,id:'hidden',change:'removed',status:e});
+      Cb_.emit(s,{type:'status',change:'removed',id:id,status:e});
+    });
+    out.success=out.found.length>0;
+  }
+  if(out.success){Fable.creature.setResource(c,offer.resource,pool.current-1);out.spent=true}
+  out.text=(out.success?'Tactical Mind: '+offer.skill+' '+offer.total+' + '+roll.total+' = '+total+' against DC '+offer.dc+', Second Wind spent'
+    :'Tactical Mind: '+offer.skill+' '+offer.total+' + '+roll.total+' = '+total+' against DC '+offer.dc+', still a failure, Second Wind kept');
+  Cb_.emit(s,{type:'tactical-mind',id:c.id,result:out});
+  return out;
 };
 
 /* ---------- being seen ---------- */

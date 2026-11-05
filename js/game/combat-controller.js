@@ -83,7 +83,7 @@ Fable.createCombatController=function(o){
   ctrl.hud=hud;
   /* the presentation director (Phase 7): animation, effects, sound and camera. The hooks are what the HUD and the world do at the cue
      that causes them, so a result shows when the blow lands and a skip still ends with the right state. */
-  var hooks={start:function(e){say(e)},round:function(e){roundChanged=true;say(e)},turnstart:onTurnStart,attack:onAttack,action:onAction,swap:onSwap,
+  var hooks={start:function(e){say(e)},round:function(e){roundChanged=true;say(e)},turnstart:onTurnStart,attack:onAttack,action:onAction,'tactical-mind':onTacticalMind,swap:onSwap,
     status:function(e){say(e);dirty=true},down:onDown,dead:function(e){say(e);dirty=true},deathsave:onDeathSave,over:onOver,pickup:onPickup,morale:onMorale,recovered:onRecovered};
   pres=Fable.createPresentation({scene:scene,camera:camera,hud:hud,state:function(){return s},hooks:hooks,seed:seed,settings:Fable.hudSettings,
     /* the coins each goblin drops when it falls (its share of the base gold, bonuses not counted: those are paid on the results screen),
@@ -264,6 +264,37 @@ Fable.createCombatController=function(o){
     if(r.heal)labels.float(who,'+'+r.heal.applied,'heal');
     else labels.float(who,r.name,'info');
     if(tut&&who===hero)tut.event('action',{id:r.id});
+    /* a failed Hide or Search by a fighter with Tactical Mind: once the action has played out, the player is asked whether to push it */
+    var chk=r.hide||r.search;
+    if(who===hero&&chk&&chk.tacticalMind&&!chk.tacticalMind.done)pendingMind=r;
+    dirty=true;
+  }
+  /* Tactical Mind (Fighter 2): add 1d10 to a failed ability check by spending a Second Wind use, which is only spent if it works */
+  var pendingMind=null;
+  function offerTacticalMind(r){
+    var chk=r.hide||r.search,o=chk&&chk.tacticalMind;
+    if(!o||o.done||s.phase!=='running'||!hero.alive)return;
+    var pool=hero.resources[o.resource];
+    if(!pool||pool.current<1)return;
+    var need=o.dc-o.total;
+    dirty=true;
+    hud.prompt({title:'Tactical Mind',icon:'mind',tone:'inspire',
+      body:'Your '+o.skill+' check failed.\nSpend a use of Second Wind to add 1d10 to it? The use is only spent if it turns the check into a success.',
+      rows:[[o.skill+' check',String(o.total)],['Needed',String(o.dc)],['Short by',String(need)],['Second Wind',pool.current+' of '+pool.max+' uses left']],
+      choices:[{id:'use',label:'Use Tactical Mind',primary:true,key:'t',keyLabel:'T',codes:['Enter']},{id:'keep',label:'Accept the result',key:'k',keyLabel:'K',codes:['Escape']}],
+      onChoose:function(id){
+        if(id==='use'){
+          var res=Fable.senses.useTacticalMind(s,hero,r);
+          if(!res.ok){hud.announce(res.reason);labels.float(hero,res.reason,'info')}
+        }
+        dirty=true;
+      }});
+  }
+  function onTacticalMind(e){
+    var x=e.result,who=s.byId[e.id];
+    say(e);
+    labels.float(who,x.success?'Tactical Mind +'+x.die:'Still short (+'+x.die+')',x.success?'heal':'miss');
+    hud.announce(x.text);
     dirty=true;
   }
   function onSwap(e){
@@ -552,7 +583,7 @@ Fable.createCombatController=function(o){
     return dropCache;
   }
   function consumablesUsed(){var n=0,u=hero.itemsUsed||{};Object.keys(u).forEach(function(k){n+=u[k]});return n}
-  var paid=null;
+  var paid=null,outcomeInstant=false;
   /* the reward is worked out and paid once, however many times the outcome is shown */
   function settleRewards(win){
     if(paid)return paid;
@@ -566,8 +597,9 @@ Fable.createCombatController=function(o){
   }
   function showOutcome(){
     overShown=true;hud.root.classList.add('outcome');
-    var win=s.winner==='player',r;
+    var win=s.winner==='player',r,lu=null;
     try{r=settleRewards(win)}catch(e){console.error('Rewards: '+e.message);r=null}
+    try{if(win&&!tut)lu=Fable.character.roster.levelStatus(o.hero.id)}catch(e){lu=null}
     var rows=[['Rounds',String(s.round)],['Hit points left',hero.hp.current+' / '+hero.hp.max]];
     var choices,onChoose,body=win?'The clearing is quiet again.':(hero.alive?'You could not hold the line.':hero.name+' has fallen.');
     if(tut){
@@ -577,14 +609,28 @@ Fable.createCombatController=function(o){
       onChoose=function(id){if(id==='again')Fable.startTutorial();else Fable.enterMenu()};
     }else{
       choices=[{id:'again',label:'Fight again',primary:true,key:'f',keyLabel:'F',codes:['Enter']},{id:'menu',label:'Return to menu',key:'m',keyLabel:'M',codes:['Escape']}];
+      /* a level that is earned is taken here, on the Level Up screen, before the next fight */
+      if(win&&lu&&lu.ready){
+        choices.unshift({id:'levelup',label:'Level up to '+lu.nextLevel,primary:true,key:'l',keyLabel:'L',codes:['Enter'],hold:true});
+        choices[1].primary=false;choices[1].codes=[];
+      }
       /* an ordinary fight asks the generator for a fresh encounter at the same difficulty; a registered one (the development shortcuts) replays itself */
-      onChoose=function(id){
+      onChoose=function(id,h){
+        if(id==='levelup'){
+          Fable.levelUpUi.open(o.hero.id,{sound:function(sid){try{pres.audio.play(sid)}catch(e){}},onDone:function(res){
+            if(disposed)return;
+            /* the results come back at once, with the level taken (or still waiting if the player said not yet) */
+            if(h)h.close();
+            outcomeInstant=true;showOutcome();
+          }});
+          return;
+        }
         if(id!=='again')Fable.enterMenu();
         else if(o.encounter&&o.encounter.generated)Fable.startRun(o.encounter.difficulty,{fromGame:true});
         else Fable.enterWorld(o.encounter&&o.encounter.id);
       };
     }
-    if(r&&hud.showResults)hud.showResults(r,{rows:rows,body:body,choices:choices,onChoose:onChoose,sound:function(id){try{pres.audio.play(id)}catch(e){}}});
+    if(r&&hud.showResults)hud.showResults(r,{rows:rows,body:body,choices:choices,onChoose:onChoose,levelReady:lu&&lu.ready?lu.nextLevel:0,instant:outcomeInstant,sound:function(id){try{pres.audio.play(id)}catch(e){}}});
     else hud.prompt({title:win?'Victory':'Defeat',big:true,tone:win?'win':'lose',icon:win?'star':'skull',body:body,rows:rows,choices:choices,onChoose:onChoose});
     dirty=true;
   }
@@ -675,6 +721,7 @@ Fable.createCombatController=function(o){
     if(ctrl.active){
       pump();
       runEnemy(dt);runDowned(dt);
+      if(pendingMind&&settled()&&!busy&&!hud.promptActive()&&!s.pending){var pm=pendingMind;pendingMind=null;offerTacticalMind(pm)}
       if(s.phase==='over'&&!overShown&&settled()&&!hud.promptActive()){overShown=true;setTimeout(function(){if(ctrl.active)showOutcome()},450)}
       var a=Cb().active(s);
       if(a&&busy){var w=entryOf(a).walker.position();marks.follow(w.x,w.z)}

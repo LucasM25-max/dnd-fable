@@ -17,7 +17,7 @@
    Fable.handlers.missing(sheet)        ids a sheet's data refers to that have no code, for tests and the load check
 
    Events: onAttackRoll, onHit, onMiss, onDamageRoll, onTurnStart, onTurnEnd, onSavingThrow, onShortRest, onLongRest,
-   onInitiative, onRoll (the list in features/feature-kind.js). A mastery is run by its weapon, not by the creature's list:
+   onInitiative, onRoll, onActionUse, onAbilityCheck (the list in features/feature-kind.js). A mastery is run by its weapon, not by the creature's list:
    see Fable.combat.completeAttack. */
 (function(G){
 G.Fable=G.Fable||{};
@@ -111,6 +111,26 @@ H.register('feat.alert-initiative-swap',{events:['onInitiative'],run:function(ct
   var allies=(s.creatures||[]).filter(function(o){return o!==c&&o.team===c.team&&o.alive&&(!St||St.canAct(o))});
   if(!allies.length)return {used:false};
   return {used:true,candidates:allies.map(function(o){return o.id})};
+}});
+
+/* ---------- Fighter, level 2 ---------- */
+
+/* Action Surge (SRD 5.2.1, Fighter): on your turn, one additional action. The resolver (Fable.combat.useAction) hands the Action back
+   and counts the surge; this handler says whether the surge may be taken and how it reads. It may be taken once on a turn, and only
+   once the Action is spent, so the extra one is never wasted. */
+H.register('fighter.action-surge',{events:['onActionUse'],run:function(ctx){
+  if(ctx.actionId!==(ctx.entry&&ctx.entry.action))return {used:false};
+  var e=ctx.creature&&ctx.creature.economy;
+  if(!e||!e.action||(e.surges||0)>=1)return {used:false};
+  return {used:true,extraAction:true,text:'One additional action this turn'};
+}});
+
+/* Tactical Mind: after a failed ability check, a use of Second Wind can be expended to add 1d10 to the check; the use is only spent
+   when that turns the check into a success. The handler offers the 1d10 when a use is left; Fable.senses.useTacticalMind rolls it. */
+H.register('fighter.tactical-mind',{events:['onAbilityCheck'],run:function(ctx){
+  var pool=ctx.creature&&ctx.creature.resources&&ctx.creature.resources['second-wind-uses'];
+  if(!pool||pool.current<1)return {used:false};
+  return {used:true,dice:'1d10',resource:'second-wind-uses',text:'Spend a use of Second Wind to add 1d10'};
 }});
 
 /* Heroic Inspiration: spend it to reroll a die just rolled. The resolver spends the resource and rolls the new die; the handler is

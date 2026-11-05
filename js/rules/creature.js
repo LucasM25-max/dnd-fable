@@ -32,11 +32,11 @@ function copy(o){return o===undefined?undefined:JSON.parse(JSON.stringify(o))}
 
 /* A new turn. Movement is the speed, plus the speed again for each Dash; spent movement is tracked in feet. attacksUsed counts
    the attacks made with the Attack action, lightAttack says a Light weapon was used for one (which opens the extra attack of the
-   Light property), extraUsed that the extra attack is spent, and handlersUsed holds the once a turn handlers that have no pool
-   of their own. */
+   Light property), extraUsed that the extra attack is spent, surges how many times Action Surge handed the Action back this turn
+   (each one also allows one more Dash), and handlersUsed holds the once a turn handlers that have no pool of their own. */
 Cr.newEconomy=function(c){
   return {speedFt:c.speedFt,movedFt:0,dashes:0,action:false,bonus:false,reaction:false,object:false,
-    attackAction:false,attacksUsed:0,lightAttack:false,extraUsed:false,handlersUsed:{}};
+    attackAction:false,attacksUsed:0,lightAttack:false,extraUsed:false,surges:0,handlersUsed:{}};
 };
 /* Speed right now: the speed the turn began with, changed by what is on the creature (Slowed, Grappled ...). Looked up each time,
    so a Slow that lands during the turn takes effect at once. */

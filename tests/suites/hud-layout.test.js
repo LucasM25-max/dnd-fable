@@ -109,6 +109,25 @@ module.exports=function(t){
       const css=read('hud-combat.css');
       assert.ok(rules(css).some(x=>/^\.tgt,\s*\.tgt \*$/.test(x.sel)&&/pointer-events:none!important/.test(x.decl.replace(/\s/g,''))));
     });
+    test('the initiative number sits in the flow under the portrait, never over the team strip or the health sliver',()=>{
+      const css=read('hud.css'),all=rules(css);
+      const num=all.filter(x=>x.sel==='.chip .num');
+      assert.strictEqual(num.length,1,'one .chip .num rule');
+      assert.notStrictEqual(prop(num[0].decl,'position'),'absolute','the number must not be positioned over the face');
+      assert.ok(!/translate/.test(num[0].decl),'no translate pulling the number onto the face');
+      assert.ok(!/^-/.test(prop(num[0].decl,'bottom')||''),'no negative bottom offset');
+      const mt=prop(num[0].decl,'margin')||'';
+      assert.ok(!/^-/.test(mt.trim()),'no negative top margin that would climb into the face');
+      /* the strip and sliver live inside the face, which is a sibling that comes before the number */
+      const js=fs.readFileSync(path.join(__dirname,'..','..','js','hud','initiative-ribbon.js'),'utf8');
+      const m=/li\.innerHTML='([^']*)'/.exec(js);
+      assert.ok(m,'chip markup found');
+      const html=m[1],faceEnd=html.indexOf('</div><b class="num">');
+      assert.ok(faceEnd>0,'the number comes after the closed face');
+      const face=html.slice(0,faceEnd);
+      assert.ok(/class="team"/.test(face)&&/class="sliver"/.test(face),'strip and sliver are inside the face');
+      assert.ok(!/class="num"/.test(face),'the number is not inside the face');
+    });
     test('every transform-centred HUD element (left:50% with translate) has no transform animation',()=>{
       const problems=[];
       files.forEach(f=>{

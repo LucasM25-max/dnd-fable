@@ -61,6 +61,11 @@
 
 .pill:hover,.pill:focus-visible{border-color:var(--gold)}.pill:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 .xpb i{transition:width .5s}
+.lvup{all:unset;box-sizing:border-box;cursor:pointer;display:block;margin-top:6px;padding:4px 12px 5px;font:800 14px/1 var(--serif);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);background:linear-gradient(#ffe29a,var(--gold) 55%,#b07a1c);border:2px solid #7a5010;box-shadow:0 3px 0 #6b430a;animation:lvup-glow 1.6s ease-in-out infinite}
+.lvup[hidden]{display:none}.lvup:hover{filter:brightness(1.12)}.lvup:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+.prof.canlevel{border-color:var(--gold);box-shadow:0 4px 0 #000a,0 0 22px rgba(240,185,77,.4)}
+.lv.ready{animation:lvup-glow 1.6s ease-in-out infinite}
+@keyframes lvup-glow{0%,100%{box-shadow:0 3px 0 #6b430a,0 0 0 rgba(240,185,77,0)}50%{box-shadow:0 3px 0 #6b430a,0 0 18px rgba(240,185,77,.85)}}
 /* The Store: a full page in the menu's wood and gold (square panels, a heavy edge, a hard shadow under everything). The page slides sideways;
    tabs along the top jump along it. Every tile holds a small 3D preview; a click opens a big one. */
 #shop{position:fixed;inset:0;z-index:30;color:var(--text);overflow:hidden}
@@ -176,7 +181,7 @@
   .st-view{border-right:0;border-bottom:2px solid var(--edge)}.st-info{padding:14px 16px}.st-ds{font-size:14px}.st-cta{padding:12px;font-size:20px}
 }
 @media (max-height:520px){.st-keys{display:none}.st-ttl small{display:none}.st-track{--t:clamp(100px,calc((100vh - 250px) / 2),170px)}}
-@media (prefers-reduced-motion:reduce){#shop.in,.st-modal,.st-md{animation:none}.st-cta:before{animation:none;display:none}.st-tile,.st-tab,.st-back,.st-prog i{transition:none}.xpb i{transition:none}}
+@media (prefers-reduced-motion:reduce){.lvup,.lv.ready{animation:none}#shop.in,.st-modal,.st-md{animation:none}.st-cta:before{animation:none;display:none}.st-tile,.st-tab,.st-back,.st-prog i{transition:none}.xpb i{transition:none}}
 
 /* the encounter card shown between Play and the camera tour */
 .ep{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(8,5,3,.55),rgba(8,5,3,.88));cursor:pointer;animation:ep-in .28s ease-out both}

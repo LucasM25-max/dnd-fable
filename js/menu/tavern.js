@@ -6,11 +6,17 @@ var T=new THREE.Group();S.add(T);
 // floor planks
 var fl=[0x6b4526,0x5e3c20,0x74502d,0x553619];
 for(var z=-30;z<=34;z+=2){var x=-46-((z/2)%2?5:0);while(x<46){b(T,x+5,-.5,z,9.8,1,1.8,pick(fl),2);x+=10}}
-// back wall stone
-var st=[0x6a6258,0x5b544b,0x776e62,0x504a42];
-for(var r=0;r<11;r++){for(var cx=-48+(r%2?3:0);cx<48;cx+=6){var cy=r*4+2;
-  if(Math.abs(cx)<10&&cy<13)continue; if(cx>23&&cx<36&&cy>13&&cy<27)continue;
-  b(T,cx,cy,-31,5.8,3.8,2,pick(st),2);}}
+// back wall stone: laid course by course so every stone ends exactly on the window frame and the fireplace (tavern-layout.js)
+var st=[0x6a6258,0x5b544b,0x776e62,0x504a42,0x6f675c,0x625b51];
+var LAY=Fable.tavernLayout,edges=[];
+LAY.OPENINGS.forEach(function(o){edges.push(o.x0,o.x1)});
+function flush(x){return x<=LAY.WALL.x0+1e-6||x>=LAY.WALL.x1-1e-6||edges.some(function(ex){return Math.abs(ex-x)<1e-6})}
+LAY.all().forEach(function(k,i){
+  var x0=k.x0+(flush(k.x0)?0:.1),x1=k.x1-(flush(k.x1)?0:.1),w=x1-x0;
+  /* a stone sits a hair proud or deep of its neighbours, so the wall catches the light like real masonry (never at an opening's edge) */
+  var jitter=(((i*2654435761)>>>0)%5-2)*.06;
+  b(T,(x0+x1)/2,(k.y0+k.y1)/2,-31+(flush(k.x0)||flush(k.x1)?0:jitter),w,3.8,2,pick(st),2);
+});
 // side walls
 [-48,48].forEach(function(wx){for(var r2=0;r2<11;r2++){for(var cz=-30+(r2%2?3:0);cz<34;cz+=6){b(T,wx,r2*4+2,cz,2,3.8,5.8,pick(st),2)}}});
 // fireplace
@@ -29,6 +35,11 @@ b(T,29.5,20,-31.6,10,12,.3,0x1b2c58,0,1);b(T,32.2,24,-31.3,2.4,2.4,.3,0xf3ecc8,0
 b(T,29.5,26.4,-30,12.6,1.4,2,0x3a2412,1);b(T,29.5,13.6,-30,12.6,1.4,2,0x3a2412,1);
 b(T,23.8,20,-30,1.4,13,2,0x3a2412,1);b(T,35.2,20,-30,1.4,13,2,0x3a2412,1);
 b(T,29.5,20,-30,1,12,1.4,0x3a2412,1);b(T,29.5,20,-30,10,1,1.4,0x3a2412,1);
+// stone sill (it juts out under the frame) and lintel with a keystone, so the window is set into the wall instead of cut out of it
+b(T,29.5,12.35,-30.6,14.4,1.1,3.4,0x8a8174,2);b(T,29.5,11.75,-30.2,15.2,.4,3.8,0x6a6258,2);
+b(T,29.5,27.65,-31,14.4,1.1,2.2,0x8a8174,2);b(T,29.5,28.6,-30.8,3,1.8,2.6,0x9a9080,2);
+// a pale wash of moonlight falling into the room
+var moon=new THREE.PointLight(0x7f9bff,.55,48);moon.position.set(29.5,19,-24);S.add(moon);
 // banner
 b(T,-26,31,-29.8,8,1,1.4,0x3a2412,1);b(T,-26,24,-29.8,6,12,.6,0x8f2a25,1);b(T,-26,24,-29.4,2.4,2.4,.4,0xf0b94d,1);b(T,-26,17.5,-29.8,2,1.2,.6,0x8f2a25,1);
 // beams and posts

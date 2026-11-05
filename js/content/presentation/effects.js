@@ -44,6 +44,24 @@ E.registerAll([
   fx('fx-surge','Second Wind surge',[
     {type:'burst',count:30,speed:[14,36],spread:3.2,lift:1.2,life:[.7,1.4],size:[.6,1.2],end:0,colors:[0x8dffb0,0xfff0a0,0xffffff],glow:true,gravity:-18,drag:1,y:2,radius:5,stagger:.5,keepColor:true},
     {type:'ring',from:2,to:16,dur:.8,color:0xa8ffc0,opacity:.8},{type:'ring',from:2,to:11,dur:.6,color:0xfff0a0,opacity:.6,delay:.12},{type:'light',color:0xa0ffc0,intensity:2.2,dur:1,y:10}]),
+  /* Action Surge: the charge draws in around the fighter, then breaks upward in a column of gold and white with a cold blue ring behind it */
+  fx('fx-surge-charge','Action Surge charge',[
+    {type:'ring',from:17,to:2,dur:.32,color:0xffe08a,opacity:.8},{type:'ring',from:12,to:2,dur:.28,color:0xffffff,opacity:.6,delay:.05},
+    {type:'burst',count:16,speed:[8,18],spread:3.2,lift:.3,life:[.25,.4],size:[.5,.9],end:0,colors:[0xfff2b0,0xffd24a],glow:true,gravity:0,drag:3,y:6,radius:15,keepColor:true},
+    {type:'light',color:0xffe08a,intensity:1.4,dur:.35,y:6}]),
+  fx('fx-action-surge','Action Surge',[
+    {type:'column',count:34,speed:[26,70],spread:.55,lift:2.6,life:[.5,1.1],size:[.8,1.7],end:0,colors:[0xfff2b0,0xffd24a,0xffffff,0x9fe0ff],glow:true,gravity:-30,drag:1,y:1,radius:4,stagger:.3,keepColor:true},
+    {type:'burst',count:30,speed:[30,80],spread:3.2,lift:.5,life:[.4,.9],size:[.6,1.3],end:0,colors:[0xffffff,0xffd24a,0xffa64a],glow:true,gravity:25,drag:1.6,y:8,keepColor:true},
+    {type:'ring',from:2,to:21,dur:.5,color:0xffe08a,opacity:.95},{type:'ring',from:2,to:14,dur:.4,color:0xffffff,opacity:.8,delay:.08},
+    {type:'ring',from:4,to:28,dur:.85,color:0x9fe0ff,opacity:.5,delay:.18},{type:'light',color:0xffe08a,intensity:3.2,dur:1,y:12,range:120}]),
+  /* Tactical Mind: a halo of cool light over the fighter's head and a few sparks that rise; the failure variant is a dull fizzle */
+  fx('fx-tactical-mind','Tactical Mind',[
+    {type:'ring',from:3,to:10,dur:.55,color:0x9fe0ff,opacity:.85,y:22},{type:'ring',from:2,to:7,dur:.45,color:0xffe08a,opacity:.7,y:22,delay:.1},
+    {type:'burst',count:16,speed:[8,24],spread:3.2,lift:1,life:[.5,1],size:[.5,1],end:0,colors:[0x9fe0ff,0xffffff,0xffe08a],glow:true,gravity:-10,drag:1.4,y:21,radius:3,keepColor:true},
+    {type:'light',color:0x9fe0ff,intensity:1.8,dur:.7,y:22}]),
+  fx('fx-tactical-mind-fail','Tactical Mind, not enough',[
+    {type:'burst',count:8,speed:[6,16],spread:3.2,lift:.5,life:[.4,.8],size:[.5,.9],end:0,colors:[0x8a98a8,0xb4c0cc],glow:false,gravity:10,drag:2,y:21,radius:3,keepColor:true},
+    {type:'ring',from:3,to:7,dur:.4,color:0x8a98a8,opacity:.5,y:22}]),
   fx('fx-star','Heroic Inspiration',[
     {type:'burst',count:26,speed:[30,75],spread:3.2,lift:.5,life:[.5,1],size:[.6,1.2],end:0,colors:GOLD,glow:true,gravity:10,drag:1.8,y:16,keepColor:true},
     {type:'ring',from:2,to:15,dur:.55,color:0xffe08a,opacity:.8,y:16},{type:'light',color:0xffe08a,intensity:2.4,dur:.8,y:16}]),

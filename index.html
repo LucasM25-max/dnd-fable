@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/hud.css">
 <link rel="stylesheet" href="css/hud-combat.css">
 <link rel="stylesheet" href="css/presentation.css">
+<link rel="stylesheet" href="css/levelup.css">
 </head>
 <body>
 <canvas id="c" aria-label="Dicebound 3D view"></canvas>
@@ -17,7 +18,7 @@
 <div class="fade"></div>
 <div id="ui">
   <header class="top">
-    <div class="prof"><div class="ava"></div><div><div class="nm st" id="pf-name"></div><div class="xpb"><i id="pf-xp"></i></div><small id="pf-sub"></small></div><div class="lv st" id="pf-lv"></div></div>
+    <div class="prof"><div class="ava"></div><div><div class="nm st" id="pf-name"></div><div class="xpb"><i id="pf-xp"></i></div><small id="pf-sub"></small><button type="button" class="lvup" id="pf-levelup" hidden>Level up</button></div><div class="lv st" id="pf-lv"></div></div>
     <div class="logo st">Dicebound</div>
     <div class="tr">
       <button class="pill" id="pf-gold" type="button" aria-label="Gold. Open the Store"><span class="coin"></span><b class="st" id="pf-gp"></b><span class="plus">+</span></button>
@@ -82,6 +83,7 @@
 <script src="js/character/shop.js"></script>
 <script src="js/character/sheet.js"></script>
 <script src="js/character/rest.js"></script>
+<script src="js/character/levelup.js"></script>
 <script src="js/rules/statblock.js"></script>
 <script src="js/rules/status.js"></script>
 <script src="js/rules/handlers.js"></script>
@@ -100,10 +102,12 @@
 <script src="js/content/content-manifest.js"></script>
 <script src="js/content/content-groups.js"></script>
 <script src="js/content/content-loader.js"></script>
+<script src="js/menu/tavern-layout.js"></script>
 <script src="js/menu/tavern.js"></script>
 <script src="js/menu/store-stage.js"></script>
 <script src="js/menu/store-previews.js"></script>
 <script src="js/menu/shop-ui.js"></script>
+<script src="js/menu/levelup-ui.js"></script>
 <script src="js/menu/encounter-preview.js"></script>
 <script src="js/menu/menu-ui.js"></script>
 <script src="js/menu/menu-scene.js"></script>

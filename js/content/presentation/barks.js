@@ -18,13 +18,15 @@ Fable.content.barks.registerAll([
   victory:['Shiny! Shiny!','He is down! He is down!','We win!'],
   taunt:['Hee hee hee!','Come on then!']}},
 {id:'fighter-barks',name:'Fighter barks',source:'original',profile:'human-fighter',voices:{a:'voice-hero-effort',cheer:'voice-hero-cheer'},
- chance:{attack:.12,hit:.1,down:1,victory:1,heal:.6,inspire:.7},
+ chance:{attack:.12,hit:.1,down:1,victory:1,heal:.6,inspire:.7,surge:.85,mind:.7},
  lines:{
   attack:['Hah!','Take that!','For the road!'],
   hit:['Down!','Stay down!'],
   down:['Not... yet...'],
   victory:['The clearing is ours.','Quiet again.'],
   heal:['Steady... steady.','Breathe.'],
-  inspire:['One more chance!','Not today!']}}
+  inspire:['One more chance!','Not today!'],
+  surge:['Again!','Not done yet!','No limits!'],
+  mind:['There. I see it.','Think. Look again.','Got you.']}}
 ]);
 })();

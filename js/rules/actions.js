@@ -63,7 +63,11 @@ Cb.actionState=function(s,c,id,opts){
   if(!slotFree(c.economy,a.cost))return no(SLOT_WORD[a.cost]+' already used');
   var heals=(a.effects||[]).some(function(e){return e.type==='heal'});
   if(heals&&c.hp.current>=c.hp.max)return no('Already at full hit points');
-  if(id==='dash'&&c.economy.dashes>=1)return no('Already dashed this turn');
+  if(id==='dash'&&c.economy.dashes>=1+(c.economy.surges||0))return no('Already dashed this turn');
+  if(id==='action-surge'){
+    if((c.economy.surges||0)>=1)return no('Only once on a turn');
+    if(!c.economy.action)return no('Spend your Action first, then surge for another');
+  }
   if(id==='hide'||(id==='nimble-escape'&&opts&&opts.choice==='hide')){
     var hc=Fable.senses?Fable.senses.hideCheck(s,c):{ok:false,reason:'Nowhere to hide here'};
     if(!hc.ok)return no(hc.reason);
@@ -90,6 +94,14 @@ Cb.useAction=function(s,c,id,opts){
   }else if(a.consumes)Cr().setResource(c,a.consumes.resource,c.resources[a.consumes.resource].current-a.consumes.amount);
   var res={ok:true,type:'action',id:id,name:a.name,creature:{id:c.id,name:c.name,team:c.team},cost:a.cost,heal:null,statuses:[],text:'',item:a.consumes&&a.consumes.item||null};
   var kind=id==='nimble-escape'?opts.choice:id;
+  if(id==='action-surge'){
+    /* the Action comes back whole: a new Attack action starts from nothing (no attacks made, no Light weapon used) */
+    var sg=Fable.handlers.fire(s,c,'onActionUse',{actionId:id}).filter(function(f){return f.entry.action===id})[0];
+    if(sg&&sg.result.extraAction){
+      e.action=false;e.attackAction=false;e.attacksUsed=0;e.lightAttack=false;e.extraUsed=false;e.surges=(e.surges||0)+1;
+      res.surge=true;res.text=sg.result.text;
+    }
+  }
   if(id==='nimble-escape'){res.choice=kind;res.text=''}
   if(kind==='hide'){
     var h=Fable.senses.hide(s,c);

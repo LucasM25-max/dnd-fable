@@ -1,6 +1,6 @@
 /* Fighter (SRD 5.2.1, "Fighter", pp. 47-48, and "Step 1: Choose Class", p. 19).
    features lists the table's class features at each level 1 to 20 (a repeated id, such as Ability Score Improvement,
-   means the player gets it again). Only level 1 is implemented, which implementedLevel records; the validator
+   means the player gets it again). Levels 1 and 2 are implemented, which implementedLevel records; the validator
    rejects a stub feature at or below that level. subclasses stays empty until Champion arrives in Phase 10.
    Proficiency Bonus is the same for every class, so it lives in rules-core/progression.js. */
 (function(){
@@ -42,7 +42,7 @@ C.classes.register({
     19:['epic-boon'],
     20:['three-extra-attacks']
   },
-  implementedLevel:1,
+  implementedLevel:2,
   subclassLevel:3,
   subclasses:[],
   spellcasting:null

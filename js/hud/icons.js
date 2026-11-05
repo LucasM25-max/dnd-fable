@@ -29,6 +29,8 @@ var P={
   potion:'<path d="M9.500 2.500h5v1.800h-1V8c3 1.200 5 3.800 5 7 0 3.600-2.900 6.500-6.500 6.500S5.500 18.600 5.500 15c0-3.200 2-5.800 5-7V4.300h-1z"/><path d="M8 14.500c1.500-1 3.500 1 8 0v1.500c0 2.500-1.800 4.500-4 4.500s-4-2-4-4.500z" fill="#000" opacity=".4"/>',
   pin:'<path d="M9 2h6l-1 6 3 3v2h-4v7l-1 2-1-2v-7H7v-2l3-3z"/>',
   chevron:'<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="square"/>',
+  surge:'<path d="M14 1.500 5 13.500h5.500L9 22.500l10-13h-5.800z"/><path d="M3 5.500h4M2 9.500h3M19 15.500h3M18 19.500h4" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="square"/>',
+  mind:'<path d="M12 2.500a7 7 0 0 0-4 12.800V18h8v-2.700A7 7 0 0 0 12 2.500z"/><path d="M9 20.500h6M10 22.500h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/><path d="M12 6v5l2.500 2" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="1.600" stroke-linecap="square"/>',
   check:'<path d="M3.500 12.500 9 18 20.500 6.500 19 5 9 15 5 11z"/>'
 };
 Fable.hudIcons={

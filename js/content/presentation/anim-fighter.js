@@ -117,6 +117,21 @@ A.registerAll([
   clip('fighter-second-wind','Fighter second wind',1.2,{layer:'upper',plant:false,tracks:{
     armR:{rotX:[D(0,0),D(.4,-1.3,'outQuad'),D(.8,-1.2),D(1.2,0)]},torso:{rotX:[D(0,0),D(.5,-.18),D(.9,-.25),D(1.2,0)]},
     head:{rotX:[D(0,0),D(.5,-.3),D(1.2,0)]},root:{posY:[D(0,0),D(.7,.5,'outSine'),D(1.2,0)]}},events:[{t:.5,cue:'gulp'},{t:.85,cue:'surge'}]}),
+  /* Action Surge: the fighter drops into a crouch and gathers, then drives upward with both arms flung wide as the surge breaks, and settles */
+  clip('fighter-action-surge','Fighter action surge',1.15,{layer:'upper',plant:false,tracks:{
+    root:{posY:[D(0,0),D(.3,-1.5,'outCubic'),D(.5,2.4,'outBack'),D(.8,.4,'inOutSine'),D(1.15,0)],posZ:[D(0,0),D(.3,-.6),D(.5,.8),D(1.15,0)]},
+    torso:{rotX:[D(0,0),D(.3,.3,'outCubic'),D(.5,-.32,'outBack'),D(.85,-.12),D(1.15,0)]},
+    head:{rotX:[D(0,0),D(.3,.18),D(.5,-.3,'outBack'),D(.85,-.1),D(1.15,0)]},
+    armR:{rotX:[D(0,0),D(.3,.55,'outCubic'),D(.5,-2.5,'outBack'),D(.85,-1.6),D(1.15,0)],rotZ:[D(0,0),D(.3,-.2),D(.5,-.5),D(1.15,0)]},
+    armL:{rotX:[D(0,0),D(.3,.45,'outCubic'),D(.5,-2.2,'outBack'),D(.85,-1.4),D(1.15,0)],rotZ:[D(0,0),D(.3,.2),D(.5,.5),D(1.15,0)]},
+    legL:{rotX:[D(0,0),D(.3,.45),D(.5,-.1),D(1.15,0)]},legR:{rotX:[D(0,0),D(.3,-.4),D(.5,.1),D(1.15,0)]},
+    cape:{rotX:[D(0,0),D(.3,.2),D(.5,.95),D(.9,.5),D(1.15,0)]}},events:[{t:.3,cue:'gather'},{t:.5,cue:'surge'}]}),
+  /* Tactical Mind: a breath, the head lifts and a hand comes up to the temple for a beat, then the stance relaxes */
+  clip('fighter-tactical-mind','Fighter thinks it through',.9,{layer:'upper',plant:false,tracks:{
+    head:{rotX:[D(0,0),D(.25,-.2),D(.6,-.12),D(.9,0)],rotY:[D(0,0),D(.3,.28),D(.65,.1),D(.9,0)]},
+    torso:{rotX:[D(0,0),D(.3,-.08),D(.9,0)]},
+    armR:{rotX:[D(0,0),D(.28,-1.9,'outCubic'),D(.65,-1.8),D(.9,0)],rotZ:[D(0,0),D(.28,-.25),D(.65,-.25),D(.9,0)]},
+    root:{posY:[D(0,0),D(.3,.4,'outSine'),D(.9,0)]}},events:[{t:.3,cue:'think'}]}),
   clip('fighter-swap','Fighter changes weapons',.9,{layer:'upper',plant:false,tracks:{
     armR:{rotX:[D(0,0),D(.25,.3),D(.45,-.9),D(.9,0)]},armL:{rotX:[D(0,0),D(.25,.2),D(.45,-.6),D(.9,0)]},
     torso:{rotY:[D(0,0),D(.25,-.2),D(.5,.1),D(.9,0)]},head:{rotX:[D(0,0),D(.3,.2),D(.9,0)]}},events:[{t:.4,cue:'swap'}]}),

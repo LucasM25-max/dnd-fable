@@ -8,7 +8,7 @@ P.registerAll([
  stepSound:'sfx-step-armor',stepFx:'fx-step',runStepFx:'fx-run-dust',
  clips:{walk:'fighter-walk',run:'fighter-run',idle:'fighter-idle-a',idleDagger:'fighter-idle-b',hitLight:'fighter-hit-light',hitHeavy:'fighter-hit-heavy',
    dodge:'fighter-dodge',block:'fighter-block',down:'fighter-down',getup:'fighter-getup',prone:'fighter-prone',victory:'fighter-victory',
-   secondWind:'fighter-second-wind',swap:'fighter-swap',brace:'fighter-brace',guard:'fighter-guard',disengage:'fighter-disengage',dash:'fighter-dash',flinch:'fighter-flinch'},
+   secondWind:'fighter-second-wind',actionSurge:'fighter-action-surge',tacticalMind:'fighter-tactical-mind',swap:'fighter-swap',brace:'fighter-brace',guard:'fighter-guard',disengage:'fighter-disengage',dash:'fighter-dash',flinch:'fighter-flinch'},
  effects:{death:'fx-death',land:'fx-thud'},
  sounds:{hit:'sfx-hit',block:'sfx-block'},
  attacks:{
