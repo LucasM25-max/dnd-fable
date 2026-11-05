@@ -3,10 +3,11 @@
    each step, the performance bonuses are listed one after the other with the ones that were not earned struck out, and any items that
    dropped are named. A defeat gives nothing and says so. It is built on a prompt (prompts.js), so the same keys and focus rules apply.
 
-   hud.showResults(result, {rows, choices, onChoose, sound})
+   hud.showResults(result, {rows, choices, onChoose, sound, levelReady, instant})
      result   the object from Fable.rewards.compute
      rows     [[label, value]] extra lines (Rounds, Hit points left)
      choices  the buttons, as hud.prompt takes them          sound(id)   plays a sound by id (the coin tick)
+     levelReady  the level the hero can now take (the Level up line), or nothing        instant  show the finished tally at once
    Reduced motion shows every number at once. */
 (function(){
 Fable.hudModules.results=function(hud){
@@ -16,13 +17,13 @@ Fable.hudModules.results=function(hud){
   function n(v){return String(v).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
   function itemName(id){var it=Fable.content.items&&Fable.content.items.get(id);return it?it.name:id}
 
-  function xpBlock(r){
+  function xpBlock(r,ctx){
     var p=r.progress,b=p.before,a=p.after,max=a.nextLevelXp===null;
     var line=max?'Level '+a.level+' (maximum)':'Level '+a.level+'  -  '+n(a.intoLevel)+' / '+n(a.nextLevelXp-a.levelStartXp)+' XP';
     return '<section class="rs-sec xp"><div class="rs-h"><span>Experience</span><b>+'+n(r.xp)+' XP</b></div>'+
       '<div class="rs-bar" role="img" aria-label="'+hud.escape('Experience: '+line)+'"><i style="width:'+Math.round(b.fraction*100)+'%"></i></div>'+
       '<div class="rs-sub"><span class="rs-lv">'+hud.escape(line)+'</span>'+
-      (p.levelsGained>0?'<span class="rs-up" hidden>Level up! Level '+a.level+' reached</span>':'')+'</div></section>';
+      (ctx&&ctx.levelReady?'<span class="rs-up" hidden>Level up! Level '+ctx.levelReady+' ready</span>':'')+'</div></section>';
   }
   function goldBlock(r){
     var lines='<li><span>'+hud.escape(r.tier.name)+' difficulty</span><b>x'+r.tier.multiplier+'</b></li>';
@@ -43,9 +44,9 @@ Fable.hudModules.results=function(hud){
   hud.showResults=function(r,ctx){
     stop();
     ctx=ctx||{};
-    var calm=Fable.hudSettings.reducedMotion(),win=r.win;
+    var calm=!!ctx.instant||Fable.hudSettings.reducedMotion(),win=r.win;
     var html='<div class="rs">'+
-      (win?xpBlock(r)+goldBlock(r)+itemsBlock(r):'<p class="rs-none">No experience or gold is earned in a defeat.</p>')+
+      (win?xpBlock(r,ctx)+goldBlock(r)+itemsBlock(r):'<p class="rs-none">No experience or gold is earned in a defeat.</p>')+
       (ctx.rows&&ctx.rows.length?'<ul class="prrows">'+ctx.rows.map(function(x){return '<li><span>'+hud.escape(x[0])+'</span><b>'+hud.escape(x[1])+'</b></li>'}).join('')+'</ul>':'')+
       '</div>';
     var title=win?'Victory':'Defeat';
@@ -87,6 +88,8 @@ Fable.hudModules.results=function(hud){
           }else bar.style.width=Math.round(p.after.fraction*100)+'%';
         },450);
         later(countGold,p.levelsGained>0?1500:900);
+        /* a level that is ready is announced even when the bar did not cross a level in this fight (it was earned in an earlier one) */
+        later(function(){if(up&&up.hidden){up.hidden=false;sound('sfx-star')}},p.levelsGained>0?1700:1400);
       }});
   };
   hud.stopResults=stop;

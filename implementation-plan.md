@@ -1449,6 +1449,7 @@ Each phase ends in something verifiable. Combat is turn based from the start, an
 
 **Phase 10: Level up and more content**
 - Level up flow, multiclass groundwork, Fighter levels 2 to 5 (Action Surge, Tactical Mind, subclass, ASI feat, Extra Attack), Champion subclass, a second class to prove the data model (recommended: Rogue or Cleric).
+  - Status: Fighter level 2 and the level up flow are built (`js/character/levelup.js`, `js/menu/levelup-ui.js`, Action Surge, Tactical Mind, `implementedLevel:2`). Levels 3 to 5, the Champion subclass, multiclassing and the second class remain.
 - Done when: a second class and a second species are added by data files only.
 
 **Phase 11: Builder UI and persistence**

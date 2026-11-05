@@ -20,7 +20,7 @@ function sgn(n){return (n<0?'-':'+')+Math.abs(n)}
 
 var ICONS={
   longsword:'sword',dagger:'dagger',javelin:'javelin','unarmed-strike':'fist',
-  move:'move','second-wind':'heart',dash:'boots',disengage:'step',dodge:'guard','swap':'swap',hide:'hide',search:'search',pickup:'pickup'
+  move:'move','second-wind':'heart','action-surge':'surge',dash:'boots',disengage:'step',dodge:'guard','swap':'swap',hide:'hide',search:'search',pickup:'pickup'
 };
 function iconFor(a){
   if(a.mode==='thrown')return a.item==='dagger'?'throw-dagger':'throw-javelin';
@@ -302,7 +302,11 @@ M.logEntry=function(e,s){
       var a=e.result;
       if(a.hide&&a.creature.team!=='player')return {tone:'info',text:a.creature.name+(a.hide.success?' slips out of sight.':' tries to hide, but is seen.')};
       if(a.search&&a.creature.team!=='player')return {tone:'info',text:a.creature.name+' searches the clearing.'};
-      return {tone:a.heal?'heal':'info',text:a.creature.name+' uses '+a.name+(a.text?': '+a.text+'.':'.')};
+      return {tone:a.heal?'heal':a.surge?'crit':'info',text:a.creature.name+' uses '+a.name+(a.text?': '+a.text+'.':'.')};
+    }
+    case 'tactical-mind':{
+      var tm=e.result;
+      return {tone:tm.success?'heal':'miss',text:nm(s,e.id)+' - '+tm.text+'.'};
     }
     case 'swap':return {tone:'info',text:e.result.creature.name+' changes gear.'};
     case 'status':return e.change==='added'&&e.status?{tone:'info',text:nm(s,e.id)+' is '+e.status.name+'.'}:null;

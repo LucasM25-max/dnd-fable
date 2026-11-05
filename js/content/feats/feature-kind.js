@@ -36,8 +36,8 @@ var ID_RE=/^[a-z0-9]+(-[a-z0-9]+)*$/;
 var HANDLER_RE=/^[a-z][a-z0-9]*(-[a-z0-9]+)*\.[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 var COSTS=['action','bonus','reaction','free','none'];
 var TARGETING=['self','creature','point','area','none'];
-/* The events combat will emit (plan section 6.3), plus onInitiative (Alert) and onRoll (Heroic Inspiration rerolls). */
-var EVENTS=['onAttackRoll','onHit','onMiss','onDamageRoll','onTurnStart','onTurnEnd','onSavingThrow','onShortRest','onLongRest','onInitiative','onRoll'];
+/* The events combat will emit (plan section 6.3), plus onInitiative (Alert), onRoll (Heroic Inspiration rerolls), onActionUse (Action Surge) and onAbilityCheck (Tactical Mind). */
+var EVENTS=['onAttackRoll','onHit','onMiss','onDamageRoll','onTurnStart','onTurnEnd','onSavingThrow','onShortRest','onLongRest','onInitiative','onRoll','onActionUse','onAbilityCheck'];
 var EFFECT_TYPES=['modifier','heal','damage','advantage','disadvantage','handler'];
 var OPS=['base','set','add','min','max'];
 var BASE_STATS=['ac','speed','initiative','hp-max','hp-per-level','proficiency-bonus','passive-perception','attack','damage'];

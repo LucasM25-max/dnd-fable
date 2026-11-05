@@ -120,10 +120,11 @@ module.exports=function({suite,test}){
       const gp=Fable.money.toCp(C.classes.get('fighter').startingEquipment.options[2].gold)+Fable.money.toCp(C.backgrounds.get('soldier').startingEquipment.options[1].gold);
       assert.strictEqual(gp,20500);
     });
-    test('level 1 grants Fighting Style, Second Wind and Weapon Mastery',async()=>{
+    test('level 1 grants Fighting Style, Second Wind and Weapon Mastery; level 2 adds Action Surge and Tactical Mind',async()=>{
       const f=(await H.loadData()).classes.get('fighter');
       assert.deepStrictEqual(f.features[1],['fighter-fighting-style','second-wind','weapon-mastery']);
-      assert.strictEqual(f.implementedLevel,1);
+      assert.deepStrictEqual(f.features[2],['action-surge','tactical-mind']);
+      assert.strictEqual(f.implementedLevel,2);
     });
     test('the level table runs to 20 and matches the SRD Fighter Features table',async()=>{
       const f=(await H.loadData()).classes.get('fighter');
@@ -141,13 +142,15 @@ module.exports=function({suite,test}){
       [7,10,15,18].forEach(lv=>assert.deepStrictEqual(names(lv),['Fighter Subclass Feature']));
       assert.deepStrictEqual(names(3),['Fighter Subclass']);
     });
-    test('only the level 1 features are implemented; every later one is a labelled stub',async()=>{
-      const C=await H.loadData(),f=C.classes.get('fighter');
+    test('only the level 1 and 2 features are implemented; every later one is a labelled stub',async()=>{
+      const C=await H.loadData(),f=C.classes.get('fighter'),first={};
+      Object.keys(f.features).map(Number).sort((a,b)=>a-b).forEach(lv=>f.features[lv].forEach(id=>{if(first[id]===undefined)first[id]=lv}));
       Object.keys(f.features).forEach(lv=>f.features[lv].forEach(id=>{
         const feat=C.features.get(id);
-        assert.strictEqual(feat.status==='stub',Number(lv)>f.implementedLevel,id+' at level '+lv);
+        /* a feature that comes back at a later level (Action Surge at 17) is judged by the level it first arrives */
+        assert.strictEqual(feat.status==='stub',first[id]>f.implementedLevel,id+' at level '+lv);
       }));
-      assert.strictEqual(C.features.filter(x=>x.status==='stub').length,13);
+      assert.strictEqual(C.features.filter(x=>x.status==='stub').length,11);
     });
     test('Fighting Style offers every Fighting Style feat and recommends Defense',async()=>{
       const C=await H.loadData();
@@ -312,8 +315,8 @@ module.exports=function({suite,test}){
       assert.throws(()=>C.subclasses.register({id:'sc',name:'SC',source:'t',description:'d',class:'fighter',features:{}}),/features/);
       const t=C.validate().errors.join('\n');
       assert.match(t,/Background "b-[a-z0-9]+": originFeat "defense" must be an Origin feat/);
-      cl({implementedLevel:2});
-      assert.match(C.validate().errors.join('\n'),/is a stub but the class says level 2 is implemented/);
+      cl({implementedLevel:3});
+      assert.match(C.validate().errors.join('\n'),/is a stub but the class says level 3 is implemented/);
     });
     test('a subclass must be listed by its class, and belong to it',async()=>{
       const C=await world();

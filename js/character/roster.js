@@ -11,11 +11,15 @@
    Fable.character.roster.onChange(fn)       fn(id, sheet) runs after every change; returns a function that removes it
 
    Progress (Phase 9): what a hero earns outlives the page. XP, the purse and what is carried are saved to localStorage as an overlay on
-   the shipped build, so a content update still reaches a saved hero. Loadouts and the rest start fresh each visit.
+   the shipped build, so a content update still reaches a saved hero. The level (classLevels) is saved too, once the player has taken it.
+   Loadouts and the rest start fresh each visit.
    Fable.character.roster.grant(id, {xp, cp, items:[{item, qty}]})   pay a reward; returns {ok, sheet}
    Fable.character.roster.consume(id, {itemId: count})               take used up items out of the pack
    Fable.character.roster.purchase(id, shopId, itemId, qty) / sell(id, shopId, itemId, qty)   the Store; returns the inventory result
    Fable.character.roster.xp(id)             total XP         Fable.character.roster.purseCp(id)   money in copper
+   Fable.character.roster.levelStatus(id)    {level, earnedLevel, ready, blocked, reason ...} (Fable.character.levelup.status)
+   Fable.character.roster.levelPreview(id)   what the next level brings, or null
+   Fable.character.roster.levelUp(id)        take the next level: {ok, build, preview, sheet} or {ok:false, reasons}; the level is saved
    Victory animations (Fable.content.victoryAnimations): the hero owns the free ones and any bought; one is picked.
    Fable.character.roster.victory(id)        the picked id      .setVictory(id, vid)   .victoriesOwned(id)   .buyVictory(id, vid)
    Fable.character.roster.save() / forget()  write the progress now / delete the saved progress */
@@ -36,6 +40,14 @@ function overlay(id,base){
   if(!p||typeof p!=='object')return base;
   var b=clone(base);
   if(Number.isInteger(p.xp)&&p.xp>=0)b.xp=p.xp;
+  /* a saved level: the same single class as the shipped build, a level the class has rules for, and a build the rules accept */
+  if(Array.isArray(p.classLevels)&&p.classLevels.length===1&&b.classLevels.length===1){
+    var sl=p.classLevels[0],bl=b.classLevels[0],cdef=Fable.content.classes&&Fable.content.classes.get(bl.class);
+    if(sl&&sl.class===bl.class&&cdef&&Number.isInteger(sl.level)&&sl.level>=bl.level&&sl.level<=cdef.implementedLevel&&(sl.hp==='average'||sl.hp==='max')){
+      var t0=Ch.normalize(Object.assign(clone(b),{classLevels:[{class:sl.class,level:sl.level,hp:sl.level===1?bl.hp:'average'}]}));
+      if(Ch.checkRecord(t0).every(function(i){return i.severity!=='error'}))b.classLevels=t0.classLevels;
+    }
+  }
   if(p.currency&&typeof p.currency==='object'&&!Array.isArray(p.currency)&&Ch.checkRecord(Ch.normalize(Object.assign(clone(b),{currency:p.currency}))).every(function(i){return i.severity!=='error'}))b.currency=p.currency;
   if(Array.isArray(p.inventory)){
     var t=Ch.normalize(Object.assign(clone(b),{inventory:p.inventory}));
@@ -55,7 +67,7 @@ function profileOf(id){
 }
 R.save=function(){
   var heroes={};
-  Object.keys(builds).forEach(function(id){heroes[id]={xp:builds[id].xp,currency:builds[id].currency,inventory:builds[id].inventory}});
+  Object.keys(builds).forEach(function(id){heroes[id]={xp:builds[id].xp,currency:builds[id].currency,inventory:builds[id].inventory,classLevels:builds[id].classLevels}});
   Object.keys(profiles).forEach(function(id){heroes[id]=Object.assign(heroes[id]||{},{victory:{owned:profiles[id].owned,selected:profiles[id].selected}})});
   try{
     var old=readStore();
@@ -86,6 +98,15 @@ R.swap=function(id,loadoutId,opts){
   return r;
 };
 R.xp=function(id){return R.build(id).xp||0};
+R.levelStatus=function(id){return Ch.levelup.status(R.build(id))};
+R.levelPreview=function(id){return Ch.levelup.preview(R.build(id))};
+R.levelUp=function(id){
+  var r=Ch.levelup.apply(R.build(id));
+  if(!r.ok)return r;
+  builds[id]=r.build;R.save();
+  r.sheet=changed(id);
+  return r;
+};
 R.purseCp=function(id){return Ch.inventory.purseCp(R.build(id))};
 R.grant=function(id,g){
   var b=R.build(id),I=Ch.inventory;

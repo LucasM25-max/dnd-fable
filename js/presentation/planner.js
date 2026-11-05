@@ -177,6 +177,22 @@ Fable.createPlanner=function(o){
       cues.push({t:s,type:'call',name:'flash',who:W.id,color:0x8dffb0,dur:.4,strength:.7});
       cues.push({t:s+.05,type:'bark',who:W.id,situation:'heal'});
       hud(s);d=s+.55;
+    }else if(id==='action-surge'&&cl.actionSurge){
+      /* the Action comes back: the fighter gathers, the surge breaks upward, and the world slows for a beat to let it land */
+      var g0=.05+evt(cl.actionSurge,'gather',.3),sg=.05+evt(cl.actionSurge,'surge',.5);
+      cues.push({t:0,type:'camera',op:'shot',who:[W.id],dist:.7,pitch:-.06,in:.28,hold:1.2,out:.5,tag:'surge'});
+      cues.push({t:.05,type:'anim',who:W.id,clip:cl.actionSurge});
+      cues.push({t:Math.max(0,g0-.28),type:'vfx',fx:'fx-surge-charge',at:'who',who:W.id,y:0});
+      cues.push({t:Math.max(0,g0-.28),type:'sfx',id:'sfx-surge-charge',who:W.id});
+      cues.push({t:sg-.04,type:'time',op:'slow',scale:.5,dur:.45});
+      cues.push({t:sg,type:'vfx',fx:'fx-action-surge',at:'who',who:W.id,y:0});
+      cues.push({t:sg,type:'sfx',id:'sfx-action-surge',who:W.id});
+      cues.push({t:sg,type:'camera',op:'punch',fov:.04,dur:.45});
+      cues.push({t:sg,type:'camera',op:'shake',amp:.5,dur:.25});
+      cues.push({t:sg,type:'screen',op:'flash',color:'#fff0c0',alpha:.22,dur:.45});
+      cues.push({t:sg,type:'call',name:'flash',who:W.id,color:0xffe08a,dur:.5,strength:.85});
+      cues.push({t:sg+.06,type:'bark',who:W.id,situation:'surge'});
+      hud(sg);d=sg+.7;
     }else if(r.heal){
       cues.push({t:0,type:'vfx',fx:'fx-heal',at:'who',who:W.id,y:0});cues.push({t:0,type:'sfx',id:'sfx-heal',who:W.id});hud(.3);d=.9;
     }else if(id==='dodge'&&(cl.guard||cl.brace)){
@@ -203,6 +219,22 @@ Fable.createPlanner=function(o){
       cues.push({t:0,type:'sfx',id:'sfx-status',who:W.id,gain:.7});hud(0);d=.35;
     }
     return mk('action',cues,d,'action');
+  }
+  /* Tactical Mind: the fighter looks again at a failed check; a success lights up, a miss only fizzles (and the Second Wind use is kept) */
+  function tacticalMind(e){
+    var r=e.result,W=who(e.id),P=W.profile||{},cl=P.clips||{},ok=!!r.success;
+    var cues=[{t:0,type:'camera',op:'shot',who:[W.id],dist:.74,pitch:-.05,in:.25,hold:.95,out:.45,tag:'mind'}];
+    if(cl.tacticalMind)cues.push({t:.05,type:'anim',who:W.id,clip:cl.tacticalMind});
+    var th=.05+evt(cl.tacticalMind,'think',.3);
+    cues.push({t:th,type:'vfx',fx:ok?'fx-tactical-mind':'fx-tactical-mind-fail',at:'who',who:W.id,y:0});
+    cues.push({t:th,type:'sfx',id:ok?'sfx-mind':'sfx-mind-fail',who:W.id});
+    if(ok){
+      cues.push({t:th,type:'camera',op:'punch',fov:.02,dur:.3});
+      cues.push({t:th,type:'call',name:'flash',who:W.id,color:0x9fe0ff,dur:.35,strength:.5});
+      cues.push({t:th+.05,type:'bark',who:W.id,situation:'mind'});
+    }
+    cues.push({t:th,type:'hud',hook:'tactical-mind',e:e,essential:true});
+    return mk('tactical-mind',cues,th+.6,'mind');
   }
   function swap(e){
     var r=e.result,W=who(e.id),P=W.profile||{},c=reaction(P,'swap');
@@ -303,7 +335,7 @@ Fable.createPlanner=function(o){
 
   var handlers={
     attack:function(e){return attack(e.result)},
-    down:down,action:action,swap:swap,status:status,deathsave:deathsave,turnstart:turnstart,over:over,start:start,
+    down:down,action:action,'tactical-mind':tacticalMind,swap:swap,status:status,deathsave:deathsave,turnstart:turnstart,over:over,start:start,
     round:simple('round'),dead:simple('dead'),drop:drop,pickup:pickup,morale:morale,recovered:simple('recovered')
   };
   return {

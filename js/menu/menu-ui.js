@@ -108,13 +108,23 @@ function drawLoadouts(sheet){
 function drawProfile(){
   var def=Fable.content.characters.get(heroId);
   if(!def||!def.build)return;
-  var R=Fable.character.roster,b=R.build(heroId),p=Fable.tables.xpProgress(R.xp(heroId));
+  var R=Fable.character.roster,b=R.build(heroId),lu=R.levelStatus(heroId),xp=R.xp(heroId);
   function set(id,t){var n=document.getElementById(id);if(n)n.textContent=t}
   var cls=(b.classLevels&&b.classLevels[0]&&b.classLevels[0].class)||'';
   cls=cls.replace(/(^|-)(\w)/g,function(m,a,c){return (a?' ':'')+c.toUpperCase()});
-  set('pf-name',b.name||def.name||'');set('pf-lv',String(p.level));
-  set('pf-sub',cls+', level '+p.level+(p.nextLevelXp===null?' (maximum)':' ('+p.xp.toLocaleString('en-GB')+' / '+p.nextLevelXp.toLocaleString('en-GB')+' XP)'));
-  var bar=document.getElementById('pf-xp');if(bar)bar.style.width=Math.round(p.fraction*100)+'%';
+  /* the level is the one the hero has taken; the XP bar runs toward the next one, and a level that is earned waits for the player */
+  var lo=Fable.tables.xpForLevel(lu.level),hi=lu.nextLevelXp,frac=hi===null?1:Math.max(0,Math.min(1,(xp-lo)/(hi-lo)));
+  set('pf-name',b.name||def.name||'');set('pf-lv',String(lu.level));
+  set('pf-sub',cls+', level '+lu.level+(hi===null?' (maximum)':lu.ready||lu.blocked?' ('+xp.toLocaleString('en-GB')+' XP)':' ('+xp.toLocaleString('en-GB')+' / '+hi.toLocaleString('en-GB')+' XP)'));
+  var bar=document.getElementById('pf-xp');if(bar)bar.style.width=Math.round(frac*100)+'%';
+  var lb=document.getElementById('pf-levelup');
+  if(lb){
+    lb.hidden=!lu.ready;lb.textContent='Level up to '+lu.nextLevel;
+    var box=lb.closest('.prof');if(box)box.classList.toggle('canlevel',!!lu.ready);
+    var lvb=document.getElementById('pf-lv');if(lvb)lvb.classList.toggle('ready',!!lu.ready);
+  }
+  var sub=document.getElementById('pf-sub');
+  if(sub&&lu.blocked)sub.title=lu.reason;else if(sub)sub.removeAttribute('title');
   set('pf-gp',Fable.money.format(R.purseCp(heroId)));
   /* the portrait is the hero's real voxel head, drawn once (and again only if the gear on the head ever changes) */
   var ava=document.querySelector('.prof .ava');
@@ -122,6 +132,12 @@ function drawProfile(){
   show();
 }
 Fable.character.roster.onChange(function(id,sheet){if(id===heroId){drawSheet(sheet);drawProfile()}});
+function openLevelUp(){
+  if(Fable.levelUpUi.isOpen())return;
+  Fable.levelUpUi.open(heroId,{onDone:function(r){if(r&&r.ok)say('Level '+r.level+' reached')}});
+}
+var lvBtn=document.getElementById('pf-levelup');
+if(lvBtn)lvBtn.onclick=openLevelUp;
 function openShop(){Fable.shopUi.open(heroId,'armory',{say:say})}
 document.getElementById('open-shop').onclick=openShop;
 document.getElementById('pf-gold').onclick=openShop;

@@ -1,5 +1,5 @@
 /* Bottom left: the hero's character panel (implementation plan, section 13.3). The portrait in a brass frame, the name, the AC
-   shield, the hit point bar with its Heroic Inspiration star, the pools the fight uses (Second Wind) and the conditions. Damage
+   shield, the hit point bar with its Heroic Inspiration star, the pools the fight uses (Second Wind, Action Surge) and the conditions. Damage
    drains the bar and a gold chip trails behind it, so the loss is visible; temporary hit points are a steel segment over the
    front; the notch marks half health, where the bar darkens (Bloodied). At 0 hit points the bar gives way to the death
    saving throw pips: three successes and three failures, each with its own shape as well as its colour. */
@@ -42,7 +42,7 @@ Fable.hudModules.healthBar=function(hud){
       var hero=s.creatures.filter(function(c){return c.team==='player'})[0];
       if(!hero)return;
       var m=Fable.hudModels.health(hero),death=Fable.hudModels.deathPips(hero);
-      var pools=Object.keys(hero.resources||{}).filter(function(k){return k==='second-wind-uses'}).map(function(k){var r=hero.resources[k];return {id:k,label:r.label,current:r.current,max:r.max}});
+      var pools=Object.keys(hero.resources||{}).filter(function(k){return k==='second-wind-uses'||k==='action-surge-uses'}).map(function(k){var r=hero.resources[k];return {id:k,label:r.label,current:r.current,max:r.max}});
       var conds=Fable.hudModels.statusChips(hero,s);
       var key=JSON.stringify([m,death,pools,conds]);
       if(key===last)return;
