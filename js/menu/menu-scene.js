@@ -12,13 +12,28 @@ var fireL=new THREE.PointLight(0xff7a22,1.5,70);fireL.position.set(0,6,-24);S.ad
 
 
 var tav=Fable.buildTavern(S),T=tav.T,flames=tav.flames;
-var heroId='human-fighter';
-var fg=Fable.content.characters.create(heroId),F=fg.root,H=fg.H,C=fg.C,AL=fg.AL,AR=fg.AR;
-/* the hero wears and carries what the roster's sheet says; a loadout change in the hub redraws the gear */
-var gear=Fable.createEquipmentView(fg.rig);
-gear.apply(Fable.character.roster.sheet(heroId).visuals);
-Fable.character.roster.onChange(function(id,sheet){if(id===heroId)gear.apply(sheet.visuals)});
-F.position.set(0,2.05,6);S.add(F);
+/* the hero on the podium is the active character (Fable.character.roster.active): he wears and carries what his sheet says, and the hub
+   redraws his gear whenever it changes (the equipment panel, a loadout) and rebuilds him when another character is chosen */
+var R=Fable.character.roster,heroId=R.active()||'human-fighter';
+var fg=null,F=null,H=null,C=null,AL=null,AR=null,gear=null,pop=1,reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function mountHero(id,animate){
+  if(F){
+    S.remove(F);
+    if(gear)gear.clear();
+    F.traverse(function(o){if(o.isInstancedMesh&&o.dispose)o.dispose()});
+  }
+  heroId=id;
+  fg=Fable.content.characters.create(id);F=fg.root;H=fg.H;C=fg.C;AL=fg.AL;AR=fg.AR;
+  gear=Fable.createEquipmentView(fg.rig);
+  gear.apply(R.sheet(id).visuals);
+  F.position.set(0,2.05,6);
+  F.userData.base=F.scale.x;
+  pop=animate&&!reduce?0:1;
+  S.add(F);
+}
+mountHero(heroId,false);
+R.onChange(function(id,sheet){if(id===heroId&&sheet)gear.apply(sheet.visuals)});
+R.onActive(function(id){if(id!==heroId)mountHero(id,true)});
 function disc(R,y,h,c,lo,hi,g){for(var x=-R;x<=R;x++)for(var z=-R;z<=R;z++){var d=Math.sqrt(x*x+z*z);if(d<=hi&&d>=lo)b(T,x,y,6+z,1,h,1,c,2,g)}}
 disc(10,.9,1.8,0x2d1b55,0,10.3);disc(8,1.9,.3,0x6a4ad8,0,8.3);disc(10,1.95,.3,0xffd23f,8.4,9.3,1);
 
@@ -28,12 +43,15 @@ for(var k=0;k<N;k++){pp[k*3]=(Math.random()-.5)*10;pp[k*3+1]=Math.random()*20+3;
 pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
 S.add(new THREE.Points(pg,new THREE.PointsMaterial({color:0xffb347,size:.6,transparent:true,opacity:.9})));
 
-var mx=0,my=0,reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var mx=0,my=0;
 window.addEventListener('pointermove',function(e){mx=e.clientX/window.innerWidth*2-1;my=e.clientY/window.innerHeight*2-1});
 
 function resize(w,h){cam.aspect=w/h;cam.position.z=w/h<1.2?68:47;cam.updateProjectionMatrix()}
 function update(ms){
   var t=reduce?0:ms/1000;
+  /* a character just chosen pops onto the podium */
+  if(pop<1){pop=Math.min(1,pop+(ms&&update.last?Math.min(.05,(ms-update.last)/1000):.016)/.45);var c1=1.70158,c3=c1+1,e=1+c3*Math.pow(pop-1,3)+c1*Math.pow(pop-1,2);F.scale.setScalar(Math.max(.001,F.userData.base*e))}
+  update.last=ms;
   F.position.y=2.05+Math.sin(t*1.7)*.1;
   F.rotation.y+=(mx*.35-F.rotation.y)*.06;
   H.rotation.y=mx*.3;H.rotation.x=my*.12;

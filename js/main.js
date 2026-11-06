@@ -55,16 +55,18 @@ Fable.startTutorial=function(){
 /* Ordinary play: generate an encounter for the chosen difficulty (map, enemies, rewards), show its card, then go to the fight.
    Nothing here is scripted and there is no Elminster. o.fromGame: Escape on the card goes to the menu instead of back. */
 var starting=false;
+/* the character who plays: the one chosen on the Characters screen (the Human Fighter until another is) */
+Fable.activeHero=function(){return Fable.character.roster.active()||'human-fighter'};
 Fable.heroLevels=function(heroId){
-  var b=Fable.character.roster.build(heroId||'human-fighter'),n=0;
+  var b=Fable.character.roster.build(heroId||Fable.activeHero()),n=0;
   ((b&&b.classLevels)||[]).forEach(function(c){n+=c.level||0});
   return [Math.max(1,n)];
 };
 Fable.startRun=function(difficulty,o){
   o=o||{};
   if(starting)return false;
-  var levels=Fable.heroLevels('human-fighter'),seed=Math.floor(Math.random()*2147483000)+1;
-  var r=Fable.encounterGen.generate({levels:levels,difficulty:difficulty,seed:seed,recent:Fable.flags.recent()});
+  var heroId=Fable.activeHero(),levels=Fable.heroLevels(heroId),seed=Math.floor(Math.random()*2147483000)+1;
+  var r=Fable.encounterGen.generate({levels:levels,difficulty:difficulty,seed:seed,recent:Fable.flags.recent(),playerCharacter:heroId});
   if(!r.ok){console.error('Encounter generation failed: '+r.reason);return false}
   starting=true;
   Fable.encounterPreview.show(r.encounter,{levels:levels,

@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700;800&family=Alegreya+Sans:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/menu.css">
+<link rel="stylesheet" href="css/characters.css">
 <link rel="stylesheet" href="css/hud.css">
 <link rel="stylesheet" href="css/hud-combat.css">
 <link rel="stylesheet" href="css/presentation.css">
@@ -27,7 +28,7 @@
     </div>
   </header>
   <nav class="left" aria-label="Main menu">
-    <button class="tile" data-t="Characters"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.500"/><path d="M3.500 21c0-5 3.500-7.500 8.500-7.500s8.500 2.500 8.500 7.500z"/></svg><span class="st">Characters</span></button>
+    <button class="tile" id="open-characters" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.500"/><path d="M3.500 21c0-5 3.500-7.500 8.500-7.500s8.500 2.500 8.500 7.500z"/></svg><span class="st">Characters</span></button>
     <button class="tile" id="open-shop" type="button"><span class="new">New</span><svg viewBox="0 0 24 24"><path d="M5 8h14l1.500 13h-17z"/><path d="M8.500 10V7a3.500 3.500 0 017 0v3" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round"/></svg><span class="st">Store</span></button>
     <button class="tile" data-t="the Bestiary"><svg viewBox="0 0 24 24"><path d="M4 3h13a3 3 0 013 3v15H7a3 3 0 01-3-3z"/><path d="M8 8h8M8 12h8" stroke="#1a1009" stroke-width="2" fill="none"/></svg><span class="st">Bestiary</span></button>
     <button class="tile" data-t="the Collection"><svg viewBox="0 0 24 24"><path d="M12 2l2.600 6.400L21 9l-5 4.300L17.500 20 12 16.500 6.500 20 8 13.300 3 9l6.400-.600z"/></svg><span class="st">Collection</span></button>
@@ -37,11 +38,7 @@
     <div class="ev b"><div class="st">Fresh stock</div><p>The Store has new magic items.</p><em>3h 20m left</em></div>
   </aside>
   <footer class="bot">
-    <div class="sheet">
-      <div class="loadouts" id="loadouts" aria-label="Loadouts" hidden></div>
-      <div class="sp"><b id="st-ac">19</b><span>AC</span></div><div class="sp"><b id="st-hp">12</b><span>HP</span></div><div class="sp"><b id="st-init">+4</b><span>Init</span></div><div class="sp"><b id="st-prof">+2</b><span>Prof</span></div>
-      <div class="sp w" id="st-weapon"><b>Longsword</b>+5 to hit, 1d8+3 slashing</div>
-    </div>
+    <div class="eqp-host" id="eqp-host"></div>
     <div class="go">
       <div class="rw" id="rw"></div>
       <div class="diff-box">
@@ -84,6 +81,8 @@
 <script src="js/character/sheet.js"></script>
 <script src="js/character/rest.js"></script>
 <script src="js/character/levelup.js"></script>
+<script src="js/character/equip-view.js"></script>
+<script src="js/character/sheet-view.js"></script>
 <script src="js/rules/statblock.js"></script>
 <script src="js/rules/status.js"></script>
 <script src="js/rules/handlers.js"></script>
@@ -108,6 +107,9 @@
 <script src="js/menu/store-previews.js"></script>
 <script src="js/menu/shop-ui.js"></script>
 <script src="js/menu/levelup-ui.js"></script>
+<script src="js/menu/equipment-panel.js"></script>
+<script src="js/menu/character-stage.js"></script>
+<script src="js/menu/characters-ui.js"></script>
 <script src="js/menu/encounter-preview.js"></script>
 <script src="js/menu/menu-ui.js"></script>
 <script src="js/menu/menu-scene.js"></script>
