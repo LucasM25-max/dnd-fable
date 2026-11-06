@@ -12,7 +12,7 @@
 
    Progress (Phase 9): what a hero earns outlives the page. XP, the purse and what is carried are saved to localStorage as an overlay on
    the shipped build, so a content update still reaches a saved hero. The level (classLevels) is saved too, once the player has taken it.
-   Loadouts and the rest start fresh each visit.
+   Equipment chosen in the hub (R.equip) and the active character (R.setActive) are saved too; everything else starts fresh each visit.
    Fable.character.roster.grant(id, {xp, cp, items:[{item, qty}]})   pay a reward; returns {ok, sheet}
    Fable.character.roster.consume(id, {itemId: count})               take used up items out of the pack
    Fable.character.roster.purchase(id, shopId, itemId, qty) / sell(id, shopId, itemId, qty)   the Store; returns the inventory result
@@ -22,10 +22,18 @@
    Fable.character.roster.levelUp(id)        take the next level: {ok, build, preview, sheet} or {ok:false, reasons}; the level is saved
    Victory animations (Fable.content.victoryAnimations): the hero owns the free ones and any bought; one is picked.
    Fable.character.roster.victory(id)        the picked id      .setVictory(id, vid)   .victoriesOwned(id)   .buyVictory(id, vid)
-   Fable.character.roster.save() / forget()  write the progress now / delete the saved progress */
+   Fable.character.roster.save() / forget()  write the progress now / delete the saved progress
+
+   Characters and equipment (the Characters screen and the hub's equipment panel):
+   Fable.character.roster.characters()       ids of every premade character that has a build, in registration order
+   Fable.character.roster.active()           the id of the character the hub shows and the next fight uses (saved; the Human Fighter until another is chosen)
+   Fable.character.roster.setActive(id)      switch to a character: {ok, changed, id} or {ok:false, reasons}; the listeners below run when it changed
+   Fable.character.roster.onActive(fn)       fn(id) runs after every switch; returns a function that removes it
+   Fable.character.roster.equip(id, equipped, opts)   set the complete equipped map ({body, mainhand, offhand}) through Inventory.setEquipped;
+                                             what the player chose is saved and is what the next fight starts with. Returns that result. */
 (function(){
 var Ch=Fable.character=Fable.character||{};
-var R=Ch.roster={},builds={},listeners=[],profiles={},loaded=false;
+var R=Ch.roster={},builds={},listeners=[],profiles={},loaded=false,activeId=null,activeListeners=[],custom={};
 var STORE='dicebound.progress.v1';
 function clone(o){return JSON.parse(JSON.stringify(o))}
 function def(id){
@@ -55,6 +63,11 @@ function overlay(id,base){
     var known=p.inventory.every(function(e){return e&&Fable.content.items.has(e.item)});
     if(known&&Ch.checkRecord(t).every(function(i){return i.severity!=='error'}))b.inventory=p.inventory;
   }
+  /* what the player chose to wear and hold: kept only when the rules still accept it with what is carried now */
+  if(p.equipped&&typeof p.equipped==='object'&&!Array.isArray(p.equipped)){
+    var eq=Ch.inventory.setEquipped(Ch.normalize(b),p.equipped);
+    if(eq.ok){b.equipped=eq.build.equipped;custom[id]=true}
+  }
   return Ch.normalize(b);
 }
 function profileOf(id){
@@ -67,16 +80,21 @@ function profileOf(id){
 }
 R.save=function(){
   var heroes={};
-  Object.keys(builds).forEach(function(id){heroes[id]={xp:builds[id].xp,currency:builds[id].currency,inventory:builds[id].inventory,classLevels:builds[id].classLevels}});
+  Object.keys(builds).forEach(function(id){
+    heroes[id]={xp:builds[id].xp,currency:builds[id].currency,inventory:builds[id].inventory,classLevels:builds[id].classLevels};
+    /* equipment is saved only once the player has chosen it (a loadout swap from the address bar is for that visit alone) */
+    if(custom[id])heroes[id].equipped=builds[id].equipped;
+  });
   Object.keys(profiles).forEach(function(id){heroes[id]=Object.assign(heroes[id]||{},{victory:{owned:profiles[id].owned,selected:profiles[id].selected}})});
   try{
     var old=readStore();
     var merged=Object.assign({},old&&old.v===1&&old.heroes||{});
     Object.keys(heroes).forEach(function(id){merged[id]=Object.assign({},merged[id]||{},heroes[id])});
-    window.localStorage.setItem(STORE,JSON.stringify({v:1,heroes:merged}));
+    var act=activeId||(old&&old.v===1&&typeof old.active==='string'?old.active:undefined);
+    window.localStorage.setItem(STORE,JSON.stringify({v:1,heroes:merged,active:act}));
   }catch(e){}
 };
-R.forget=function(){try{window.localStorage.removeItem(STORE)}catch(e){}builds={};profiles={};listeners.slice().forEach(function(fn){fn('*',null)})};
+R.forget=function(){try{window.localStorage.removeItem(STORE)}catch(e){}builds={};profiles={};custom={};activeId=null;listeners.slice().forEach(function(fn){fn('*',null)})};
 
 R.build=function(id){
   if(!builds[id])builds[id]=overlay(id,clone(def(id).build));
@@ -91,7 +109,7 @@ function changed(id){
 R.set=function(id,build){def(id);builds[id]=clone(build);R.save();return changed(id)};
 R.reset=function(id){delete builds[id];return changed(id)};
 /* a fresh start for a hero: the shipped build, no progress, the free victory animation */
-R.restart=function(id){delete builds[id];delete profiles[id];try{var st=readStore();if(st&&st.heroes){delete st.heroes[id];window.localStorage.setItem(STORE,JSON.stringify(st))}}catch(e){}return changed(id)};
+R.restart=function(id){delete builds[id];delete profiles[id];delete custom[id];try{var st=readStore();if(st&&st.heroes){delete st.heroes[id];window.localStorage.setItem(STORE,JSON.stringify(st))}}catch(e){}return changed(id)};
 R.swap=function(id,loadoutId,opts){
   var r=Ch.inventory.applyLoadout(R.build(id),loadoutId,opts);
   if(r.ok){builds[id]=r.build;changed(id)}
@@ -171,6 +189,34 @@ R.buyVictory=function(id,vid){
   if(!r.ok)return r;
   builds[id]=r.build;profileOf(id).owned.push(vid);profileOf(id).selected=vid;R.save();changed(id);
   return {ok:true,build:r.build,paidCp:Fable.money.toCp(v.cost)};
+};
+/* ---------- characters and equipment ---------- */
+R.characters=function(){
+  return Fable.content.characters.list().filter(function(d){return !!d.build}).map(function(d){return d.id});
+};
+R.active=function(){
+  var ids=R.characters();
+  if(activeId&&ids.indexOf(activeId)>=0)return activeId;
+  var st=readStore(),saved=st&&st.v===1&&typeof st.active==='string'?st.active:null;
+  if(saved&&ids.indexOf(saved)>=0){activeId=saved;return saved}
+  return ids.indexOf('human-fighter')>=0?'human-fighter':(ids[0]||null);
+};
+R.setActive=function(id){
+  var ids=R.characters();
+  if(ids.indexOf(id)<0)return {ok:false,reasons:['"'+id+'" is not a character you can play']};
+  if(R.active()===id)return {ok:true,changed:false,id:id};
+  activeId=id;R.save();
+  activeListeners.slice().forEach(function(fn){fn(id)});
+  return {ok:true,changed:true,id:id};
+};
+R.onActive=function(fn){
+  activeListeners.push(fn);
+  return function(){activeListeners=activeListeners.filter(function(x){return x!==fn})};
+};
+R.equip=function(id,equipped,opts){
+  var r=Ch.inventory.setEquipped(R.build(id),equipped,opts);
+  if(r.ok){builds[id]=r.build;custom[id]=true;R.save();changed(id)}
+  return r;
 };
 R.onChange=function(fn){
   listeners.push(fn);

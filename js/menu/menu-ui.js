@@ -4,7 +4,8 @@ var toast=document.getElementById('toast'),tt;
 function say(m){toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove('show')},1800)}
 document.querySelectorAll('[data-t]').forEach(function(b){b.addEventListener('click',function(){say('Mockup: this opens '+b.dataset.t+'.')})});
 
-var heroId='human-fighter';
+/* the hub shows the active character (Fable.character.roster.active), and follows a switch made on the Characters screen */
+var heroId='human-fighter',panel=null;
 /* What an encounter pays, worked out by the same rules that pay it. */
 function rewardText(e){
   try{
@@ -40,70 +41,7 @@ function paintDifficulty(){
   var g=Fable.encounterGen.generate({levels:heroLevels(),difficulty:cur,seed:1});
   rw.textContent=g.ok?rewardText(g.encounter):'';
 }
-function show(){showHero({playerCharacter:heroId});paintDifficulty()}
-/* The hub's stat strip reads the hero's computed sheet instead of hard coded numbers (implementation plan, section 13). */
-var loadoutBox=null;
-function showHero(e){
-  heroId=(e&&e.playerCharacter)||'human-fighter';
-  var def=Fable.content.characters.get(heroId);
-  if(!def||!def.build)return;
-  drawSheet(Fable.character.roster.sheet(heroId));
-}
-function drawSheet(sheet){
-  var m=sheet.summary;
-  if(!m)return;
-  function set(el,text){var n=document.getElementById(el);if(n)n.textContent=text}
-  set('st-ac',m.ac);set('st-hp',m.hp);set('st-init',Fable.stats.signed(m.initiative));set('st-prof',Fable.stats.signed(m.proficiencyBonus));
-  var acBox=document.getElementById('st-ac');
-  if(acBox&&acBox.parentNode)acBox.parentNode.title=breakdownText(sheet);
-  var w=document.getElementById('st-weapon');
-  if(w){
-    w.textContent='';
-    if(m.mainAttack){
-      var b=document.createElement('b');b.textContent=m.mainAttack.name;
-      w.appendChild(b);
-      w.appendChild(document.createTextNode(Fable.stats.signed(m.mainAttack.bonus)+' to hit, '+m.mainAttack.damage+' '+m.mainAttack.damageType));
-    }else w.textContent='No weapon in hand';
-  }
-  drawLoadouts(sheet);
-}
-/* AC explained: every number that makes it up (rules readability pillar). */
-function breakdownText(sheet){
-  var ac=sheet.stats&&sheet.stats.ac;
-  try{return Fable.stats.explain(ac)}catch(err){return 'Armor Class '+sheet.summary.ac}
-}
-function costText(l){
-  var c=l.cost||{},bits=[];
-  if(c.minutes)bits.push(c.minutes+' min to change armor');
-  if(c.utilize)bits.push(c.utilize+' Utilize action'+(c.utilize>1?'s':'')+' for the shield');
-  if(c.weaponChanges)bits.push(c.weaponChanges+' free weapon change'+(c.weaponChanges>1?'s':''));
-  return bits.length?bits.join(', '):'Nothing to change';
-}
-/* Loadout buttons come from the sheet, so a character with other loadouts needs no menu edit. */
-function drawLoadouts(sheet){
-  if(!loadoutBox){
-    loadoutBox=document.getElementById('loadouts');
-    if(!loadoutBox)return;
-  }
-  loadoutBox.textContent='';
-  loadoutBox.hidden=!sheet.loadouts.length;
-  sheet.loadouts.forEach(function(l){
-    var btn=document.createElement('button');
-    btn.className='lo'+(l.active?' on':'');btn.type='button';
-    btn.setAttribute('aria-pressed',l.active?'true':'false');
-    btn.disabled=!l.available;
-    btn.title=l.available?costText(l):l.reasons.join('; ');
-    var n=document.createElement('b');n.textContent=l.name;btn.appendChild(n);
-    var ac=document.createElement('span');
-    var prev=Fable.character.inventory.previewLoadout(Fable.character.roster.build(heroId),l.id);
-    ac.textContent=prev.sheet?'AC '+prev.sheet.summary.ac:'';btn.appendChild(ac);
-    btn.onclick=function(){
-      var r=Fable.character.roster.swap(heroId,l.id,{});
-      say(r.ok?l.name+': '+costText(l):(r.reasons[0]||'Cannot change loadout'));
-    };
-    loadoutBox.appendChild(btn);
-  });
-}
+function show(){paintDifficulty()}
 /* the hub profile and the purse are the saved hero's, and follow every XP, gold or loadout change */
 function drawProfile(){
   var def=Fable.content.characters.get(heroId);
@@ -129,9 +67,9 @@ function drawProfile(){
   /* the portrait is the hero's real voxel head, drawn once (and again only if the gear on the head ever changes) */
   var ava=document.querySelector('.prof .ava');
   if(ava&&Fable.headPortrait&&Fable.headPortrait.fill(ava,'hero',{heroId:heroId,w:46,h:46,yaw:-.4}))ava.classList.add('has3d');
-  show();
+  paintDifficulty();
 }
-Fable.character.roster.onChange(function(id,sheet){if(id===heroId){drawSheet(sheet);drawProfile()}});
+Fable.character.roster.onChange(function(id){if(id===heroId||id==='*')drawProfile()});
 function openLevelUp(){
   if(Fable.levelUpUi.isOpen())return;
   Fable.levelUpUi.open(heroId,{onDone:function(r){if(r&&r.ok)say('Level '+r.level+' reached')}});
@@ -156,5 +94,16 @@ function setDifficulty(id){if(Fable.flags.setDifficulty(id))paintDifficulty()}
 document.getElementById('play').onclick=function(){Fable.startRun(Fable.flags.difficulty())};
 var replay=document.getElementById('tutorial-replay');
 if(replay)replay.onclick=function(){Fable.startTutorial()};
-Fable.content.whenReady(function(){drawProfile()});
+/* the Characters screen (js/menu/characters-ui.js): the full page of every character, their sheets and their equipment */
+var chBtn=document.getElementById('open-characters');
+if(chBtn)chBtn.onclick=function(){Fable.charactersUi.open({say:say,from:chBtn})};
+Fable.content.whenReady(function(){
+  var R=Fable.character.roster;
+  heroId=R.active()||heroId;
+  var host=document.getElementById('eqp-host');
+  if(host&&Fable.equipmentPanel){panel=Fable.equipmentPanel.create(heroId,{say:say});host.appendChild(panel.el)}
+  /* a switch on the Characters screen: the profile, the purse, the difficulty reward and the equipment are the new character's */
+  R.onActive(function(id){heroId=id;if(panel)panel.setHero(id);drawProfile()});
+  drawProfile();
+});
 })();
