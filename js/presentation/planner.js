@@ -76,6 +76,11 @@ Fable.createPlanner=function(o){
     cues.push({t:0,type:'call',name:'face',a:A.id,b:T.id});
     /* camera: pushes in over the pair, a little closer for a critical hit */
     cues.push({t:0,type:'camera',op:'shot',who:[A.id,T.id],dist:crit?.68:.8,pitch:-.05,yaw:(A.team==='player'?.18:-.18),in:LEAD+.12,hold:L+impact+.28,out:.55,tag:'attack'});
+    /* a creature that carries more than one weapon takes the right one in hand first (essential: a skip still leaves it correct) */
+    if(ent.wield){
+      cues.push({t:0,type:'call',name:'wield',who:A.id,item:ent.wield,essential:true});
+      if(ent.wieldSound)cues.push({t:.02,type:'sfx',id:ent.wieldSound,who:A.id,gain:.7});
+    }
     if(clipId)cues.push({t:L,type:'anim',who:A.id,clip:clipId,tag:'attack'});
     if(ent.effort&&A.kind==='hero'&&chance(.7))cues.push({t:L+Math.max(0,impact-.22),type:'sfx',id:(AP.voice&&AP.voice.effort),who:A.id});
     if(!thrown&&clip){
@@ -85,6 +90,9 @@ Fable.createPlanner=function(o){
           if(ent.swing)cues.push({t:L+ev.t-.02,type:'vfx',fx:ent.swing,at:'attacker',dir:'toTarget',y:0,color:tint});
         }
       });
+    }
+    if(thrown&&clip&&ent.drawSound){
+      (clip.events||[]).forEach(function(ev){if(ev.cue==='draw')cues.push({t:L+ev.t,type:'sfx',id:ent.drawSound,who:A.id})});
     }
     if(thrown){
       cues.push({t:L+rel,type:'sfx',id:ent.swingSound||'sfx-throw',who:A.id});
@@ -116,7 +124,7 @@ Fable.createPlanner=function(o){
       if(T.kind==='hero'&&frac>=.2)cues.push({t:I,type:'screen',op:'vignette',color:'#a01818',alpha:clamp(.25+frac*.9,.25,.7),dur:.5});
     }else{
       /* a miss: the target slips it or takes it on the shield; the blade whistles past */
-      var useBlock=TP.clips&&TP.clips.block&&T.kind==='hero'&&chance(.5);
+      var useBlock=TP.clips&&TP.clips.block&&(T.kind==='hero'||TP.blocks)&&chance(.5);
       var mc=useBlock?TP.clips.block:reaction(TP,'dodge');
       if(mc)cues.push({t:Math.max(L,I-.07),type:'anim',who:T.id,clip:mc,tag:'react'});
       if(useBlock){

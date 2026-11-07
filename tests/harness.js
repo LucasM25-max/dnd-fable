@@ -50,7 +50,7 @@ async function loadData(opts){
   if(!opts.shops)m.items=m.items.filter(n=>n!=='shops');
   if(!opts.monsters)m.monsters=[];
   if(!opts.heroes)m.characters=[];
-  if(opts.monsters)Fable.createGoblinMinion=function(){};
+  if(opts.monsters){Fable.createGoblinMinion=function(){};Fable.createGoblinWarrior=function(){}}
   if(opts.heroes)Fable.createHumanFighter=function(){};
   const loader=Fable.content.createLoader({loadScript:nodeLoadScript,base:dirUrl(path.join(ROOT,'js','content'))});
   if(opts.skipValidate){Fable.content.validateAll=function(){return {ok:true,errors:[],warnings:[]}}}

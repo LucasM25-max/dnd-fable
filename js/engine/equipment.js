@@ -15,15 +15,19 @@ function offsetFor(spec){
   return (P.shaft||P.length||P.blade||P.size||10);
 }
 /* The visuals of a monster definition that carries `equipment:[{item,qty}]` and `wielding:{mainhand,offhand}`, in the same
-   shape as a character sheet's visuals. Wielded items are drawn in the hands; the rest hang at their stow points. */
-Fable.equipmentVisualsFor=function(def){
+   shape as a character sheet's visuals. Wielded items are drawn in the hands; the rest hang at their stow points.
+   `hold` ({mainhand,offhand}) replaces what is wielded, for a creature that changes weapon mid-fight (the item it leaves drops to its
+   stow point if it has one).
+   `looks:{item:{params,palette}}` repaints an item for this monster (a warrior's shield in its own colours). */
+Fable.equipmentVisualsFor=function(def,hold){
   var out={worn:{body:null,mainhand:null,offhand:null},stowed:[]};
   if(!def||!Fable.gear)return out;
   function v(id){
     var sp=Fable.gear.specFor(id);
-    return sp?{item:id,model:sp.model,params:{},palette:{},mount:sp.mount,stow:sp.stow}:null;
+    var look=(def.looks&&def.looks[id])||{};
+    return sp?{item:id,model:sp.model,params:Object.assign({},look.params),palette:Object.assign({},look.palette),mount:sp.mount,stow:sp.stow}:null;
   }
-  var w=def.wielding||{},left={};
+  var w=Object.assign({},def.wielding,hold),left={};
   (def.equipment||[]).forEach(function(e){left[e.item]=(left[e.item]||0)+(e.qty||1)});
   ['mainhand','offhand'].forEach(function(slot){
     if(w[slot]&&left[w[slot]]>0){out.worn[slot]=v(w[slot]);left[w[slot]]--}

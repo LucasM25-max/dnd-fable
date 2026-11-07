@@ -35,7 +35,8 @@ M.actionBar=function(s,hero,selectedAttackId){
   var slots=[],mine=Cb().active(s)===hero&&s.phase==='running'&&!s.pending;
   var hasWeapon=(hero.attacks||[]).some(function(a){return a.equipped&&a.item&&a.mode!=='thrown'});
   (hero.attacks||[]).forEach(function(a){
-    if(a.mode==='thrown'){if(!a.item||((hero.stock[a.item]||0)-(hero.thrown[a.item]||0))<1)return}
+    /* only what the hero actually holds is offered: a javelin carried in the pack is not on the bar until it is equipped */
+    if(a.mode==='thrown'){if(!a.item||!a.equipped||((hero.stock[a.item]||0)-(hero.thrown[a.item]||0))<1)return}
     else if(!a.equipped)return;
     if(a.id==='unarmed-strike:melee'&&hasWeapon)return;
     var st=Cb().attackState(s,hero,a,{});
@@ -346,7 +347,7 @@ M.deathPips=function(c){
 M.sheetView=function(c){
   var sh=c.sheet;if(!sh)return null;
   var ab=['str','dex','con','int','wis','cha'].map(function(k){var a=sh.abilities[k];return {id:k,name:k.toUpperCase(),score:a.score,mod:sgn(a.mod!==undefined?a.mod:a.modifier)}});
-  var attacks=(sh.attacks||[]).filter(function(a){return a.equipped||a.mode==='thrown'}).map(function(a){
+  var attacks=(sh.attacks||[]).filter(function(a){return a.equipped}).map(function(a){
     return {name:a.name+(a.mode==='thrown'?' (thrown)':''),bonus:sgn(a.bonus.value),damage:a.damage.expression+' '+a.damage.type,mastery:a.mastery&&a.mastery.usable?a.mastery.name:''};
   });
   return {name:sh.identity&&sh.identity.name||c.name,abilities:ab,ac:c.ac.value,hp:c.hp.current+' / '+c.hp.max,speed:c.speedFt+' ft',attacks:attacks,

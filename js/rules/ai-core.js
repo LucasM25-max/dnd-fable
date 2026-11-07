@@ -6,7 +6,7 @@
 
    Fable.aiCore.odds(s, c, a, t, tc)             {hit, crit, state, ac, need, advantage, disadvantage} for an attack roll
    Fable.aiCore.damagePmf(a, hit, crit)          chances of 0, 1, 2 ... points of damage from one attack (misses count as 0)
-   Fable.aiCore.usable(c, a)                     whether a creature could make that attack at all (has a weapon, ammunition, deals damage)
+   Fable.aiCore.usable(c, a)                     whether a creature could make that attack at all (has the weapon in hand, some of it left, deals damage)
    Fable.aiCore.dist.*                           damage distributions capped at a creature's hit points (the last entry is "dropped")
    Fable.aiCore.reach(ctx, c)                    the squares a creature could stand on after moving a full turn (cached per planning run)
    Fable.aiCore.reply(ctx, n)                    what the opposing side's best answer costs the actor in state n (section 16.6 expectimax) */
@@ -74,16 +74,13 @@ Core.odds=function(s,c,a,t,tc){
 
 function remaining(c,item){return ((c.stock&&c.stock[item])||0)-((c.thrown&&c.thrown[item])||0)}
 Core.remaining=remaining;
-/* Could this creature make this attack in a turn of its own: it deals damage, the weapon is in hand (or thrown from the pack) and there is stock. */
+/* Could this creature make this attack in a turn of its own: it deals damage, the weapon is in hand and there is stock. */
 Core.usable=function(c,a){
   if(!a||!a.damage||!a.damage.stats||a.damage.stats.average<=0)return false;
   if(a.available===false)return false;
   if(a.mode==='light-extra')return false;
-  if(a.mode==='melee'){
-    if(a.item&&(!a.equipped||remaining(c,a.item)<1))return false;
-    return true;
-  }
-  if(a.item&&remaining(c,a.item)<1)return false;
+  /* an item attack needs the item in hand (equipped), melee, thrown or ranged, and some of it left */
+  if(a.item&&(!a.equipped||remaining(c,a.item)<1))return false;
   return true;
 };
 Core.maxRange=function(c){
@@ -118,7 +115,8 @@ function baseFor(ctx,who,a,T){
   var o;
   try{o=Core.odds(ctx.s,who,a,T,{distanceFt:5,band:ranged?'normal':'reach',cover:{level:0,name:'none',blocked:0,bonus:0}})}
   finally{who.cell=save}
-  var b={advN:o.advantage.length,disN:o.disadvantage.length,autoCrit:o.autoCrit,avg:a.damage.stats.average,critExtra:Core.critExtra(a)};
+  var b={advN:o.advantage.length,disN:o.disadvantage.length,autoCrit:o.autoCrit,avg:a.damage.stats.average,critExtra:Core.critExtra(a),
+    advAvg:a.damage.advantage?a.damage.advantage.stats.average:0};
   ctx.cache[key]=b;
   return b;
 }
@@ -146,7 +144,8 @@ Core.optionAt=function(ctx,who,a,T,q){
   var ac=T.ac.value+cover.bonus;
   var ch=Cb().hitChance(a.bonus.value,ac,state);
   var crit=b.autoCrit?ch.hit:ch.crit;
-  return {expected:ch.hit*b.avg+crit*b.critExtra,hit:ch.hit,crit:crit,attack:a,from:{c:q.c,r:q.r},band:band,state:state,ac:ac,cover:cover.level,distanceFt:d};
+  var avg=b.avg+(state==='advantage'?b.advAvg:0);
+  return {expected:ch.hit*avg+crit*b.critExtra,hit:ch.hit,crit:crit,attack:a,from:{c:q.c,r:q.r},band:band,state:state,ac:ac,cover:cover.level,distanceFt:d};
 };
 
 /* The best attack option the foe has against target T from anywhere it can reach, as {expected, hit, dmg (pmf), attack, from, band, ...}. */

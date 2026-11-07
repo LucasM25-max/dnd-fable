@@ -76,6 +76,9 @@ module.exports=function(t){
     test('it does not waste attacks into Disadvantage: against a Dodging hero at long range it does something else',async()=>{
       const C=await world();
       const {s,hero,gobs}=scene(C,{hero:{c:3,r:12},goblins:[{c:20,r:12}],engagement:1});
+      /* the hero holds a javelin, so it can answer a goblin that stays at range (what is only carried cannot be thrown) */
+      const held=Fable.character.inventory.setEquipped(C.characters.get('human-fighter').build,{body:'chain-mail',mainhand:'javelin',offhand:'shield'});
+      hero.attacks=Fable.character.compute(held.build).attacks;
       Fable.status.add(s,hero,{id:'dodging',source:{id:'dodge',name:'Dodge'}});
       const p=Fable.ai.plan(s,gobs[0],{});
       attackSteps(p).forEach(a=>{

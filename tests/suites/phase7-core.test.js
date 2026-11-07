@@ -62,6 +62,23 @@ module.exports=function(t){
       near(r.joints.root.scale.y,.75);near(r.joints.torso.rotation.y,0);near(r.joints.armR.rotation.x,-.9);
       near(r.joints.root.position.x,10);near(r.joints.root.position.z,20);
     });
+    test('rig.limits bounds a joint rotation about x, and the rig can change the bound at any time (a cape held flat by what is slung over it)',()=>{
+      load();
+      const swing={id:'swing',duration:1,loop:true,layer:'base',tracks:{cape:{rotX:[[0,.6],[.5,-.4],[1,.6]]}}};
+      const r=rig();r.joints.cape=obj(0,7.5,-3);r.idle.cape=.03;
+      r.limits={cape:{rx:[0,Infinity]}};
+      const a=Fable.anim.createAnimator(r,{lookup:{get:()=>swing}});
+      a.setBase(swing);
+      let lo=Infinity,hi=-Infinity;
+      for(let i=0;i<60;i++){a.update(.05);a.apply();lo=Math.min(lo,r.joints.cape.rotation.x);hi=Math.max(hi,r.joints.cape.rotation.x)}
+      assert.ok(lo>=0,'the cape never swings inwards (through the legs): '+lo);
+      assert.ok(hi>.3,'a free cape swings out: '+hi);
+      r.limits.cape.rx[1]=.01;
+      hi=-Infinity;
+      for(let i=0;i<60;i++){a.update(.05);a.apply();hi=Math.max(hi,r.joints.cape.rotation.x)}
+      assert.ok(hi<=.01+1e-12,'pinned by what is slung over it: '+hi);
+      near(r.joints.torso.rotation.x,0);
+    });
     test('a hover lifts the whole creature on top of its clips and only that: the pose, scale and ground position stay',()=>{
       load();
       const r=rig(),a=Fable.anim.createAnimator(r,{lookup:{get:()=>clip}});
