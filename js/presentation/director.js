@@ -173,6 +173,7 @@ Fable.createPresentation=function(o){
         vfx.projectile({from:{x:f.x,y:11,z:f.z},to:{x:t.x,y:10,z:t.z},dur:c.dur,arc:sp.arc,size:sp.size,long:sp.long,color:sp.color,spin:sp.spin,trail:c.trail,trailColor:0xdfe6ea});
         return;
       }
+      case 'wield':{a=actors[c.who];if(a&&a.entry.wield)a.entry.wield(c.item);return}
       case 'flash':{a=actors[c.who];if(a)vfx.flash(a.entry,c.color,c.dur,c.strength);return}
       case 'coins':{
         /* the coins a defeated creature carried burst from where it fell, and stay on the ground until the fight is won */

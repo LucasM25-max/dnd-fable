@@ -34,6 +34,8 @@ function mountHero(id,animate){
 mountHero(heroId,false);
 R.onChange(function(id,sheet){if(id===heroId&&sheet)gear.apply(sheet.visuals)});
 R.onActive(function(id){if(id!==heroId)mountHero(id,true)});
+/* the cape sway, kept inside the limits of the rig (a bundle slung over the cape holds it flat) */
+function sway(x){var l=fg&&fg.rig&&fg.rig.limits&&fg.rig.limits.cape;return l?Math.max(l.rx[0],Math.min(l.rx[1],x)):x}
 function disc(R,y,h,c,lo,hi,g){for(var x=-R;x<=R;x++)for(var z=-R;z<=R;z++){var d=Math.sqrt(x*x+z*z);if(d<=hi&&d>=lo)b(T,x,y,6+z,1,h,1,c,2,g)}}
 disc(10,.9,1.8,0x2d1b55,0,10.3);disc(8,1.9,.3,0x6a4ad8,0,8.3);disc(10,1.95,.3,0xffd23f,8.4,9.3,1);
 
@@ -55,7 +57,7 @@ function update(ms){
   F.position.y=2.05+Math.sin(t*1.7)*.1;
   F.rotation.y+=(mx*.35-F.rotation.y)*.06;
   H.rotation.y=mx*.3;H.rotation.x=my*.12;
-  C.rotation.x=.1+Math.sin(t*1.3)*.05;
+  C.rotation.x=sway(.1+Math.sin(t*1.3)*.05);
   AL.rotation.x=-.3+Math.sin(t*1.7)*.02;AR.rotation.x=-.9+Math.sin(t*1.7+1)*.03;
   flames.forEach(function(f,i){f.scale.y=(i%2?2:3.2)+Math.sin(t*9+i*1.7)*.7;f.position.y=2.6+f.scale.y*.5+(i%2?.8:0);f.scale.x=f.scale.z=1.5+Math.sin(t*7+i)*.3});
   fireL.intensity=1.5+Math.sin(t*11)*.25+Math.sin(t*17)*.15;

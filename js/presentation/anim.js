@@ -121,6 +121,8 @@ function createAnimator(rig,opts){
   var N=names.length,pose=new Float64Array(N*9),rest=[],speedScale=1,frozen=0;
   var root={x:0,z:0,yaw:0},hover=0;
   var idle=rig.idle||{};
+  /* rig.limits {joint:{rx:[min,max]}}: bounds on a joint's final rotation about x in radians (the Human Fighter's cape cannot swing through what is slung over it). The rig may change them at any time. */
+  var limits=rig.limits||{};
   var footDrop=rig.footDrop===undefined?8:rig.footDrop;
   var look={x:null,z:null,w:0,cur:0},aim={x:null,z:null,w:0,cur:0},lean={roll:0,pitch:0,tiltRoll:0};
   var loco={moving:false,running:false,phase:0,k:0,lastStep:-1},halted=false;
@@ -374,6 +376,7 @@ function createAnimator(rig,opts){
       }
       o.position.x=r.px+pose[b];o.position.y=r.py+pose[b+1];o.position.z=r.pz+pose[b+2];
       o.rotation.x=r.rx+pose[b+3];o.rotation.y=r.ry+pose[b+4];o.rotation.z=r.rz+pose[b+5];
+      var lim=limits[n];if(lim&&lim.rx)o.rotation.x=Math.max(lim.rx[0],Math.min(lim.rx[1],o.rotation.x));
       o.scale.x=r.sx*pose[b+6];o.scale.y=r.sy*pose[b+7];o.scale.z=r.sz*pose[b+8];
     }
   }

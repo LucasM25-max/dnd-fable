@@ -198,6 +198,11 @@ SB.check=function(def){
         var match=ABILITIES.filter(function(k){return mods[k]+pb===a.attack.bonus});
         if(!match.length)err(where+': the attack bonus '+signed(a.attack.bonus)+' is not an ability modifier plus the proficiency bonus of '+signed(pb));
         else if(a.hit){
+          if(a.hit.advantage!==undefined){
+            var aw=Fable.dice?Fable.dice.validate(a.hit.advantage):null;
+            if(aw)err(where+': hit.advantage "'+a.hit.advantage+'" is not valid dice: '+aw);
+            else if(SB.damageParts(a.hit.advantage).flat)err(where+': hit.advantage must be dice only, such as "1d4"');
+          }
           var parts=SB.damageParts(a.hit.damage);
           if(!match.some(function(k){return mods[k]===parts.flat}))warn(where+': the damage bonus '+signed(parts.flat)+' does not match the ability modifier behind the attack bonus');
         }
@@ -225,7 +230,8 @@ function attackEntries(fe,action,mods,pb){
     out.push({
       id:action.id+':'+mode,item:(action.requires&&action.requires.item)||null,name:action.name,mode:mode,hand:null,equipped:true,available:true,reason:'',
       ability:abil,proficient:true,bonus:bonus,
-      damage:{dice:parts.dice,bonus:dmgBonus,expression:h.damage,type:h.type,stats:Fable.dice.stats(h.damage)},
+      damage:{dice:parts.dice,bonus:dmgBonus,expression:h.damage,type:h.type,stats:Fable.dice.stats(h.damage),
+        advantage:h.advantage?{expression:h.advantage,stats:Fable.dice.stats(h.advantage)}:null},
       versatile:null,
       range:mode==='melee'?null:{normal:m.range.normal,long:m.range.long},
       reach:mode==='melee'?(m.reach||5):null,

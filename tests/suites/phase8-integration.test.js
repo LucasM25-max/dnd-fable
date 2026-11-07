@@ -73,7 +73,10 @@ module.exports=function(t){
       const C=await hudWorld();
       const g=Fable.grid.create({cols:24,rows:24});
       Fable.grid.setBlocked(g,9,13,true);
-      const hero=Fable.creature.fromSheet(Fable.character.compute(C.characters.get('human-fighter').build),{id:'hero',team:'player'});
+      /* only what is in hand can be thrown, so the hero holds a javelin */
+      const held=Fable.character.inventory.setEquipped(C.characters.get('human-fighter').build,{body:'chain-mail',mainhand:'javelin',offhand:'shield'});
+      assert.ok(held.ok);
+      const hero=Fable.creature.fromSheet(Fable.character.compute(held.build),{id:'hero',team:'player'});
       const gob=Fable.creature.fromMonster(C.monsters.get('goblin-minion'),{index:0});
       const s=Fable.combat.create({grid:g,seed:3,creatures:[hero,gob]});
       Fable.combat.place(s,hero,{c:5,r:12});Fable.combat.place(s,gob,{c:11,r:13});

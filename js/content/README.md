@@ -16,7 +16,12 @@ Game content lives under js/content/. Core and engine files should not contain i
 2. Put the visual factory in model.js.
 3. Put the rules/metadata in definition.js.
 4. Update content-manifest.js by adding the monster ID to monsters.
-5. Encounters can now reference the monster by ID.
+5. Encounters can now reference the monster by ID, and the encounter generator picks it by `environments`, `family` and `role`.
+
+Things the Goblin Warrior (js/content/monsters/goblin-warrior/) shows:
+- An attack hit can carry an `advantage` rider (`hit:{damage:'1d6+2',type:'slashing',advantage:'1d4'}`): the extra dice are rolled only when the attack roll had Advantage, and double on a critical hit.
+- `equipment` and `wielding` decide what the model holds; `looks:{item:{params,palette}}` repaints an item for this monster.
+- A creature with two weapons gives each attack entry in its presentation profile a `wield:'<item>'` (and optional `wieldSound`, `drawSound`): the planner puts that weapon in hand first. A profile with `blocks:true` raises its shield on a miss. A rig can expose a socket as a joint (handR) so a clip keeps a held item upright.
 
 ## Add a character
 

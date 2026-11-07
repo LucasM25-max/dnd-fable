@@ -12,9 +12,9 @@ Fable.content.manifest={
   classes:['fighter'],
   maps:['forest-clearing'],
   aiProfiles:['profiles'],
-  monsters:['goblin-minion'],
+  monsters:['goblin-minion','goblin-warrior'],
   characters:['human-fighter'],
   economy:['standard'],
   encounters:['tutorial-goblin-ambush'],
-  presentation:['presentation-kinds','anim-fighter','anim-goblin','effects','sounds','profiles','barks','victories']
+  presentation:['presentation-kinds','anim-fighter','anim-goblin','anim-goblin-warrior','effects','sounds','profiles','barks','victories']
 };

@@ -38,6 +38,8 @@ S.registerAll([
   snd('sfx-pop','Goblin springs out','sfx',.5,[N('pink','bandpass',[400,1600],1,[.02,.1,.3,.15],.5,0,.2),O('sine',[200,60],[.01,.1,.3,.1],.3,0,.1)]),
   snd('sfx-death','Defeat','sfx',.9,[N('brown','lowpass',[1500,150],.7,[.01,.3,.3,.4],.5,0,.4),O('sine',[160,40],[.01,.3,.3,.4],.3,0,.4)]),
   snd('sfx-throw','Throw release','sfx',.25,[N('pink','bandpass',[900,2800],1.4,[.01,.05,.3,.1],.35,0,.12)]),
+  snd('sfx-bow','Bowstring release','sfx',.3,[O('triangle',[260,120],[.002,.06,.2,.14],.3,0,.16),N('white','highpass',[2600,5200],1.2,[.002,.03,.2,.06],.3,0,.08),N('pink','bandpass',[700,1900],1.6,[.01,.06,.3,.1],.25,.03,.12)],{variation:{pitch:.08,gain:.08}}),
+  snd('sfx-bow-draw','Bow drawn','sfx',.45,[N('brown','bandpass',[300,900],2,[.08,.2,.4,.1],.18,0,.34),O('sawtooth',[110,190],[.1,.2,.3,.1],.04,0,.3)],{priority:1}),
   snd('sfx-spin','Thrown weapon spin','sfx',.4,[O('sine',[700,500],[.02,.1,.3,.1],.06,0,.3)],{variation:{pitch:.15}}),
   snd('sfx-status','Status applied','sfx',.5,[{type:'notes',wave:'triangle',notes:[['A3',0,.2,.7],['E3',.1,.3,.7]],env:[.01,.08,.4,.2],gain:.14}],{priority:2}),
   snd('sfx-victory','Victory stinger','music',3.6,[{type:'notes',wave:'triangle',notes:[['D4',0,.5,.9],['A4',.18,.5,.8],['D5',.36,.6,.9],['F#5',.54,.6,.8],['A5',.72,1.8,.9],['D4',.72,2,.5],['A4',.72,2,.4]],env:[.02,.2,.6,.9],gain:.22,filter:{type:'lowpass',freq:3600}}],{priority:5}),

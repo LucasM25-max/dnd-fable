@@ -30,6 +30,19 @@ P.registerAll([
  attacks:{
   'mode:thrown':{clip:'goblin-throw',swingSound:'sfx-throw',projectile:{size:.8,long:5,spin:0,arc:5,dur:.34,color:0xc2cbd0},trail:'fx-trail'},
   'item:dagger':{clip:'goblin-stab',clipOff:'goblin-stab-off',swing:'fx-thrust-streak',swingSound:'sfx-whoosh-thrust'},
-  'default':{clip:'goblin-stab',clipOff:'goblin-stab-off',swing:'fx-thrust-streak',swingSound:'sfx-whoosh-thrust'}}}
+  'default':{clip:'goblin-stab',clipOff:'goblin-stab-off',swing:'fx-thrust-streak',swingSound:'sfx-whoosh-thrust'}}},
+{id:'goblin-warrior',name:'Goblin Warrior presentation',source:'original',blocks:true,
+ voice:{hurt:'voice-goblin-hurt',down:'voice-goblin-die',effort:'voice-goblin-b',cheer:'voice-goblin-cackle'},
+ stepSound:'sfx-step',stepFx:'fx-step',runStepFx:'fx-run-dust',
+ clips:{walk:'gwarrior-walk',run:'gwarrior-run',idle:'gwarrior-idle',hitLight:'gwarrior-hit-light',hitHeavy:'gwarrior-hit-heavy',dodge:'gwarrior-dodge',block:'gwarrior-block',
+   down:'gwarrior-down',getup:'gwarrior-getup',prone:'gwarrior-prone',victory:'gwarrior-taunt',brace:'gwarrior-brace',guard:'gwarrior-guard',nimble:'gwarrior-nimble',hide:'gwarrior-hide',
+   taunt:'gwarrior-taunt',pop:'gwarrior-pop',flinch:'gwarrior-flinch'},
+ effects:{death:'fx-death',land:'fx-thud',pop:'fx-pop',blood:'fx-blood',bloodPool:'fx-blood-pool'},
+ sounds:{hit:'sfx-hit',block:'sfx-block',pop:'sfx-pop'},
+ attacks:{
+  'item:scimitar':{clip:'gwarrior-slash',swing:'fx-slash-arc',swingSound:'sfx-whoosh',wield:'scimitar',wieldSound:'sfx-draw',effort:true},
+  'item:shortbow':{clip:'gwarrior-shoot',swingSound:'sfx-bow',drawSound:'sfx-bow-draw',wield:'shortbow',wieldSound:'sfx-draw',projectile:{size:.7,long:7,spin:0,arc:2,dur:.3,color:0xb69a6a},trail:'fx-trail'},
+  'mode:ranged':{clip:'gwarrior-shoot',swingSound:'sfx-bow',drawSound:'sfx-bow-draw',projectile:{size:.7,long:7,spin:0,arc:2,dur:.3,color:0xb69a6a},trail:'fx-trail'},
+  'default':{clip:'gwarrior-slash',swing:'fx-slash-arc',swingSound:'sfx-whoosh'}}}
 ]);
 })();

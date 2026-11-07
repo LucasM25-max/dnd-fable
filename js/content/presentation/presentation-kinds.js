@@ -42,7 +42,7 @@ C.defineKind('presentationProfiles',{
   refs:[{path:'clips.*',kind:'animations'},{path:'effects.*',kind:'effects'},{path:'sounds.*',kind:'sounds'},
         {path:'attacks.*.clip',kind:'animations'},{path:'attacks.*.swing',kind:'effects'},{path:'attacks.*.impact',kind:'effects'},
         {path:'attacks.*.swingSound',kind:'sounds'},{path:'attacks.*.hitSound',kind:'sounds'},{path:'attacks.*.missSound',kind:'sounds'},
-        {path:'attacks.*.trail',kind:'effects'},{path:'voice.*',kind:'sounds'},{path:'stepSound',kind:'sounds'},{path:'stepFx',kind:'effects'},{path:'runStepFx',kind:'effects'}]
+        {path:'attacks.*.trail',kind:'effects'},{path:'attacks.*.wieldSound',kind:'sounds'},{path:'attacks.*.drawSound',kind:'sounds'},{path:'attacks.*.clipOff',kind:'animations'},{path:'voice.*',kind:'sounds'},{path:'stepSound',kind:'sounds'},{path:'stepFx',kind:'effects'},{path:'runStepFx',kind:'effects'}]
 });
 /* Short lines a creature calls out in a fight, shown in a speech bubble and voiced with a synthesised babble (no words are spoken).
    `profile` is the creature definition id; `lines` maps a situation to a list the director picks from without repeating. */

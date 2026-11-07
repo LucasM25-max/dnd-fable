@@ -1,8 +1,9 @@
 /* Scene switching and main loop. Content is loaded before the first scene is created. */
 (function(){
-var R=Fable.renderer,menuLayer=document.getElementById('menu-layer'),cur=null,game=null,menu=null,last=0;
-function setScene(s){if(cur&&cur.exit)cur.exit();cur=s;if(s.enter)s.enter();resize()}
-function resize(){var w=window.innerWidth,h=window.innerHeight;R.setSize(w,h,false);if(cur)cur.resize(w,h)}
+var R=Fable.renderer,menuLayer=document.getElementById('menu-layer'),game=null,menu=null,last=0;
+/* the scene on screen and how one replaces another (js/game/scenes.js): the old one is always left before the next is built */
+var scenes=Fable.createSceneRunner({resize:function(){resize()}});
+function resize(){var w=window.innerWidth,h=window.innerHeight,cur=scenes.current();R.setSize(w,h,false);if(cur)cur.resize(w,h)}
 window.addEventListener('resize',resize);
 
 function pickEncounter(requested){
@@ -24,22 +25,23 @@ function pickEncounter(requested){
 }
 
 /* The scene on screen, for the debug console and the browser tests (Fable.currentScene().combat is the fight). */
-Fable.currentScene=function(){return cur};
+Fable.currentScene=function(){return scenes.current()};
 
 Fable.enterMenu=function(){
   menuLayer.hidden=false;
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);
   if(!menu)menu=Fable.createMenuScene();
-  setScene(menu);
+  scenes.show(menu);
 };
 
 /* encounter: a registered encounter's id, or an encounter object (what the generator returns) */
 Fable.enterWorld=function(encounterId){
   var encounter=pickEncounter(encounterId);
   if(!encounter)throw new Error('No enabled encounter is registered');
+  /* the scene on screen (a finished fight, when the player chose Fight again) is left before the next one is built */
   menuLayer.hidden=true;
-  game=Fable.createGameScene(encounter);
-  setScene(game);
+  try{game=scenes.swap(function(){return Fable.createGameScene(encounter)})}
+  catch(e){game=null;Fable.enterMenu();throw e}
 };
 
 /* ---------- the two ways a fight starts ---------- */
@@ -81,8 +83,12 @@ var STEP=.05,MAX_STEPS=5;
 function loop(ms){
   var raw=Math.max(0,Math.min((ms-last)/1000,STEP*MAX_STEPS));last=ms;
   var n=Math.max(1,Math.ceil(raw/STEP-1e-6)),dt=raw/n;
-  if(cur)for(var i=0;i<n;i++)cur.update(ms,dt);
-  R.render(cur.scene,cur.camera);requestAnimationFrame(loop);
+  var cur=scenes.current();
+  if(cur){
+    for(var i=0;i<n&&scenes.current()===cur;i++)cur.update(ms,dt);
+    if(scenes.current()===cur)R.render(cur.scene,cur.camera);
+  }
+  requestAnimationFrame(loop);
 }
 
 Fable.content.whenReady(function(){

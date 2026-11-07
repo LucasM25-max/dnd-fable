@@ -46,8 +46,9 @@ function approach(s,c,target,within){
 function secondWind(s,hero,frac){
   if(hero.hp.current<=hero.hp.max*frac&&Fable.combat.actionState(s,hero,'second-wind').ok)Fable.combat.useAction(s,hero,'second-wind');
 }
+/* the hero's melee attack with whatever is in the main hand (the longsword, or a javelin for a hero who kites) */
 function swing(s,hero,target){
-  const atk=Fable.combat.findAttack(hero,'longsword:melee');
+  const atk=Fable.combat.findAttack(hero,(hero.sheet.loadout&&hero.sheet.loadout.mainAttack)||'longsword:melee');
   if(target&&Fable.combat.attackState(s,hero,atk,{}).ok&&Fable.combat.checkTarget(s,hero,atk,target,{}).ok)return Fable.combat.attack(s,hero,atk.id,target,{noReroll:true});
   return null;
 }
@@ -74,7 +75,8 @@ const POLICIES={
     secondWind(s,hero,0.5);
     POLICIES.nearest(s,hero);
   },
-  /* throws javelins while the goblins are not close, stays out of reach, and fights in melee when cornered or out of javelins */
+  /* throws javelins while the goblins are not close, stays out of reach, and fights in melee when cornered or out of javelins.
+     Only what is in hand can be used, so this hero holds a javelin (and the shield) instead of the longsword (see heroFor). */
   kite(s,hero){
     secondWind(s,hero,0.5);
     const t=nearestFoe(s,hero,visible(s,hero));
@@ -90,10 +92,21 @@ const POLICIES={
   }
 };
 
+/* The tutorial hero. A hero who kites holds a javelin in the main hand: a javelin carried in the pack is not drawn, so it cannot be thrown. */
+function heroFor(policy){
+  let build=C.characters.get('human-fighter').build;
+  if(policy==='kite'){
+    const r=Fable.character.inventory.setEquipped(build,{body:'chain-mail',mainhand:'javelin',offhand:'shield'});
+    if(!r.ok)throw new Error('the kiting hero cannot hold a javelin: '+JSON.stringify(r.reasons||r));
+    build=r.build;
+  }
+  return Fable.creature.fromSheet(Fable.character.compute(build),{id:'hero'});
+}
+
 async function runFight(opts){
   await init();
   const seed=opts.seed;
-  const hero=Fable.creature.fromSheet(Fable.character.compute(C.characters.get('human-fighter').build),{id:'hero'});
+  const hero=heroFor(opts.policy);
   const gobs=[0,1].map(i=>Fable.creature.fromMonster(C.monsters.get('goblin-minion'),{index:i,rnd:undefined}));
   if(opts.profile)gobs.forEach(g=>{g.ai=Object.assign({},g.ai,opts.profile,{weights:Object.assign({},g.ai.weights,opts.profile.weights||{})})});
   const s=Fable.combat.create({grid:makeGrid(seed),seed:seed,creatures:[hero].concat(gobs)});

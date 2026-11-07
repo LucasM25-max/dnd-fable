@@ -46,11 +46,18 @@ module.exports=function(t){
       assert.ok(!M().hotbar(pins,all,{})[0].gone);
       assert.ok(!M().moveSlot(s,hero,'longsword:melee').selected,'arming an attack leaves Move mode');
     });
-    test('the thrown javelin and dagger of the tutorial hero are pinned by default and keep their place when they are gone',async()=>{
-      const C=await world(),{s,hero}=fight(C);
+    test('a thrown weapon is pinned by default and keeps its place when it is gone, once it is in hand',async()=>{
+      const C=await world();
+      const held=Fable.character.inventory.setEquipped(C.characters.get('human-fighter').build,{body:'chain-mail',mainhand:'javelin',offhand:'shield'});
+      assert.ok(held.ok);
+      const hero=Fable.creature.fromSheet(Fable.character.compute(held.build),{id:'hero'});
+      const a=Fable.creature.fromMonster(C.monsters.get('goblin-minion'),{index:0,id:'goblin-minion-1'});
+      const s=Fable.combat.create({grid:Fable.grid.create({cols:20,rows:20}),seed:3,creatures:[hero,a]});
+      Fable.combat.place(s,hero,{c:5,r:5});Fable.combat.place(s,a,{c:6,r:5});
+      Fable.combat.start(s);s.order=['hero',a.id];s.turn=0;
       const list=M().actionBar(s,hero,null),all=[M().moveSlot(s,hero,null)].concat(list);
       const names=list.filter(x=>x.kind==='attack').map(x=>x.name);
-      assert.ok(names.some(n=>/dagger/i.test(n))&&names.some(n=>/javelin/i.test(n)),'the hero has a dagger and a javelin to throw: '+names);
+      assert.ok(names.some(n=>/javelin/i.test(n)&&/thrown/.test(n)),'the javelin in hand can be thrown: '+names);
       const mem={},pins=M().defaultPins(all);
       M().hotbar(pins,all,mem);
       const jav=list.find(x=>/javelin/i.test(x.name)&&/thrown/.test(x.name)).id,at=pins.indexOf(jav);
@@ -58,6 +65,37 @@ module.exports=function(t){
       const without=all.filter(x=>x.id!==jav),bar=M().hotbar(pins,without,mem);
       assert.ok(bar[at].gone&&!bar[at].slot.ok&&bar[at].slot.name,'the slot keeps its place and name, dimmed');
       assert.strictEqual(bar[at].slot.reason,'Not available right now');
+    });
+    test('only what is equipped is offered in combat: weapons carried in the pack are not on the bar, in the menu or on the sheet',async()=>{
+      const C=await world();
+      /* Longsword and Shield: the dagger pair and the four javelins are only carried */
+      const {s,hero}=fight(C);
+      const bar=M().actionBar(s,hero,null),atk=bar.filter(x=>x.kind==='attack');
+      assert.deepStrictEqual(atk.map(x=>x.id),['attack:longsword:melee'],'only the longsword: '+atk.map(x=>x.id));
+      assert.ok(!bar.filter(x=>x.kind!=='swap').some(x=>/dagger|javelin/i.test(x.name)),'no dagger or javelin slot (the Dagger pair loadout swap is a gear change, not a weapon)');
+      const menu=M().actionMenu(s,hero,[M().moveSlot(s,hero,null)].concat(bar));
+      const inMenu=[];menu.forEach(c=>c.tabs.forEach(t=>t.slots.forEach(x=>{if(x.kind!=='swap')inMenu.push(x.name)})));
+      assert.ok(!inMenu.some(n=>/dagger|javelin/i.test(n)),'the menu lists none of them: '+inMenu);
+      const sheet=M().sheetView(hero);
+      assert.deepStrictEqual(sheet.attacks.map(x=>x.name),['Longsword','Unarmed Strike'].filter(n=>sheet.attacks.some(y=>y.name===n)),'the sheet lists only held weapons: '+sheet.attacks.map(x=>x.name));
+      assert.ok(!sheet.attacks.some(x=>/dagger|javelin/i.test(x.name)));
+      /* the dagger loadout puts both daggers in hand: they are offered, melee and thrown, and the longsword leaves */
+      const b=fight(C,'b'),bb=M().actionBar(b.s,b.hero,null).filter(x=>x.kind==='attack').map(x=>x.id);
+      assert.ok(bb.indexOf('attack:dagger:melee')>=0&&bb.indexOf('attack:dagger:thrown')>=0,'daggers in hand: '+bb);
+      assert.ok(!bb.some(id=>/longsword|javelin/.test(id)),'nothing else: '+bb);
+    });
+    test('the rules refuse to throw or shoot a weapon that is not in hand, with the same reason the bar gives',async()=>{
+      const C=await world(),{s,hero,a}=fight(C);
+      const jav=hero.attacks.find(x=>x.id==='javelin:thrown'),dag=hero.attacks.find(x=>x.id==='dagger:thrown');
+      assert.ok(jav&&dag&&!jav.equipped&&!dag.equipped,'the pack holds them but the hands do not');
+      [jav,dag].forEach(at=>{
+        const st=Fable.combat.attackState(s,hero,at,{});
+        assert.ok(!st.ok);assert.match(st.reason,/Not in hand/);
+        const r=Fable.combat.attack(s,hero,at.id,a);
+        assert.ok(!r.ok&&/Not in hand/.test(r.reason));
+      });
+      assert.strictEqual(hero.thrown.javelin||0,0,'a refused throw is not counted');
+      assert.ok(!Fable.aiCore.usable(hero,jav),'the enemy AI does not count what the hero carries as a threat');
     });
     test('pins: toggle, place, swap and remove never touch Move, never repeat an id and report a full bar',async()=>{
       const m=M();

@@ -41,7 +41,11 @@ Fable.createCombatController=function(o){
     var c=Fable.creature.fromMonster(def,{index:counts[sp.monsterId]>1?idx:undefined,id:sp.monsterId+'-'+(idx+1),ai:o.encounter&&o.encounter.ai});
     c.reveal=Object.assign({ac:false,hp:false},(o.encounter&&o.encounter.reveal)||{});
     creatures.push(c);
-    entries[c.id]={creature:c,root:sp.instance.root,rig:sp.instance.rig,start:sp.position};
+    entries[c.id]={creature:c,root:sp.instance.root,rig:sp.instance.rig,start:sp.position,gear:sp.instance.gear||null,def:def};
+    /* a monster that carries more than one weapon changes what is in its hand for the attack it makes (the director's 'wield' cue) */
+    if(sp.instance.gear)entries[c.id].wield=function(item){
+      sp.instance.gear.apply(Fable.equipmentVisualsFor(def,{mainhand:item}));
+    };
   });
 
   var seed=typeof o.seed==='number'?o.seed:((Math.random()*4294967296)|0);

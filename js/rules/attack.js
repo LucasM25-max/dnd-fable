@@ -23,6 +23,7 @@
      - An attack roll is d20 + the attack bonus against the target's AC. A natural 1 misses and a natural 20 hits and is a Critical
        Hit; a hit on an Unconscious or Paralyzed target from within 5 feet is a Critical Hit too. A Critical Hit doubles the
        damage dice.
+     - A weapon attack needs the weapon in hand (equipped): a thrown or ranged attack too, not only a melee one. What the pack holds is not drawn.
      - A thrown or ranged attack has Disadvantage beyond its normal range (up to the long range) and when an enemy that can act is
        within 5 feet. A thrown weapon leaves the hand: it is counted as thrown for the rest of the fight.
      - The Attack action allows one attack (attacksAllowed). A Light weapon attack opens the extra attack of the Light property:
@@ -72,6 +73,8 @@ Cb.attackState=function(s,c,a,opts){
   if(a.available===false)return no(a.reason||'Not available');
   var e=c.economy;
   if(a.item){
+    /* only what is equipped (held in a hand) can be used: a javelin carried in the pack is not a weapon the hero has drawn */
+    if((a.mode==='thrown'||a.mode==='ranged')&&!a.equipped)return no('Not in hand (swap loadout)');
     if(a.mode==='thrown'){
       if(remaining(c,a.item)<1)return no('No '+itemName(a)+' left to throw');
     }else if(a.mode==='melee'||a.mode==='light-extra'){
@@ -175,6 +178,13 @@ function masteryText(m){
   return def&&def.summary?def.summary:(def&&def.description)||'';
 }
 
+/* The damage dice of an attack. Some attacks add dice when the attack roll had Advantage (the Goblin Warrior's Scimitar and Shortbow:
+   plus 1d4, "if the attack roll had Advantage"): a.damage.advantage is {expression, stats}. A Critical Hit doubles all the dice, the extra ones too. */
+Cb.damageExpression=function(a,hadAdvantage){
+  var x=a.damage.expression;
+  return hadAdvantage&&a.damage.advantage?x+'+'+a.damage.advantage.expression:x;
+};
+
 /* What the attack preview card shows (section 13.8). Always returns the numbers it can; ok says whether the attack can be made. */
 Cb.previewAttack=function(s,c,a,t,opts){
   var st=Cb.attackState(s,c,a,opts),tc=Cb.checkTarget(s,c,a,t,opts);
@@ -185,7 +195,7 @@ Cb.previewAttack=function(s,c,a,t,opts){
   var rs=Cb.attackRollState(s,c,a,t,tc),ch=Cb.hitChance(a.bonus.value,Cb.targetAc(s,c,t,tc),rs.state);
   out.roll={bonus:a.bonus.value,bonusBreakdown:a.bonus.breakdown,state:rs.state,advantage:rs.advantage,disadvantage:rs.disadvantage,
     ac:Cb.targetAc(s,c,t,tc),acBreakdown:t.ac.breakdown,cover:tc.cover,need:ch.need,hit:ch.hit,crit:rs.autoCrit?ch.hit:ch.crit,autoCrit:rs.autoCrit};
-  var expr=a.damage.expression;
+  var expr=Cb.damageExpression(a,rs.state==='advantage');
   var n=Fable.dice.stats(expr),cr=Fable.dice.stats(expr,{crit:true});
   out.damage={expression:expr,type:a.damage.type,min:Math.max(0,n.min),max:n.max,average:n.average,critMin:Math.max(0,cr.min),critMax:cr.max,critAverage:cr.average,
     bonusBreakdown:a.damage.bonus&&a.damage.bonus.breakdown};
@@ -294,7 +304,7 @@ Cb.completeAttack=function(s,p,opts){
     ac:p.ac,cover:p.cover,hit:hit,crit:crit,autoCrit:!!p.state.autoCrit,band:p.band,distanceFt:p.distanceFt,
     damage:null,effects:[],statuses:[]};
   if(hit){
-    var expr=a.damage.expression;
+    var expr=Cb.damageExpression(a,p.roll.mode==='advantage');
     var dmgRng=p.fixed&&p.fixed.damage?Cb.scriptedRng(p.fixed.damage.faces.map(function(f){return [f,p.fixed.damage.sides]}),s.rng):s.rng;
     var first=Fable.dice.roll(expr,dmgRng,{crit:crit}),used=first,second=null,savage=false;
     var fired=H().fire(s,c,'onDamageRoll',{attack:a,target:t,crit:crit,roll:first});

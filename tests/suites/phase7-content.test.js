@@ -19,7 +19,7 @@ module.exports=function({suite,test}){
     });
     test('clips used by a profile only animate joints the model has',async()=>{
       const C=await load();
-      const joints={'human-fighter':['root','hips','torso','head','armL','armR','legL','legR','cape'],'goblin-minion':['root','torso','head','armL','armR','legL','legR']};
+      const joints={'human-fighter':['root','hips','torso','head','armL','armR','legL','legR','cape'],'goblin-minion':['root','torso','head','armL','armR','legL','legR'],'goblin-warrior':['root','torso','head','armL','armR','legL','legR','handR']};
       C.presentationProfiles.list().forEach(p=>{
         const ids=new Set(Object.values(p.clips));
         Object.values(p.attacks).forEach(a=>{ids.add(a.clip);if(a.clipOff)ids.add(a.clipOff)});

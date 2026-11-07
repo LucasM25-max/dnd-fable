@@ -66,6 +66,11 @@ js/content/
       index.js
       model.js
       definition.js
+    goblin-warrior/
+      index.js
+      model.js
+      features.js
+      definition.js
   characters/
     human-fighter/
       index.js
