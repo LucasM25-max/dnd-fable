@@ -1290,7 +1290,7 @@ The curve gives early upgrades within a few games and the expensive gear later. 
 
 ### 17.5 Presentation and results
 
-- **Coin drops:** when a creature is defeated, coins burst from its remains, sized by its share of the gold (by XP share), using its `treasure` tags for flavor. The coins are collected automatically at the end.
+- **Coin drops:** removed. Defeated creatures no longer spill physical coins onto the map; the gold is paid and counted up on the results screen (the per-creature split in `Fable.rewards.shares` remains as rules data).
 - **Results screen:** an animated tally with the XP bar filling toward the next level, gold counting up with coin sounds, any performance bonuses listed on separate lines, and a level up prompt when the threshold is crossed.
 - **Loot items:** not part of the tutorial. Later encounters can declare `rewards.items` (guaranteed or from a table). Dropped goblin daggers are ordinary items the player can keep or sell.
 - **Defeat:** a defeat gives no XP and no gold. The results screen shows the defeat and offers a retry.

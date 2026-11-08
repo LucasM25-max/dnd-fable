@@ -10,6 +10,7 @@ Fable.content.monsters.register({
   alignment:'Chaotic Neutral',
   tags:['goblin','goblinoid'],
   /* the habitats of the Monster Manual entry, as far as the generator knows them (the clearing is forest and grassland) */
+  lore:"A goblin with some weight behind it, dressed in salvaged leather and a dented iron cap. A warrior lets the minions bleed an enemy first, then closes with a scimitar and a shield strapped to its arm. When the odds turn it backs off and answers with a shortbow instead.",
   environments:['forest','grassland','hill','underdark'],
   family:'goblinoid',
   role:'warrior',
@@ -33,7 +34,7 @@ Fable.content.monsters.register({
     '...dddddd...',
     '..dsssssssd.',
     '.gdssssssdg.',
-    'ggggrggrgggg',
+    'gggggggggggg',
     '.ggyeggyegg.',
     '.ggyeggyegg.',
     '.gggggggggg.',
@@ -47,7 +48,7 @@ Fable.content.monsters.register({
      back and is taken into the hand for a shot (the director's wield cue); Leather Armor is part of the model, drawn to its proportions. */
   equipment:[{item:'scimitar',qty:1},{item:'shield',qty:1},{item:'shortbow',qty:1},{item:'leather-armor',qty:1}],
   wielding:{mainhand:'scimitar',offhand:'shield'},
-  /* its own colours for the shield: scarred wood with an iron boss and a daub of war paint, not the hero's blue and gold */
+  /* its own colours for the shield: scarred wood with an iron boss, not the hero's blue and gold */
   looks:{shield:{palette:{rim:0x4a4f58,face:0x7a4a2a,mark:0xa8322b,boss:0x9aa5b1}}},
   factory:Fable.createGoblinWarrior
 });

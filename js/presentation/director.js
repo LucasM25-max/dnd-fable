@@ -38,7 +38,6 @@ Fable.createPresentation=function(o){
   }
 
   var vfx=Fable.createVfx({scene:o.scene,rng:rng,quality:quality,reduced:reduced});
-  var coins=Fable.createCoins({scene:o.scene,rng:rng,reduced:reduced,onSound:function(id,x,z){if(!disposed)audio.play(id,{gain:id==='sfx-coin-tick'?.5:.7,pan:panOf({x:x,y:3,z:z})})}});
   var audio=Fable.createAudio({settings:S,rng:rng,ctxFactory:o.audioFactory,autoUnlock:o.autoUnlock});
   var cam=Fable.camera.createDirector({rng:rng,reduced:reduced});
   var fx=o.hud?Fable.createScreenFx({root:o.hud.root,camera:o.camera,reduced:reduced}):null;
@@ -53,12 +52,12 @@ Fable.createPresentation=function(o){
   function whoInfo(id){
     var s=getState(),c=s&&s.byId[id],a=actors[id];
     var p=a?a.walker.position():{x:0,z:0};
-    return {id:id,team:c?c.team:'enemy',kind:c?c.kind:'monster',name:c?c.name:id,defId:c?c.defId:null,hpMax:c?c.hp.max:1,hpNow:c?c.hp.current:1,x:p.x,z:p.z,profile:a?a.profile:null,drop:o.drops?o.drops(id):null};
+    return {id:id,team:c?c.team:'enemy',kind:c?c.kind:'monster',name:c?c.name:id,defId:c?c.defId:null,hpMax:c?c.hp.max:1,hpNow:c?c.hp.current:1,x:p.x,z:p.z,profile:a?a.profile:null};
   }
   planner=Fable.createPlanner({who:whoInfo,clip:clipOf,rng:rng});
 
   /* ---------- actors ---------- */
-  var api={camera:cam,audio:audio,vfx:vfx,coins:coins,fx:fx,planner:planner,queue:null};
+  var api={camera:cam,audio:audio,vfx:vfx,fx:fx,planner:planner,queue:null};
   api.addActor=function(creature,entry){
     var prof=profileOf(creature),cl=(prof&&prof.clips)||{};
     var rig=Object.assign({},entry.rig,{clips:{walk:cl.walk,run:cl.run,idle:cl.idle}});
@@ -175,20 +174,6 @@ Fable.createPresentation=function(o){
       }
       case 'wield':{a=actors[c.who];if(a&&a.entry.wield)a.entry.wield(c.item);return}
       case 'flash':{a=actors[c.who];if(a)vfx.flash(a.entry,c.color,c.dur,c.strength);return}
-      case 'coins':{
-        /* the coins a defeated creature carried burst from where it fell, and stay on the ground until the fight is won */
-        a=actors[c.who];if(!a)return;
-        p=a.walker.position();
-        coins.drop(p,c.cp,{tags:c.tags});
-        vfx.play('fx-coin-glint',{x:p.x,y:2,z:p.z});
-        return;
-      }
-      case 'collect':{
-        /* the coins fly to the hero where it lands, not where it started */
-        var hs=heroStage();
-        if(hs&&!hs.stage.landed)hs.stage.collect=true;else api.collectCoins();
-        return;
-      }
       case 'music':{audio.music.start('bed-combat');return}
       case 'outcome':{over=true;audio.music.stop(1.4);if(fx)fx.lowHealth(0);return}
       case 'celebrate':{
@@ -265,7 +250,6 @@ Fable.createPresentation=function(o){
       cam.shake(2.6,.6);cam.punch(.09,.55);
       if(fx)fx.flash('#fff3d2',.65,.6);
       firePose(a);
-      if(st.collect)api.collectCoins();
     }else{
       vfx.play('fx-thud',{x:p.x,y:0,z:p.z});
       audio.play('sfx-thud',{gain:.7});cam.shake(.8,.45);
@@ -376,7 +360,7 @@ Fable.createPresentation=function(o){
     /* a skip never cancels the stage: it lands the hero, so the hero is where the result expects it */
     list.forEach(function(x){if(x.stage&&!x.stage.landed){x.stage.clock=x.stage.spec.launch+x.stage.spec.flight;stepStage(x,0)}});
     list.forEach(function(x){x.animator.finish();x.animator.clearLook();if(x.statuses.down)x.animator.halt()});
-    vfx.clear();coins.settle();queue.timeScale=1;slowUntil=0;if(over)cam.release('attack');else cam.release();
+    vfx.clear();queue.timeScale=1;slowUntil=0;if(over)cam.release('attack');else cam.release();
   }
   api.skip=function(){if(!queue.busy())return false;queue.skip();finishVisuals();return true};
   api.skipAll=function(){if(!queue.busy())return false;queue.skipAll();finishVisuals();return true};
@@ -397,7 +381,7 @@ Fable.createPresentation=function(o){
       if(x.lookUntil&&clockReal>x.lookUntil){x.animator.clearLook();x.lookUntil=0}
       x.animator.update(gdt*(x.animator.busy()?1:1));x.animator.apply();
     });
-    vfx.update(gdt);coins.update(dt);
+    vfx.update(gdt);
     /* persistent status effects drift off a creature while the status lasts */
     auraClock+=dt;
     if(auraClock>.55){
@@ -445,15 +429,7 @@ Fable.createPresentation=function(o){
   };
   api.dispose=function(){
     disposed=true;queue.clear();
-    audio.dispose();vfx.dispose();coins.dispose();if(fx)fx.dispose();
-  };
-  /* the hero collects every coin lying on the ground; the coins fly to it (it may be rising, so it reads the hero's height each time) */
-  api.collectCoins=function(onCoin){
-    var h=null;
-    list.forEach(function(x){if(x.creature.team==='player')h=h||x});
-    if(!h)return 0;
-    var p=h.walker.position();
-    return coins.collect({x:p.x,y:h.animator.hover()+11,z:p.z},onCoin);
+    audio.dispose();vfx.dispose();if(fx)fx.dispose();
   };
   api.finishVisuals=finishVisuals;
   return api;

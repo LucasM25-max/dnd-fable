@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/menu.css">
 <link rel="stylesheet" href="css/characters.css">
+<link rel="stylesheet" href="css/codex.css">
 <link rel="stylesheet" href="css/hud.css">
 <link rel="stylesheet" href="css/hud-combat.css">
 <link rel="stylesheet" href="css/presentation.css">
@@ -30,8 +31,8 @@
   <nav class="left" aria-label="Main menu">
     <button class="tile" id="open-characters" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.500"/><path d="M3.500 21c0-5 3.500-7.500 8.500-7.500s8.500 2.500 8.500 7.500z"/></svg><span class="st">Characters</span></button>
     <button class="tile" id="open-shop" type="button"><span class="new">New</span><svg viewBox="0 0 24 24"><path d="M5 8h14l1.500 13h-17z"/><path d="M8.500 10V7a3.500 3.500 0 017 0v3" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round"/></svg><span class="st">Store</span></button>
-    <button class="tile" data-t="the Bestiary"><svg viewBox="0 0 24 24"><path d="M4 3h13a3 3 0 013 3v15H7a3 3 0 01-3-3z"/><path d="M8 8h8M8 12h8" stroke="#1a1009" stroke-width="2" fill="none"/></svg><span class="st">Bestiary</span></button>
-    <button class="tile" data-t="the Collection"><svg viewBox="0 0 24 24"><path d="M12 2l2.600 6.400L21 9l-5 4.300L17.500 20 12 16.500 6.500 20 8 13.300 3 9l6.400-.600z"/></svg><span class="st">Collection</span></button>
+    <button class="tile" id="open-bestiary" type="button"><svg viewBox="0 0 24 24"><path d="M4 3h13a3 3 0 013 3v15H7a3 3 0 01-3-3z"/><path d="M8 8h8M8 12h8" stroke="#1a1009" stroke-width="2" fill="none"/></svg><span class="st">Bestiary</span></button>
+    <button class="tile" id="open-collection" type="button"><svg viewBox="0 0 24 24"><path d="M12 2l2.600 6.400L21 9l-5 4.300L17.500 20 12 16.500 6.500 20 8 13.300 3 9l6.400-.600z"/></svg><span class="st">Collection</span></button>
   </nav>
   <aside class="right">
     <div class="ev"><div class="st">Daily contest</div><p>Clear the Goblin Warrens for a bonus.</p><em>+50 gp</em></div>
@@ -98,6 +99,7 @@
 <script src="js/rules/ai.js"></script>
 <script src="js/character/roster.js"></script>
 <script src="js/character/flags.js"></script>
+<script src="js/character/codex.js"></script>
 <script src="js/content/content-manifest.js"></script>
 <script src="js/content/content-groups.js"></script>
 <script src="js/content/content-loader.js"></script>
@@ -105,11 +107,14 @@
 <script src="js/menu/tavern.js"></script>
 <script src="js/menu/store-stage.js"></script>
 <script src="js/menu/store-previews.js"></script>
+<script src="js/menu/item-info.js"></script>
 <script src="js/menu/shop-ui.js"></script>
 <script src="js/menu/levelup-ui.js"></script>
 <script src="js/menu/equipment-panel.js"></script>
 <script src="js/menu/character-stage.js"></script>
 <script src="js/menu/characters-ui.js"></script>
+<script src="js/menu/bestiary-ui.js"></script>
+<script src="js/menu/collection-ui.js"></script>
 <script src="js/menu/encounter-preview.js"></script>
 <script src="js/menu/menu-ui.js"></script>
 <script src="js/menu/menu-scene.js"></script>
@@ -144,7 +149,6 @@
 <script src="js/presentation/camera.js"></script>
 <script src="js/presentation/audio.js"></script>
 <script src="js/presentation/vfx.js"></script>
-<script src="js/presentation/coins.js"></script>
 <script src="js/presentation/planner.js"></script>
 <script src="js/presentation/screenfx.js"></script>
 <script src="js/presentation/director.js"></script>

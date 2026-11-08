@@ -36,8 +36,6 @@ E.registerAll([
     {type:'burst',count:26,speed:[24,70],spread:3.2,lift:.75,life:[.5,.9],size:[.7,1.4],end:.5,colors:BLOOD,gravity:140,drag:.8,y:9,radius:2,stain:[1],keepColor:true},
     {type:'burst',count:10,speed:[8,26],spread:3.2,lift:.5,life:[.4,.8],size:[.9,1.6],end:.3,colors:BLOOD,gravity:90,drag:1.4,y:6,radius:2,stain:[1.2],keepColor:true}]),
   fx('fx-blood-pool','Blood pool',[{type:'decal',count:9,radius:6,size:[2,4.2],colors:BLOOD,grow:.9}]),
-  fx('fx-coin-glint','Coin glint',[{type:'burst',count:12,speed:[8,26],spread:3.2,lift:1.1,life:[.4,.8],size:[.5,.9],end:0,colors:GOLD,glow:true,gravity:30,drag:1.4,y:2,radius:3,keepColor:true},
-    {type:'ring',from:2,to:9,dur:.35,color:0xffe08a,opacity:.5}]),
   fx('fx-heal','Healing',[
     {type:'burst',count:22,speed:[10,26],spread:3.2,lift:1.3,life:[.7,1.3],size:[.5,1],end:0,colors:GREEN,glow:true,gravity:-16,drag:1,y:2,radius:5,stagger:.4,keepColor:true},
     {type:'ring',from:3,to:12,dur:.7,color:0x7dffa0,opacity:.7},{type:'light',color:0x80ffa0,intensity:1.6,dur:.9,y:10}]),

@@ -65,17 +65,17 @@ button.eqp-chip:hover{transform:translateY(-2px)}
 .eqp-empty .eqp-otx b{font-weight:700;color:var(--muted)}
 
 /* ---------- the Characters screen ---------- */
-#chars{position:fixed;inset:0;z-index:30;color:var(--text);overflow:hidden}
-#chars[hidden]{display:none}
+#chars,#bestiary{position:fixed;inset:0;z-index:30;color:var(--text);overflow:hidden}
+#chars[hidden],#bestiary[hidden]{display:none}
 #menu-layer.chars-open #ui,#menu-layer.chars-open .fade{visibility:hidden}
-#chars.in{animation:st-in .4s cubic-bezier(.2,.8,.2,1) both}
+#chars.in,#bestiary.in{animation:st-in .4s cubic-bezier(.2,.8,.2,1) both}
 .ch-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 26% 46%,rgba(90,52,16,.5),transparent 62%),linear-gradient(rgba(14,8,4,.92),rgba(10,6,3,.97));backdrop-filter:blur(6px)}
 .ch-page{position:absolute;inset:0;display:flex;flex-direction:column;gap:clamp(6px,1.4vh,14px);min-height:0;padding:max(12px,env(safe-area-inset-top,0px)) clamp(14px,3vw,40px) max(12px,env(safe-area-inset-bottom,0px))}
 .ch-top{flex:none;display:flex;align-items:center;gap:clamp(10px,1.6vw,22px)}
 .ch-back{all:unset;cursor:pointer;flex:none;width:46px;height:46px;display:grid;place-items:center;background:var(--panel);border:2px solid var(--edge);box-shadow:0 4px 0 #000a;color:var(--text);transition:transform .12s,border-color .12s,color .12s}
 .ch-back svg{width:24px;height:24px}
 .ch-back:hover,.ch-back:focus-visible{transform:translateY(-3px);border-color:var(--gold);color:var(--gold)}
-.ch-back:focus-visible,.ch-head:focus-visible,.ch-add:focus-visible,.ch-switch:focus-visible,.sh-lvup:focus-visible,.sh-fb:focus-visible,#chars canvas:focus-visible,.sh-vit:focus-visible,.sh-ab:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+.ch-back:focus-visible,.ch-head:focus-visible,.ch-add:focus-visible,.ch-switch:focus-visible,.sh-lvup:focus-visible,.sh-fb:focus-visible,#chars canvas:focus-visible,#bestiary canvas:focus-visible,.sh-vit:focus-visible,.sh-ab:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 .ch-ttl{flex:none}
 .ch-ttl small{display:block;font:700 12px var(--sans);letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
 .ch-ttl h2{margin:0;font:800 clamp(26px,3.4vw,42px)/1 var(--serif);letter-spacing:.02em;color:var(--gold);text-shadow:0 3px 0 #5a3410,0 0 24px rgba(240,185,77,.35)}
@@ -211,6 +211,6 @@ button.eqp-chip:hover{transform:translateY(-2px)}
   .sh-att .nt{display:none}
 }
 @media (prefers-reduced-motion:reduce){
-  #chars.in,.eqp-pop,.sh-lv.ready,.sh-lvup{animation:none}
+  #chars.in,#bestiary.in,.eqp-pop,.sh-lv.ready,.sh-lvup{animation:none}
   .ch-head,.ch-add,.ch-back,.ch-switch,.eqp-slot,.eqp-chip,.eqp-chev,.sh-chev,.sh-xpb i{transition:none}
 }

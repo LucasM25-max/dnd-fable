@@ -64,10 +64,10 @@
 @keyframes lvup-glow{0%,100%{box-shadow:0 3px 0 #6b430a,0 0 0 rgba(240,185,77,0)}50%{box-shadow:0 3px 0 #6b430a,0 0 18px rgba(240,185,77,.85)}}
 /* The Store: a full page in the menu's wood and gold (square panels, a heavy edge, a hard shadow under everything). The page slides sideways;
    tabs along the top jump along it. Every tile holds a small 3D preview; a click opens a big one. */
-#shop{position:fixed;inset:0;z-index:30;color:var(--text);overflow:hidden}
-#shop[hidden]{display:none}
-#menu-layer.shop-open #ui,#menu-layer.shop-open .fade{visibility:hidden}
-#shop.in{animation:st-in .4s cubic-bezier(.2,.8,.2,1) both}
+#shop,#collection{position:fixed;inset:0;z-index:30;color:var(--text);overflow:hidden}
+#shop[hidden],#collection[hidden]{display:none}
+#menu-layer.shop-open #ui,#menu-layer.shop-open .fade,#menu-layer.collection-open #ui,#menu-layer.collection-open .fade{visibility:hidden}
+#shop.in,#collection.in{animation:st-in .4s cubic-bezier(.2,.8,.2,1) both}
 @keyframes st-in{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 .st-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0,rgba(90,52,16,.55),transparent 60%),linear-gradient(rgba(14,8,4,.9),rgba(10,6,3,.96));backdrop-filter:blur(6px)}
 .st-page{position:absolute;inset:0;display:flex;flex-direction:column;padding:max(14px,env(safe-area-inset-top,0px)) 0 max(12px,env(safe-area-inset-bottom,0px));min-height:0}
@@ -81,7 +81,7 @@
 .st-tab{all:unset;cursor:pointer;position:relative;padding:11px 22px 9px;background:var(--panel);border:2px solid var(--edge);border-bottom:6px solid var(--edge);box-shadow:0 4px 0 #000a;font:800 clamp(15px,1.6vw,20px) var(--serif);color:var(--muted);transition:transform .12s,color .12s,border-color .12s}
 .st-tab:hover,.st-tab:focus-visible{transform:translateY(-3px);border-color:var(--gold);color:var(--gold)}
 .st-tab[aria-selected=true]{color:var(--ink);background:linear-gradient(#f6c960,#d99a2b);border-color:#7a5010;transform:translateY(-3px)}
-.st-tab:focus-visible,.st-back:focus-visible,.st-nav:focus-visible,.st-tile:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+.st-tab:focus-visible,.st-back:focus-visible,.st-nav:focus-visible,.st-tile:focus-visible,.cl-tile:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 .st-purse{flex:none;display:flex;align-items:center;gap:10px;background:var(--panel);border:2px solid var(--edge);padding:8px 16px;box-shadow:0 4px 0 #000a;font:700 clamp(17px,1.8vw,21px) var(--serif);color:var(--text)}
 .st-purse .coin{display:block}
 .st-prog{height:4px;margin:14px clamp(14px,3vw,40px) 0;background:#0008;border:1px solid var(--edge)}
@@ -132,7 +132,7 @@
 .st-nav.prev{left:6px}.st-nav.next{right:6px}
 .st-nav:hover:not(:disabled){border-color:var(--gold)}.st-nav:disabled{opacity:0;pointer-events:none}
 .st-keys{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;padding:8px 16px 0;font:600 14px var(--sans);color:var(--muted)}
-#shop kbd{font:700 12px var(--sans);padding:2px 7px;border:1px solid var(--edge);border-bottom-width:3px;background:#0006;color:var(--muted);border-radius:3px;margin-right:3px}
+#shop kbd,#collection kbd{font:700 12px var(--sans);padding:2px 7px;border:1px solid var(--edge);border-bottom-width:3px;background:#0006;color:var(--muted);border-radius:3px;margin-right:3px}
 /* the big preview of one thing */
 .st-modal{position:absolute;inset:0;z-index:5;display:grid;place-items:center;padding:clamp(10px,3vw,40px);background:rgba(6,3,1,.78);animation:st-fade .2s both}
 @keyframes st-fade{from{opacity:0}to{opacity:1}}
@@ -177,7 +177,7 @@
   .st-view{border-right:0;border-bottom:2px solid var(--edge)}.st-info{padding:14px 16px}.st-ds{font-size:14px}.st-cta{padding:12px;font-size:20px}
 }
 @media (max-height:520px){.st-keys{display:none}.st-ttl small{display:none}.st-track{--t:clamp(100px,calc((100vh - 250px) / 2),170px)}}
-@media (prefers-reduced-motion:reduce){.lvup,.lv.ready{animation:none}#shop.in,.st-modal,.st-md{animation:none}.st-cta:before{animation:none;display:none}.st-tile,.st-tab,.st-back,.st-prog i{transition:none}.xpb i{transition:none}}
+@media (prefers-reduced-motion:reduce){.lvup,.lv.ready{animation:none}#shop.in,#collection.in,.st-modal,.st-md{animation:none}.st-cta:before{animation:none;display:none}.st-tile,.st-tab,.st-back,.st-prog i{transition:none}.xpb i{transition:none}}
 
 /* the encounter card shown between Play and the camera tour */
 .ep{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(8,5,3,.55),rgba(8,5,3,.88));cursor:pointer;animation:ep-in .28s ease-out both}

@@ -2,7 +2,7 @@
 (function(){
 var toast=document.getElementById('toast'),tt;
 function say(m){toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove('show')},1800)}
-document.querySelectorAll('[data-t]').forEach(function(b){b.addEventListener('click',function(){say('Mockup: this opens '+b.dataset.t+'.')})});
+document.querySelectorAll('[data-t]').forEach(function(b){b.addEventListener('click',function(){say(b.dataset.t==='Quit'?'Dicebound runs in this tab. Close it when you are done; progress is saved.':'Volume, speed and accessibility options are in a fight: press H.')})});
 
 /* the hub shows the active character (Fable.character.roster.active), and follows a switch made on the Characters screen */
 var heroId='human-fighter',panel=null;
@@ -97,8 +97,15 @@ if(replay)replay.onclick=function(){Fable.startTutorial()};
 /* the Characters screen (js/menu/characters-ui.js): the full page of every character, their sheets and their equipment */
 var chBtn=document.getElementById('open-characters');
 if(chBtn)chBtn.onclick=function(){Fable.charactersUi.open({say:say,from:chBtn})};
+/* the Bestiary (js/menu/bestiary-ui.js) and the Collection (js/menu/collection-ui.js) */
+var bsBtn=document.getElementById('open-bestiary');
+if(bsBtn)bsBtn.onclick=function(){Fable.bestiaryUi.open({say:say,from:bsBtn})};
+var clBtn=document.getElementById('open-collection');
+if(clBtn)clBtn.onclick=function(){Fable.collectionUi.open({say:say,from:clBtn})};
 Fable.content.whenReady(function(){
   var R=Fable.character.roster;
+  /* whatever the heroes carry counts as found in the Collection, now and after every purchase or reward */
+  Fable.codex.absorb(R);R.onChange(function(){Fable.codex.absorb(R)});
   heroId=R.active()||heroId;
   var host=document.getElementById('eqp-host');
   if(host&&Fable.equipmentPanel){panel=Fable.equipmentPanel.create(heroId,{say:say});host.appendChild(panel.el)}

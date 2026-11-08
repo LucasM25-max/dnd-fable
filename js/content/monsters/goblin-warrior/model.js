@@ -2,7 +2,7 @@
    surface voxels) and rigged the same way. The scimitar, the shield and the shortbow are not part of the model: the equipment
    view draws them from the warrior's equipment at the sockets and stow points listed in rig (scimitar in the right fist or on
    the hip, shield strapped to the left forearm, shortbow slung across the back). What is built in is what the warrior wears:
-   a studded leather cuirass, bracers, an iron cap with a nasal bar, war paint and a quiver of arrows. */
+   a studded leather cuirass, bracers, an iron cap with a nasal bar and a quiver of arrows. */
 (function(){
 var b=Fable.b,voxelize=Fable.voxelize;
 Fable.createGoblinWarrior=function(){
@@ -10,7 +10,7 @@ Fable.createGoblinWarrior=function(){
   var skin=0x6f8f38,skinLight=0x88a548,skinDark=0x45602a,ear=0xa87650;
   var leather=0x6a4226,leatherDark=0x3b2615,leatherLight=0x8a5a34,cloth=0x4b3a28,clothRed=0x7d2d25;
   var pants=0x3a3a2a,boot=0x2b2118,iron=0x7d8790,ironLight=0xb3bcc2,ironDark=0x4c545c,stud=0xc2cbd0;
-  var gold=0xb98a32,hair=0x241b14,eye=0xe0b83e,ink=0x1a150f,paint=0xa8322b,paintDark=0x74201b,bone=0xd9cfb4,fletch=0xc9c0a4;
+  var gold=0xb98a32,hair=0x241b14,eye=0xe0b83e,ink=0x1a150f,bone=0xd9cfb4,fletch=0xc9c0a4;
 
   function pivot(x,y,z){var g=new THREE.Group();g.position.set(x,y,z);G.add(g);return g}
   function L(p){return function(x,y,z,w,h,d,c){return b(p,x-p.position.x,y-p.position.y,z-p.position.z,w,h,d,c,1)}}
@@ -94,9 +94,6 @@ Fable.createGoblinWarrior=function(){
     bh(s*1.5,13.97,2.9,1.14,.82,.25,eye);
     bh(s*1.2,13.97,3.06,.34,.7,.13,ink);
     bh(s*1.5,14.72,2.67,2.1,.62,.55,skinDark);
-    /* war paint: two red slashes across each cheek */
-    bh(s*2.35,13.0,2.62,1.5,.34,.16,paint);
-    bh(s*2.1,12.4,2.62,1.7,.34,.16,paintDark);
   });
   bh(.2,13.0,3.02,1.2,2.4,1.2,skinDark);
   bh(.4,12.8,3.62,1.6,1.1,1.05,skinLight);
