@@ -48,6 +48,8 @@ Fable.createCombatController=function(o){
     };
   });
 
+  /* the Bestiary: every kind of monster in this fight has now been met */
+  try{Fable.codex.noteFight(o.spawned.map(function(sp){return sp.monsterId}))}catch(e){}
   var seed=typeof o.seed==='number'?o.seed:((Math.random()*4294967296)|0);
   var s=Cb().create({grid:grid,seed:seed,creatures:creatures});
 
@@ -90,9 +92,7 @@ Fable.createCombatController=function(o){
   var hooks={start:function(e){say(e)},round:function(e){roundChanged=true;say(e)},turnstart:onTurnStart,attack:onAttack,action:onAction,'tactical-mind':onTacticalMind,swap:onSwap,
     status:function(e){say(e);dirty=true},down:onDown,dead:function(e){say(e);dirty=true},deathsave:onDeathSave,over:onOver,pickup:onPickup,morale:onMorale,recovered:onRecovered};
   pres=Fable.createPresentation({scene:scene,camera:camera,hud:hud,state:function(){return s},hooks:hooks,seed:seed,settings:Fable.hudSettings,
-    /* the coins each goblin drops when it falls (its share of the base gold, bonuses not counted: those are paid on the results screen),
-       and the victory pose the player has chosen */
-    drops:function(id){var d=dropShares()[id];return d?{cp:d}:null},
+    /* the victory pose the player has chosen */
     victory:function(){return Fable.character.roster.victory(o.hero.id)}});
   ctrl.pres=pres;
   creatures.forEach(function(c){var a=pres.addActor(c,entries[c.id]);entries[c.id].walker=a.walker});
@@ -309,7 +309,7 @@ Fable.createCombatController=function(o){
   }
   function onDown(e){
     var d=s.byId[e.id];say(e);
-    if(d.kind==='monster')labels.float(d,'Defeated','info');
+    if(d.kind==='monster'){labels.float(d,'Defeated','info');try{Fable.codex.noteDefeat(d.defId)}catch(err){}}
     dirty=true;
   }
   function onDeathSave(e){
@@ -570,21 +570,10 @@ Fable.createCombatController=function(o){
     autoEnd+=dt;
     if(autoEnd>1.5&&heroTurn()&&s.phase==='running'){autoEnd=-1;Cb().endTurn(s);dirty=true}
   }
-  var dropCache=null;
   function levelsOf(){
     var b=o.hero.build,n=0;
     ((b&&b.classLevels)||[]).forEach(function(c){n+=c.level||0});
     return [Math.max(1,n)];
-  }
-  function dropShares(){
-    if(dropCache)return dropCache;
-    dropCache={};
-    try{
-      var R=Fable.rewards,en=R.enemies(s).map(function(e){e.status='defeated';return e});
-      var r=R.compute({win:true,encounter:o.encounter,enemies:en,hero:{hp:1,hpMax:1},rounds:0,consumablesUsed:0,levels:levelsOf(),xpBefore:0,rng:function(){return 1}});
-      r.shares.forEach(function(x){dropCache[x.id]=x.cp});
-    }catch(e){console.warn('Coin drops: '+e.message)}
-    return dropCache;
   }
   function consumablesUsed(){var n=0,u=hero.itemsUsed||{};Object.keys(u).forEach(function(k){n+=u[k]});return n}
   var paid=null,outcomeInstant=false;

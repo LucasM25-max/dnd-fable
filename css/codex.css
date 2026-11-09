@@ -1,0 +1,108 @@
+/* The Bestiary and the Collection. Both borrow the look of the screens beside them (the Characters page and the Store), so this file only holds
+   what is theirs: the greyed-out state of what has not been found, the Bestiary's stat block touches and the Collection's grid of tiles. */
+
+/* ---------- the Bestiary ---------- */
+.bs-count{flex-direction:column;align-items:flex-end;gap:0;padding:6px 16px 7px}
+.bs-count small{font:700 11px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.bs-count b{font:800 clamp(18px,1.9vw,22px)/1.1 var(--serif);color:var(--gold);font-variant-numeric:tabular-nums}
+/* a creature not yet met: a dark head, a dark shape on the podium, no name */
+.ch-head.locked .ch-face{filter:grayscale(1) brightness(.3) contrast(1.1)}
+.ch-head.locked .ch-hn{color:var(--muted);letter-spacing:.2em}
+.ch-head.locked.on{color:var(--text);background:linear-gradient(#4a3a26,#2a1d10);border-color:#8a7040}
+.ch-head.locked.on .ch-hn{color:var(--muted)}
+.ch-head.locked.on .ch-face{border-color:#8a7040}
+.ch-stage.locked canvas{filter:grayscale(1) brightness(.2) contrast(1.15)}
+.ch-stage.locked:after{content:"Not yet met";position:absolute;left:0;right:0;bottom:12px;text-align:center;font:800 14px var(--sans);letter-spacing:.3em;text-transform:uppercase;color:var(--muted);text-shadow:0 2px 0 #000;pointer-events:none}
+.bs-record{flex:none;display:flex;flex-direction:column;align-items:center;min-width:76px;padding:6px 14px 7px;line-height:1;background:#0006;border:2px solid var(--edge)}
+.bs-record b{font:800 28px/1 var(--serif);color:var(--gold);font-variant-numeric:tabular-nums}
+.bs-record small{margin-top:3px;font:700 10px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.bs-record.none b{color:var(--muted)}
+.bs-cr b{font-size:22px}
+.bs-lore{margin:0;padding:10px 14px 12px;font:italic 500 16px/1.55 var(--serif);color:var(--text);border-left:4px solid var(--gold);background:#0003}
+.bs-unknown{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:30px 20px;text-align:center}
+.bs-q{display:grid;place-items:center;width:96px;height:96px;border:2px dashed var(--edge);font:800 56px var(--serif);color:var(--muted)}
+.bs-unknown h4{margin:6px 0 0;font:800 20px var(--serif);letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.bs-unknown p{max-width:36ch;margin:0;font:500 16px/1.55 var(--sans);color:var(--muted)}
+
+/* ---------- the Collection ---------- */
+#collection .st-page{padding-left:clamp(14px,3vw,40px);padding-right:clamp(14px,3vw,40px);gap:10px}
+#collection .st-top{padding:0}
+.cl-tabs{flex-wrap:wrap;row-gap:6px}
+.cl-tabs .st-tab{display:flex;align-items:baseline;gap:8px;padding:10px 16px 8px}
+.cl-tc{font:700 .72em var(--sans);font-style:normal;letter-spacing:.06em;opacity:.7;font-variant-numeric:tabular-nums}
+.st-tab[aria-selected=true] .cl-tc{opacity:.8}
+.cl-total{flex-direction:column;align-items:flex-end;gap:0;padding:6px 16px 7px;line-height:1.1}
+.cl-total small{font:700 11px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.cl-total b{font:800 clamp(18px,1.9vw,22px) var(--serif);color:var(--gold);font-variant-numeric:tabular-nums}
+.cl-head{display:flex;align-items:baseline;gap:14px;padding-bottom:6px;border-bottom:2px solid var(--edge)}
+.cl-head h3{margin:0;font:800 clamp(24px,3vw,36px)/1 var(--serif);letter-spacing:.04em;text-transform:uppercase;color:var(--gold);text-shadow:0 3px 0 #5a3410}
+.cl-head span{font:600 14px var(--sans);color:var(--muted)}
+.cl-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:6px 6px 18px 2px;display:flex;flex-flow:row wrap;align-content:flex-start;align-items:flex-start;gap:22px clamp(22px,3vw,40px);scrollbar-width:thin;outline:none}
+.cl-wide{flex:1 1 100%;min-width:0}
+.cl-small{flex:0 0 auto}
+.cl-small .cl-grid{grid-template-columns:repeat(var(--n,1),clamp(132px,13vw,168px))}
+.cl-group h4{display:flex;align-items:baseline;gap:12px;margin:0 0 10px;font:800 13px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.cl-group h4 span{font:700 13px var(--serif);letter-spacing:.06em;color:var(--gold);font-variant-numeric:tabular-nums}
+.cl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(132px,13vw,168px),1fr));gap:14px}
+.cl-tile{all:unset;box-sizing:border-box;position:relative;cursor:pointer;display:flex;flex-direction:column;overflow:hidden;background:linear-gradient(#3a2814,#1c1109);border:2px solid var(--edge);border-bottom:6px solid var(--edge);box-shadow:0 4px 0 #000a;transition:transform .14s,border-color .14s,box-shadow .14s}
+.cl-tile.magic{background:linear-gradient(#3b2358,#1c1030);border-color:#6a4aa8;border-bottom-color:#6a4aa8}
+.cl-tile:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 38%,rgba(255,226,154,.26),transparent 62%);pointer-events:none}
+.cl-tile:hover,.cl-tile:focus-visible{transform:translateY(-5px);border-color:var(--gold);box-shadow:0 9px 0 #000a,0 0 26px rgba(240,185,77,.28)}
+.cl-tile:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+.cl-tile:active{transform:translateY(-1px)}
+.cl-pic{position:relative;display:block;aspect-ratio:1/.86}
+.cl-pv,.cl-ic{position:absolute;inset:0;width:100%;height:100%}
+.cl-pv{object-fit:contain;opacity:0;transition:opacity .3s}
+.cl-tile.has3d .cl-pv{opacity:1}
+.cl-ic{display:grid;place-items:center;color:var(--gold);opacity:.6}
+.cl-ic svg{width:44%;height:44%;fill:currentColor}
+.cl-tile.has3d .cl-ic{display:none}
+.cl-bar{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 6px 7px;background:#0009;border-top:2px solid var(--edge)}
+.cl-nm{max-width:100%;font:800 clamp(14px,1.3vw,16px)/1.15 var(--serif);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-tag{font:700 clamp(12px,1.1vw,14px) var(--serif);color:var(--muted);min-height:1.2em}
+.cl-tag.done{color:#8fdc7a}
+.cl-tag.avail{color:var(--gold)}
+/* what has not been found: greyed out, with the shape still readable */
+.cl-tile.missing{border-color:#3a2d20;border-bottom-color:#3a2d20;background:linear-gradient(#26201a,#14100c)}
+.cl-tile.missing .cl-pv{filter:grayscale(1) brightness(.5) contrast(.9)}
+.cl-tile.missing .cl-ic{color:#8a7a62;opacity:.4}
+.cl-tile.missing .cl-nm{color:#a39580}
+.cl-tile.missing:before{opacity:.35}
+.cl-tile.missing:hover,.cl-tile.missing:focus-visible{border-color:#9a8458;box-shadow:0 9px 0 #000a}
+.cl-lock{position:absolute;top:8px;right:8px;z-index:1;width:22px;height:22px;background:#0009;border:2px solid #4a3a28}
+.cl-lock:before{content:"";position:absolute;left:4px;top:8px;width:10px;height:7px;background:#a39580}
+.cl-lock:after{content:"";position:absolute;left:5px;top:2px;width:8px;height:8px;box-sizing:border-box;border:2px solid #a39580;border-bottom:0}
+.cl-tile.soon{cursor:default;align-items:center;justify-content:center;gap:8px;min-height:150px;border-style:dashed;background:#0006;box-shadow:none;transform:none!important}
+.cl-tile.soon:before{display:none}
+.cl-q{width:46px;height:46px;display:grid;place-items:center;border:2px dashed var(--edge);font:800 24px var(--serif);color:var(--muted)}
+.cl-tile.soon b{font:800 15px var(--serif);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+/* the details */
+.cl-big{position:absolute;inset:0;display:grid;place-items:center;color:var(--gold);background:radial-gradient(circle at 50% 46%,rgba(120,70,22,.55),transparent 66%)}
+.cl-big svg{width:34%;height:34%;max-width:200px;fill:currentColor;filter:drop-shadow(0 6px 0 #000a)}
+.cl-modal.locked .st-vcv{filter:grayscale(1) brightness(.45)}
+.cl-modal.locked .cl-big{color:#8a7a62;filter:grayscale(1)}
+.cl-shade{position:absolute;left:0;right:0;bottom:14px;text-align:center;font:800 14px var(--sans);letter-spacing:.3em;text-transform:uppercase;color:#cdbb98;text-shadow:0 2px 0 #000;pointer-events:none}
+.cl-how{margin:6px 0 0;padding:12px 14px 14px;background:#0004;border:2px solid var(--edge);border-left:5px solid var(--gold)}
+.cl-how h4{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px;font:800 13px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.cl-how h4 em{padding:2px 10px 3px;font:800 12px var(--sans);font-style:normal;letter-spacing:.1em;color:var(--ink);background:linear-gradient(#f6c960,#d99a2b)}
+.cl-how h4 em.got{color:#0e2a08;background:linear-gradient(#a9e895,#6fc457)}
+.cl-how h4 em.no{color:#e8d9bd;background:#3a2d20;border:1px solid #6b5a42}
+.cl-how ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.cl-how li{position:relative;padding-left:16px;font:500 15px/1.45 var(--sans);color:var(--text)}
+.cl-how li:before{content:"";position:absolute;left:0;top:.6em;width:7px;height:7px;background:var(--gold);transform:rotate(45deg)}
+.cl-ds:empty{display:none}
+/* the tabs share the top row with the title only when the window is wide; below that they take a row of their own */
+@media (max-width:1500px){#collection .st-top{flex-wrap:wrap;row-gap:10px}#collection .st-ttl{flex:1}.cl-tabs{order:3;flex:1 0 100%;justify-content:flex-start}}
+@media (max-width:1100px){.cl-tabs .st-tab{padding:8px 11px 6px}}
+@media (max-width:760px){
+  #collection .st-top{flex-wrap:wrap}.cl-tabs{order:3;flex:1 0 100%}.cl-tabs .st-tab{flex:1;text-align:center;padding:8px 4px 6px;font-size:13px;justify-content:center}
+  .cl-grid{grid-template-columns:repeat(auto-fill,minmax(116px,1fr));gap:10px}
+}
+@media (prefers-reduced-motion:reduce){.cl-tile{transition:none}.cl-pv{transition:none}}
+
+/* the stat block: three tiles across, six when the panel is wide enough, so a row never ends with one tile on its own */
+.bs-sheet .sh-vitals,.bs-sheet .sh-abil{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (min-width:1400px){.bs-sheet .sh-vitals,.bs-sheet .sh-abil{grid-template-columns:repeat(6,minmax(0,1fr))}}
+.bs-head{width:104px}
+.bs-head .ch-hn{white-space:normal;text-align:center;line-height:1.05;min-height:2.1em;display:flex;align-items:center;justify-content:center;overflow:visible}
+@media (max-height:780px){.bs-head{width:92px}}

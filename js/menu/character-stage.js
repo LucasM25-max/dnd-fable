@@ -3,8 +3,9 @@
    pointer. Drag (or the left and right arrow keys) turns him; he settles back to face the front. His gear is drawn from the roster's sheet and
    redrawn the moment the equipment changes, so the equipment panel under him is live.
 
-   var st = Fable.createCharacterStage(canvas, {manual})
-     st.setHero(id, animate)   shows that character (the old one is disposed; animate pops the new one onto the podium)
+   var st = Fable.createCharacterStage(canvas, {manual, monster})
+     st.setHero(id, animate)   shows that character (the old one is disposed; animate pops the new one onto the podium).
+                               With {monster:true} the id is a monster's: the Bestiary uses the same stage, scaled to the creature's height
      st.heroId()               the id on show
      st.turn(radians)          turn him (what a drag and the arrow keys call)
      st.resize()  st.update(dt)  st.render()   st.start() / st.stop() run its own loop (manual:true leaves the stepping to the caller, for tests)
@@ -12,7 +13,7 @@
    Reduced motion keeps him still (no breathing, no sparks, no pop). */
 (function(){
 function easeOutBack(t){var c1=1.70158,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2)}
-var REST_YAW=-.38;
+var REST_YAW=-.38,MON_H=26;   /* the height a monster is scaled to on the podium (the hero stands about 32) */
 
 Fable.createCharacterStage=function(canvas,opts){
   opts=opts||{};
@@ -64,12 +65,22 @@ Fable.createCharacterStage=function(canvas,opts){
     if(disposed)return;
     if(hero&&hero.id===id)return;
     disposeHero();
-    var fg=Fable.content.characters.create(id),gear=Fable.createEquipmentView(fg.rig);
-    gear.apply(Fable.character.roster.sheet(id).visuals);
-    var holder=new T.Group();holder.add(fg.root);holder.position.y=TOP;holder.scale.setScalar(animate&&!calm?.001:K);
+    var mon=!!opts.monster,fg=mon?Fable.content.monsters.create(id):Fable.content.characters.create(id),gear=Fable.createEquipmentView(fg.rig),off=null,k=K;
+    if(mon){
+      /* a monster is drawn as the game draws it: its own gear in hand, arms in their idle pose, scaled so the tallest of them still fits the podium */
+      /* the height is the body's alone (read before the gear goes on, so a slung bow or a raised blade does not count) */
+      var bb=Fable.storeModels.bounds(fg.root),ht=Math.max(1,bb.max.y-bb.min.y);
+      k=Math.max(.8,Math.min(2.6,MON_H/ht));
+      gear.apply(Fable.equipmentVisualsFor(Fable.content.monsters.get(id)));
+      var idle=fg.rig&&fg.rig.idle,jn=(fg.rig&&fg.rig.joints)||{};
+      Object.keys(idle||{}).forEach(function(j){if(jn[j])jn[j].rotation.x=idle[j]});
+    }else{
+      gear.apply(Fable.character.roster.sheet(id).visuals);
+      off=Fable.character.roster.onChange(function(changedId,sheet){if(changedId===id&&sheet&&hero&&hero.id===id)hero.gear.apply(sheet.visuals)});
+    }
+    var holder=new T.Group();holder.add(fg.root);holder.position.y=TOP;holder.scale.setScalar(animate&&!calm?.001:k);
     S.add(holder);
-    var off=Fable.character.roster.onChange(function(changedId,sheet){if(changedId===id&&sheet&&hero&&hero.id===id)hero.gear.apply(sheet.visuals)});
-    hero={id:id,fg:fg,gear:gear,holder:holder,t:0,pop:animate&&!calm?0:1,off:off};
+    hero={id:id,fg:fg,gear:gear,holder:holder,t:0,pop:animate&&!calm?0:1,off:off,k:k,head:mon&&fg.rig&&fg.rig.joints?fg.rig.joints.head:null};
     yaw=REST_YAW;yawV=0;idleFor=9;
   }
   function turn(d){yaw+=d;idleFor=0}
@@ -109,7 +120,7 @@ Fable.createCharacterStage=function(canvas,opts){
       var t=calm?0:clock;
       if(hero){
         var fg=hero.fg;
-        if(hero.pop<1){hero.pop=Math.min(1,hero.pop+dt/.45);hero.holder.scale.setScalar(Math.max(.001,K*easeOutBack(hero.pop)))}
+        if(hero.pop<1){hero.pop=Math.min(1,hero.pop+dt/.45);hero.holder.scale.setScalar(Math.max(.001,hero.k*easeOutBack(hero.pop)))}
         /* a drag keeps its momentum, then he eases back to face the front a moment after it stops */
         if(!dragging){
           idleFor+=dt;
@@ -119,6 +130,7 @@ Fable.createCharacterStage=function(canvas,opts){
         fg.root.rotation.y=yaw;
         fg.root.position.y=Math.sin(t*1.7)*.1;
         if(fg.H){fg.H.rotation.y=calm?0:mx*.3;fg.H.rotation.x=calm?0:my*.12}
+        else if(hero.head){hero.head.rotation.y=calm?0:mx*.3;hero.head.rotation.x=calm?0:my*.12}
         if(fg.C)fg.C.rotation.x=.1+Math.sin(t*1.3)*.05;
         if(fg.AL)fg.AL.rotation.x=-.3+Math.sin(t*1.7)*.02;
         if(fg.AR)fg.AR.rotation.x=-.9+Math.sin(t*1.7+1)*.03;
