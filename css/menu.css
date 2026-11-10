@@ -168,9 +168,11 @@
 .st-cta:disabled{cursor:not-allowed;color:var(--muted);background:#2a1d10;border-color:var(--edge);box-shadow:none;filter:none}
 .st-cta:disabled:before{display:none}
 .st-why{margin:0;text-align:center;font:700 14px var(--sans);color:#ff8b7f}
-@media (max-width:1000px){.st-tab{padding:9px 12px 7px}.st-ttl small{display:none}}
+@media (max-width:1360px){.st-tab{padding:10px 14px 8px}}
+@media (max-width:1100px){.st-tab{padding:9px 11px 7px}.st-ttl small{display:none}}
 @media (max-width:760px){
   .st-top{flex-wrap:wrap;gap:8px}.st-ttl{flex:1}.st-tabs{order:3;flex:1 0 100%;justify-content:stretch}.st-tab{flex:1;text-align:center;padding:9px 4px 7px;font-size:14px}
+  #shop .st-tabs{justify-content:flex-start;overflow-x:auto;scrollbar-width:none;padding:5px 0 8px}#shop .st-tabs::-webkit-scrollbar{display:none}#shop .st-tab{flex:1 0 auto;padding:9px 12px 7px}
   .st-track{--t:clamp(112px,calc((100vh - 300px) / 2),170px)}
   .st-keys,.st-nav{display:none}
   .st-modal{padding:0}.st-md{height:100%;grid-template-columns:1fr;grid-template-rows:minmax(150px,38%) minmax(0,1fr);border:0}

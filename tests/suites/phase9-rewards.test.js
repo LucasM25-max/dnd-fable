@@ -80,7 +80,7 @@ module.exports=function({suite,test}){
       b=I.gain(b,10000).build;
       const r=S.buy(b,'armory','potion-of-healing',2);
       assert.ok(r.ok);assert.strictEqual(I.purseCp(r.build),0);
-      assert.ok(!S.buy(b,'armory','longsword',1).ok);
+      assert.ok(!S.buy(b,'armory','no-such-item',1).ok);
       const held=Object.values(b.equipped).filter(Boolean)[0];
       assert.ok(!S.sell(b,'armory',held,1).ok);
       const sold=S.sell(r.build,'armory','potion-of-healing',1);

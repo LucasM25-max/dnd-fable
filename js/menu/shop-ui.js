@@ -1,12 +1,13 @@
 /* The Store (implementation plan, Phase 9): a full page menu for buying, in the menu's wood and gold. The page slides sideways: tabs along the top
-   jump to Featured, Character, Equipment and Cosmetics, and each holds groups of square tiles (Equipment: weapons, adventuring gear, armour;
-   Cosmetics: skins, victory animations, backgrounds; Character: subclasses, species, feats). Every tile shows a small 3D preview of the thing
-   (js/menu/store-previews.js, turning while the pointer is on it); a click opens a big preview with a podium (js/menu/store-stage.js), all
-   its details and the buy button. Only what the game has today is for sale; a group with nothing in it says coming soon.
+   jump to Featured, Character, Weapons, Armour, Gear, Magic and Cosmetics, and each holds groups of square tiles. The groups of the four equipment
+   tabs are the shop's shelves (js/content/items/shops.js), so every item in the game is on sale and the page names none of them.
+   Cosmetics: skins, victory animations, backgrounds; Character: subclasses, species, feats. Every tile shows a small 3D preview
+   (js/menu/store-previews.js, painted when its tile comes near the screen and turning while the pointer is on it); a click opens a big
+   preview with a podium (js/menu/store-stage.js), all its details and the buy button. A group with nothing in it says coming soon.
    Fable.shopUi.open(heroId, shopId, {say, manual}) / close() / isOpen() / stage()   Escape closes the big preview, then the page. */
 (function(){
 Fable.shopUi=(function(){
-  var root=null,stage=null,pv=null,tiles=[],els={},state={hero:'human-fighter',shop:'armory',qty:{},sel:null,stock:[]},opener=null,off=null,toastFn=null,manual=false,paintT=0;
+  var root=null,stage=null,pv=null,tiles=[],els={},state={hero:'human-fighter',shop:'armory',qty:{},sel:null,stock:[],shelves:[]},opener=null,off=null,toastFn=null,manual=false,paintT=0;
   var Ro=function(){return Fable.character.roster};
   function el(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n}
   function say(m){if(toastFn)toastFn(m);var l=document.getElementById('hud-live')||document.getElementById('store-live');if(l)l.textContent=m}
@@ -35,10 +36,14 @@ Fable.shopUi=(function(){
     var c=cat[id];if(!c)return null;
     return {kind:'item',id:id,name:c.name,description:c.description,priceCp:c.priceCp,owned:c.owned,canAfford:c.canAfford,maxAffordable:c.maxAffordable};
   }
-  function subOfItem(it){return it.type==='weapon'?'weapons':it.type==='armor'?'armour':'gear'}
-  function ids(kind,sub){
+  function ids(kind,shelf){
     if(kind==='pose')return Fable.content.victoryAnimations.list().map(function(v){return v.id});
-    return state.stock.filter(function(id){return subOfItem(itemDef(id))===sub});
+    var s=state.shelves.filter(function(x){return x.id===shelf})[0];
+    return s?s.items.slice():[];
+  }
+  /* the shelves of one Store tab, as groups the page can draw */
+  function shelfGroups(tab){
+    return state.shelves.filter(function(s){return s.tab===tab}).map(function(s){return [s.name,'item',s.id]});
   }
 
   /* ---------- the page ---------- */
@@ -46,7 +51,10 @@ Fable.shopUi=(function(){
   var SECTIONS=[
     {id:'featured',name:'Featured',note:'Hand picked for the road'},
     {id:'character',name:'Character',note:'Shape who your hero is',groups:[['Subclasses'],['Species'],['Feats']]},
-    {id:'equipment',name:'Equipment',note:'Arms and armour',groups:[['Weapons','item','weapons'],['Adventuring Gear','item','gear'],['Armour','item','armour']]},
+    {id:'weapons',name:'Weapons',note:'Steel for every hand',shelves:'weapons'},
+    {id:'armour',name:'Armour',note:'Worn and carried',shelves:'armour'},
+    {id:'gear',name:'Gear',note:'Everything for the road',shelves:'gear'},
+    {id:'magic',name:'Magic',note:'Things that hum',shelves:'magic'},
     {id:'cosmetics',name:'Cosmetics',note:'Look the part',groups:[['Skins'],['Victory Animations','pose'],['Backgrounds']]}
   ];
   function build(){root=el('div');root.id='shop';root.hidden=true;document.body.appendChild(root)}
@@ -120,7 +128,7 @@ Fable.shopUi=(function(){
         var g=el('div','st-group feat'),grid=el('div','st-tiles');
         FEATURED.forEach(function(f){if(rowFor(f[0],f[1]))grid.appendChild(makeTile(f[0],f[1],!!f[2]).el)});
         g.appendChild(grid);groups.appendChild(g);
-      }else sc.groups.forEach(function(gd){
+      }else (sc.shelves?shelfGroups(sc.shelves):sc.groups).forEach(function(gd){
         var g=el('div','st-group'),grid=el('div','st-tiles');g.appendChild(el('h4',null,gd[0]));
         var list=gd[1]?ids(gd[1],gd[2]):[];
         list.forEach(function(id){grid.appendChild(makeTile(gd[1],id).el)});
@@ -198,13 +206,30 @@ Fable.shopUi=(function(){
     if(ok&&!t.drawn){t.drawn=true;t.el.classList.add('has3d')}
     return ok;
   }
+  /* A tile is painted once, when it comes within a screen's width of the visible part of the page: the Store holds about 180 tiles, and
+     building every preview at open would stall the page. The queue is drained a few tiles a tick so scrolling stays smooth. Without
+     IntersectionObserver every tile is painted in turn; in manual mode (tests) all of them are painted at once. */
+  var io=null,queue=[];
+  function drain(){
+    paintT=0;
+    if(!pv||!root||root.hidden){queue.length=0;return}
+    for(var n=0;n<3&&queue.length;n++){var t=queue.shift();if(!t.drawn)drawTile(t)}
+    if(queue.length)paintT=setTimeout(drain,0);
+  }
+  function want(t){
+    if(t.drawn||t.queued)return;
+    t.queued=true;queue.push(t);
+    if(!paintT)paintT=setTimeout(drain,0);
+  }
   function paintAll(){
     var i=0;
-    function next(){
-      if(!pv||!root||root.hidden)return;
-      if(i<tiles.length){drawTile(tiles[i++]);paintT=setTimeout(next,0)}
-    }
-    if(manual){while(i<tiles.length)drawTile(tiles[i++])}else next();
+    if(manual){while(i<tiles.length)drawTile(tiles[i++]);return}
+    if(typeof IntersectionObserver==='function'&&els.track){
+      io=new IntersectionObserver(function(list){
+        list.forEach(function(en){if(en.isIntersecting){var t=tiles.filter(function(x){return x.el===en.target})[0];if(t)want(t)}});
+      },{root:els.track,rootMargin:'0px '+Math.max(400,window.innerWidth)+'px 0px '+Math.max(400,window.innerWidth)+'px'});
+      tiles.forEach(function(t){io.observe(t.el)});
+    }else tiles.forEach(want);
   }
   function spinOn(t){
     if(!pv||calm()||!t.drawn)return;
@@ -362,7 +387,9 @@ Fable.shopUi=(function(){
     if(!root)build();
     opts=opts||{};
     state.hero=hero||state.hero;state.shop=shopId||state.shop;state.qty={};state.sel=null;
-    state.stock=Fable.content.shops.get(state.shop).stock.map(function(r){return r.item});
+    var shopDef=Fable.content.shops.get(state.shop);
+    state.stock=shopDef.stock.map(function(r){return r.item});
+    state.shelves=shopDef.shelves||[];
     toastFn=opts.say||toastFn;manual=!!opts.manual;opener=document.activeElement;
     var def=Fable.content.shops.get(state.shop);
     readData();skeleton(def);
@@ -378,7 +405,7 @@ Fable.shopUi=(function(){
   function close(){
     if(!root||root.hidden)return;
     closeDetail(true);
-    clearTimeout(paintT);if(spinRaf){cancelAnimationFrame(spinRaf);spinRaf=0}spin=null;
+    clearTimeout(paintT);paintT=0;queue.length=0;if(io){io.disconnect();io=null}if(spinRaf){cancelAnimationFrame(spinRaf);spinRaf=0}spin=null;
     if(scrollT){cancelAnimationFrame(scrollT);scrollT=0}
     onDragEnd();
     root.hidden=true;root.classList.remove('in');hubDim(false);
