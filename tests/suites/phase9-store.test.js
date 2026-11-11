@@ -47,7 +47,8 @@ module.exports=function({suite,test}){
     });
     test('the potion model shows its liquid (the glass does not hide it)',()=>{
       const js=read('js/engine/gear-models.js'),i=js.indexOf('G.families.potion'),body=js.slice(i,js.indexOf('/* ---------- sling and whip'));
-      assert.ok(/C\.liquid\);\s*\n?\s*B\(g,0,h\*\.3,0,r\*2,h\*\.4,r\*2,C\.liquid\)/.test(body));
+      assert.ok(/S\(g,'ell',0,h\*\.3,0,r\*2,h\*\.56,r\*2,C\.liquid\)/.test(body),'the flask body is the liquid');
+      assert.ok(!/S\(g,'ell',0,h\*\.3[^\n]*C\.glass/.test(body),'no glass shell wraps the liquid');
     });
     test('the result screen has no frame: the plate is stripped and the title is on the right',()=>{
       const css=read('css/hud-combat.css');

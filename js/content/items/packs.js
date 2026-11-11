@@ -8,6 +8,7 @@ var C=Fable.content;
 function P(rows){
   return C.items.registerAll(rows.map(function(r){
     r.type='pack';
+    if(r.visual===undefined)r.visual={model:r.id};
     if(r.source===undefined)r.source='srd52';
     return r;
   }));
