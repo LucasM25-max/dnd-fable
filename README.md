@@ -32,6 +32,8 @@ Content is referenced by IDs. The game scene does not know what a goblin, forest
 
 Copy js/content/maps/forest-clearing/ to js/content/maps/<new-id>/, edit the map package, then add the new ID to js/content/content-manifest.js under maps.
 
+There is one map for each habitat of the 2024 Monster Manual (arctic, coastal, desert, forest, grassland, hill, mountain, planar, swamp, underdark, underwater, urban): Frostbound Pass, Sunken Coast, Scorched Dunes, Forest Clearing, Rolling Plains, Windswept Heights, Stonespine Ridge, Sunken Marsh, Glimmerdeep Cavern, Drowned Reef, Gilded Quarter and Shattered Nexus. A monster that names a habitat in its `environments` can appear on any map that shows it. A new map is one `definition.js` that uses `Fable.mapKit` (js/engine/map-kit.js: ground, scatter, border, blobs, cones, walls) and may set its own `light`, add lamps with `ctx.light`, unlit blocks with `ctx.glow` and moving things with `ctx.animated`.
+
 The map package is self-contained. Its index.js controls the load order of layout, terrain, flora and other scenery files. No changes to engine/world or index.html are required.
 
 ## Adding a monster

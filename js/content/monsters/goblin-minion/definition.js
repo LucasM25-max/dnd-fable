@@ -10,7 +10,7 @@ Fable.content.monsters.register({
   tags:['goblin','goblinoid'],
   /* what the encounter generator (js/rules/encounter-gen.js) matches on: where this creature turns up, what it is grouped with, what it does */
   lore:"The smallest and meanest of the goblin kin. A minion fights by ambush: a dagger thrown from the brush, then a scramble for cover before anyone can answer. It has never been given a reason to fight fair, and it does not look for one.",
-  environments:['forest','grassland','ruins'],
+  environments:['forest','grassland','hill','underdark'],
   family:'goblinoid',
   role:'skirmisher',
   /* The stat block (implementation plan, section 14.2). Fable.statblock checks every derivable number at load time:

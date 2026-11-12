@@ -3,7 +3,7 @@ const assert=require('assert'),H=require('../harness');
 
 /* The ordinary-play encounter generator (gameplay vision, section 3). */
 const MAP={id:'forest-clearing',name:'Forest Clearing',environments:['forest','grassland'],enemySpawns:[{id:'path-ambush',x:50,z:130,w:48,d:36}]};
-const gob=(o)=>Object.assign({id:'goblin-minion',name:'Goblin Minion',challenge:{xp:25},hp:{average:7},environments:['forest','grassland','ruins'],family:'goblinoid',role:'skirmisher'},o||{});
+const gob=(o)=>Object.assign({id:'goblin-minion',name:'Goblin Minion',challenge:{xp:25},hp:{average:7},environments:['forest','grassland','hill','underdark'],family:'goblinoid',role:'skirmisher'},o||{});
 async function setup(){
   await H.loadData({});
   H.runFile('js/rules/encounter-gen.js');

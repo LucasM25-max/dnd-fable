@@ -1,4 +1,4 @@
-/* Batched voxel blocks: thousands of boxes drawn as one InstancedMesh. Fable.rng now lives in js/rules/rng.js. */
+/* Batched voxel blocks (opts.glow draws them unlit, so crystals and lamps shine in the dark): thousands of boxes drawn as one InstancedMesh. Fable.rng now lives in js/rules/rng.js. */
 (function(){
 var geo=new THREE.BoxGeometry(1,1,1);
 Fable.BlockBatch=function(opts){
@@ -7,7 +7,7 @@ Fable.BlockBatch=function(opts){
     /* x,z = centre, y0 = bottom, w,h,d = size, c = hex colour */
     add:function(x,y0,z,w,h,d,c){a.push(x,y0+h/2,z,w,h,d,c)},
     build:function(parent){
-      var n=a.length/7,im=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial(),n),m=new THREE.Matrix4(),p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3(),col=new THREE.Color();
+      var n=a.length/7,im=new THREE.InstancedMesh(geo,opts.glow?new THREE.MeshBasicMaterial():new THREE.MeshLambertMaterial(),n),m=new THREE.Matrix4(),p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3(),col=new THREE.Color();
       for(var i=0;i<n;i++){var o=i*7;p.set(a[o],a[o+1],a[o+2]);s.set(a[o+3],a[o+4],a[o+5]);m.compose(p,q,s);im.setMatrixAt(i,m);col.setHex(a[o+6]).multiplyScalar(.9+jr()*.1);im.setColorAt(i,col)}
       im.castShadow=!opts.noCast;im.receiveShadow=true;im.frustumCulled=false;parent.add(im);return im;
     }

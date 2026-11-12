@@ -10,7 +10,7 @@ Fable.content.manifest={
   species:['human'],
   backgrounds:['soldier'],
   classes:['fighter'],
-  maps:['forest-clearing'],
+  maps:['forest-clearing','rolling-plains','frostbound-pass','sunken-coast','scorched-dunes','windswept-heights','stonespine-ridge','sunken-marsh','glimmerdeep-cavern','drowned-reef','gilded-quarter','shattered-nexus'],
   aiProfiles:['profiles'],
   monsters:['goblin-minion','goblin-warrior'],
   characters:['human-fighter'],
