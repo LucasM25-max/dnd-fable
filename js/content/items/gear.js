@@ -10,6 +10,7 @@ var C=Fable.content;
 function G(rows){
   return C.items.registerAll(rows.map(function(r){
     r.type='gear';
+    if(r.visual===undefined)r.visual={model:r.id};
     if(r.source===undefined)r.source='srd52';
     return r;
   }));

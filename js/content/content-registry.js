@@ -31,7 +31,8 @@ C.zones={
   randomPoint:randomPoint
 };
 
-var ENVIRONMENTS=['forest','grassland','desert','snow','swamp','mountain','cave','dungeon','coast','urban','ruins'];
+/* the habitats of the 2024 Monster Manual: a monster names the ones it lives in and a map names the ones it shows */
+var ENVIRONMENTS=['arctic','coastal','desert','forest','grassland','hill','mountain','planar','swamp','underdark','underwater','urban'];
 
 var maps={},mapOrder=[];
 C.maps={

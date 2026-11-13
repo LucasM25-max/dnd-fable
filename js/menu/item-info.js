@@ -14,6 +14,10 @@ function iconFor(it){
   if(it.id==='dagger')return 'dagger';
   if(it.id==='javelin'||it.id==='spear')return 'javelin';
   if(it.type==='weapon')return 'sword';
+  if(/^spell-scroll/.test(it.id))return 'scroll';
+  if(it.type==='tool')return 'gear';
+  if(it.type==='pack')return 'pickup';
+  if(it.magic)return 'star';
   return 'book';
 }
 function titleCase(s){return String(s||'').replace(/(^|[-\s])(\w)/g,function(m,a,c){return (a?' ':'')+c.toUpperCase()})}
@@ -41,7 +45,13 @@ function statsOf(it){
     out.push(['Use',it.use.cost==='bonus'?'Bonus Action':titleCase(it.use.cost)]);
     out.push(['Effect',it.use.text.replace(/^Drink the potion as a Bonus Action to /,'').replace(/^./,function(c){return c.toUpperCase()})]);
   }
-  if(it.weight!==undefined)out.push(['Weight',it.weight+' lb']);
+  if(it.type==='pack'&&it.contents&&it.contents.length){
+    var C=Fable.content;
+    out.push(['Holds',it.contents.map(function(c){var d=C&&C.items&&C.items.get(c.item);return (c.qty>1?c.qty+' ':'')+(d?d.name:c.item)}).join(', ')]);
+  }
+  if(it.amount>1)out.push(['Sold as','A bundle of '+it.amount]);
+  if(it.uses>1)out.push(['Uses',String(it.uses)]);
+  if(it.weight!==undefined)out.push(['Weight',it.weight+' lb'+(it.amount>1?' a bundle':'')]);
   return out;
 }
 

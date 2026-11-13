@@ -161,7 +161,7 @@ module.exports=function(t){
     async function scene(){
       const C=await H.loadData();
       globalThis.THREE=THREE;
-      ['js/core/voxel.js','js/engine/gear-models.js','js/engine/equipment.js',
+      ['js/core/voxel.js','js/engine/gear-models.js','js/engine/gear-props.js','js/engine/gear-props-tools.js','js/engine/gear-props-kits.js','js/engine/equipment.js',
         'js/content/characters/human-fighter/model.js','js/content/monsters/goblin-minion/model.js'].forEach(H.runFile);
       H.runFile('js/content/characters/human-fighter/definition.js');
       H.runFile('js/content/monsters/goblin-minion/definition.js');

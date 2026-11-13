@@ -25,8 +25,14 @@ Fable.buildWorld=function(map){
   };
   var keepClear=[map.playerSpawn].concat(map.enemySpawns);
   S.background=new THREE.Color(map.sky);S.fog=new THREE.Fog(map.sky,map.fog.near,map.fog.far);
-  var ctx={map:map,rnd:Fable.rng(map.seed),B:W.B,scene:S,animated:W.animated,
-    ground:Fable.BlockBatch({noCast:true}),deco:Fable.BlockBatch({noCast:true}),solid:Fable.BlockBatch(),
+  var ctx={focus:{x:map.playerSpawn.x,z:map.playerSpawn.z},map:map,rnd:Fable.rng(map.seed),B:W.B,scene:S,animated:W.animated,
+    ground:Fable.BlockBatch({noCast:true}),deco:Fable.BlockBatch({noCast:true}),solid:Fable.BlockBatch(),glow:Fable.BlockBatch({noCast:true,glow:true}),
+    lights:0,
+    /* a small lamp for a map (a torch, a crystal): at most 6 per map, because every light costs every pixel */
+    light:function(color,intensity,dist,x,y,z){
+      if(ctx.lights>=6)return null;
+      var pl=new THREE.PointLight(color,intensity,dist,2);pl.position.set(x,y,z);S.add(pl);ctx.lights++;return pl;
+    },
     addCollider:function(x,z,w,d,top){W.colliders.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,top:top})},
     isClear:function(x,z,p){
       if(Math.abs(x)>W.B.x-4||Math.abs(z)>W.B.z-4)return false;
@@ -34,15 +40,17 @@ Fable.buildWorld=function(map){
       return !(map.isReserved&&map.isReserved(x,z,p));
     }};
   map.build(ctx);
-  ctx.ground.build(S);ctx.deco.build(S);ctx.solid.build(S);
+  ctx.ground.build(S);ctx.deco.build(S);ctx.solid.build(S);ctx.glow.build(S);
   var far=new THREE.Mesh(new THREE.PlaneGeometry(4400,4400),new THREE.MeshLambertMaterial({color:map.groundColor}));
   far.rotation.x=-Math.PI/2;far.position.y=-.05;far.receiveShadow=true;S.add(far);
-  S.add(new THREE.HemisphereLight(0xcfe3ff,0x5a4a30,.85));
-  var sun=new THREE.DirectionalLight(0xfff0cf,.95);sun.position.set(-90,140,70);sun.castShadow=true;
+  /* a map may set its own light: {hemi:[sky,ground,intensity], sun:[colour,intensity], sunAt:[x,y,z]} */
+  var L=map.light||{},hm=L.hemi||[0xcfe3ff,0x5a4a30,.85],sn=L.sun||[0xfff0cf,.95],sa=L.sunAt||[-90,140,70];
+  S.add(new THREE.HemisphereLight(hm[0],hm[1],hm[2]));
+  var sun=new THREE.DirectionalLight(sn[0],sn[1]);sun.position.set(sa[0],sa[1],sa[2]);sun.castShadow=true;
   var big=Fable.renderer.capabilities.maxTextureSize>=4096&&!window.matchMedia('(pointer:coarse)').matches;
   sun.shadow.mapSize.set(big?4096:2048,big?4096:2048);sun.shadow.bias=-.0006;sun.shadow.normalBias=.5;
   var sc=sun.shadow.camera;sc.left=-135;sc.right=135;sc.top=115;sc.bottom=-115;sc.near=10;sc.far=420;S.add(sun);S.add(sun.target);
-  W.sun=sun;W.followSun=function(x,z){var sx=Math.round(x/4)*4,sz=Math.round(z/4)*4;sun.position.set(sx-90,140,sz+70);sun.target.position.set(sx,0,sz);sun.target.updateMatrixWorld()};
+  W.sun=sun;W.followSun=function(x,z){ctx.focus.x=x;ctx.focus.z=z;var sx=Math.round(x/4)*4,sz=Math.round(z/4)*4;sun.position.set(sx+sa[0],sa[1],sz+sa[2]);sun.target.position.set(sx,0,sz);sun.target.updateMatrixWorld()};
   W.followSun(W.spawn.x,W.spawn.z);
   if(/(^|[?&])zones(=|&|$)/.test(location.search))markZones(S,W);
   return W;

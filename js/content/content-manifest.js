@@ -5,12 +5,12 @@ window.Fable=window.Fable||{};
 Fable.content=Fable.content||{};
 Fable.content.manifest={
   rules:['abilities','skills','damage-types','conditions','weapon-properties','weapon-mastery','languages','coins','weapon-categories','armor-categories','progression','tools','standard-actions'],
-  items:['item-kind','item-models','weapons','armor','gear','packs','tool-items','shops'],
+  items:['item-kind','item-models','prop-models','weapons','armor','gear','packs','tool-items','shops'],
   feats:['feature-kind','feat-kind','option-kinds','core-features','origin-feats','fighting-style-feats'],
   species:['human'],
   backgrounds:['soldier'],
   classes:['fighter'],
-  maps:['forest-clearing'],
+  maps:['forest-clearing','rolling-plains','frostbound-pass','sunken-coast','scorched-dunes','windswept-heights','stonespine-ridge','sunken-marsh','glimmerdeep-cavern','drowned-reef','gilded-quarter','shattered-nexus'],
   aiProfiles:['profiles'],
   monsters:['goblin-minion','goblin-warrior'],
   characters:['human-fighter'],

@@ -172,8 +172,8 @@ Fable.createStoreStage=function(canvas,opts){
       try{g=itemGroup(id)}catch(e){console.warn('Store: '+id+': '+e.message)}
       if(!g){mode='none';return}
       mode='item';
-      var fam=spec&&spec.family,big=fam==='armor'?30:(fam==='potion'?22:fam==='shield'?26:34);
-      showModel(g,big,fam==='armor'||fam==='shield'||fam==='potion'?0:-.5);
+      var fam=spec&&spec.family,big=fam==='armor'?30:(fam==='potion'?22:fam==='shield'?26:fam==='prop'?26:34);
+      showModel(g,big,Fable.gear.upright[fam]?0:-.5);
       cur.item=id;
     },
     setPose:function(vid){
