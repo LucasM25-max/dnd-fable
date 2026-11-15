@@ -2,6 +2,7 @@
    section 13.2). Fable.hudIcons.svg(name, cls) returns an <svg> string; an unknown name draws a plain diamond. */
 (function(){
 var P={
+  frame:'<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="3"/>',
   sword:'<path d="M20.500 2.500l1 1-.5 3.500L11 17.500 8.500 15 17 5.500z"/><path d="M5.500 12.500 11.500 18.500 10 20 4 14z"/><path d="M7 17l-3.500 3.500L2 19l3.500-3.500z"/>',
   dagger:'<path d="M19 3l2 2-1 3-8 8-3-3 8-8z"/><path d="M6.500 13.500 10.500 17.500 9 19 5 15z"/><path d="M6 17.500 3.500 20 2.500 19 5 16.500z"/>',
   javelin:'<path d="M3.500 20.500 16 8" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="square"/><path d="M15 3l6-.5.500 6-2.500-1.500-4-.5z"/>',

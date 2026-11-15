@@ -34,7 +34,8 @@ Fable.hudModules.actionBar=function(hud){
   host.innerHTML='<div class="hotbar" role="toolbar" aria-label="Hotbar"></div><div class="amenu" role="region" aria-label="Action menu"></div>';
   hud.root.appendChild(host);
   var hotEl=host.querySelector('.hotbar'),menuEl=host.querySelector('.amenu');
-  var memory={},custom=null,heroKey='',pinsNow=M.defaultPins([]),catId='action',tabOf={},drag=null;
+  var memory={},custom=null,defaultLayout=null,heroKey='',pinsNow=M.defaultPins([]),catId='action',tabOf={},drag=null;
+  var compactOpen=false,hotPage=0,PAGE_SIZE=5;
   var last='',lastS=null,lastCtx=null;
 
   function tipOf(sl,pin){
@@ -95,25 +96,29 @@ Fable.hudModules.actionBar=function(hud){
     var hero=s.creatures.filter(function(c){return c.team==='player'})[0];
     if(!hero)return;
     var key0=hero.defId||hero.id;
-    if(key0!==heroKey){heroKey=key0;var st=readStore()[key0];custom=st&&Array.isArray(st)?M.normalizePins(st):null}
+    if(key0!==heroKey){defaultLayout=null;heroKey=key0;var st=readStore()[key0];custom=st&&Array.isArray(st)?M.normalizePins(st):null}
     var armed=ctx.targeting&&ctx.targeting.attackId;
     var list=M.actionBar(s,hero,armed),move=M.moveSlot(s,hero,armed),all=[move].concat(list);
-    pinsNow=custom||M.defaultPins(all);
+    if(!defaultLayout)defaultLayout=M.defaultPins(all);
+    pinsNow=custom||defaultLayout;
     var bar=M.hotbar(pinsNow,all,memory),menu=M.actionMenu(s,hero,list);
-    var folded=!Fable.hudSettings.get('menu');
+    var folded=hud.compact?!compactOpen:!Fable.hudSettings.get('menu');
+    hud.root.classList.toggle('drawer-open',hud.compact&&!folded);
     var cat=menu.filter(function(c){return c.id===catId})[0]||menu[0];catId=cat.id;
     var tab=cat.tabs.filter(function(t){return t.id===tabOf[cat.id]})[0]||cat.tabs[0];tabOf[cat.id]=tab.id;
-    var key=JSON.stringify([bar,menu,catId,tabOf,folded,!!custom])+(ctx.busy?'b':'');
+    var key=JSON.stringify([bar,menu,catId,tabOf,folded,!!custom,hud.compact,hotPage])+(ctx.busy?'b':'');
     if(!force&&key===last){paintMove(hero,ctx);return}
     last=key;
     var pinned={};bar.forEach(function(e){if(e.id)pinned[e.id]=e.index});
 
     var hh='';
     bar.forEach(function(e){
-      if(!e.slot){hh+='<div class="hslot empty" data-index="'+e.index+'" aria-label="Empty hotbar slot '+e.hotkey+'"><span class="frame"></span><kbd class="hk">'+e.hotkey+'</kbd></div>';return}
-      hh+='<div class="hslot'+(e.gone?' gone':'')+'" data-index="'+e.index+'" data-id="'+hud.escape(e.id)+'"'+(e.index>0?' draggable="true"':'')+'>'+
+      var hidden=e.index<PAGE_SIZE*hotPage||e.index>=PAGE_SIZE*(hotPage+1)?' mobile-hidden':'';
+      if(!e.slot){hh+='<div class="hslot empty'+hidden+'" data-index="'+e.index+'" aria-label="Empty hotbar slot '+e.hotkey+'"><span class="frame"></span><kbd class="hk">'+e.hotkey+'</kbd></div>';return}
+      hh+='<div class="hslot'+hidden+(e.gone?' gone':'')+'" data-index="'+e.index+'" data-id="'+hud.escape(e.id)+'"'+(e.index>0?' draggable="true"':'')+'>'+
         slotButton(e.slot,ctx,{hotkey:e.hotkey,gone:e.gone,pinTip:e.index>0?'Right click or drag away to unpin':'Always on the hotbar'})+'</div>';
     });
+    hh+='<button type="button" class="hot-page" aria-label="Hotbar page '+(hotPage+1)+' of 2. Show slots '+(hotPage? '1 to 5':'6 to 10')+'"><b>'+(hotPage+1)+'/2</b>'+Fable.hudIcons.svg('chevron')+'</button>';
     hotEl.innerHTML=hud.plate('<div class="row">'+hh+'</div>','sm');
     mvKey='';paintMove(hero,ctx);
 
@@ -131,24 +136,30 @@ Fable.hudModules.actionBar=function(hud){
       var pinnable=sl.pinnable!==false&&!sl.passive,at=pinned[sl.id];
       grid+='<div class="mslot'+(at!==undefined?' pinned':'')+'" data-id="'+hud.escape(sl.id)+'"'+(pinnable?' draggable="true"':'')+'>'+
         slotButton(sl,ctx,{pinTip:pinnable?(at!==undefined?'Right click to unpin':'Right click to pin to the hotbar'):''})+
-        '<span class="mname'+(sl.ok||sl.passive?'':' off')+'">'+hud.escape(sl.name.replace(/ \(thrown\)$/,'').replace(/^Throw /,''))+'<small>'+hud.escape(sl.passive?sl.sub:sl.kind==='attack'&&/thrown/.test(sl.name)?'Thrown':(sl.sub||'').replace(/ left$/,'').replace(/ (slashing|piercing|bludgeoning)$/i,''))+'</small></span>'+
+        '<span class="mname'+(sl.ok||sl.passive?'':' off')+'">'+hud.escape(sl.name.replace(/ \(thrown\)$/,'').replace(/^Throw /,''))+'<small>'+hud.escape(hud.compact&&!sl.ok&&!sl.passive?sl.reason:sl.passive?sl.sub:sl.kind==='attack'&&/thrown/.test(sl.name)?'Thrown':(sl.sub||'').replace(/ left$/,'').replace(/ (slashing|piercing|bludgeoning)$/i,''))+'</small></span>'+
         (pinnable?'<button type="button" class="pinb" data-pin="'+hud.escape(sl.id)+'" aria-pressed="'+(at!==undefined?'true':'false')+'" aria-label="'+(at!==undefined?'Unpin ':'Pin ')+hud.escape(sl.name)+(at!==undefined?' from':' to')+' the hotbar" data-tip="'+(at!==undefined?'Unpin from hotbar':'Pin to hotbar')+'" data-tip-up>'+Fable.hudIcons.svg('pin')+'</button>':'')+
         '</div>';
     });
     if(!tab.slots.length)grid='<p class="am-empty">'+hud.escape(tab.empty||'Nothing here')+'</p>';
     menuEl.classList.toggle('folded',folded);
     menuEl.innerHTML=hud.plate(
-      '<div class="am-cats" role="tablist" aria-orientation="vertical" aria-label="Action type">'+cats+'</div>'+
+      '<div class="am-cats" role="tablist" aria-orientation="'+(hud.compact?'horizontal':'vertical')+'" aria-label="Action type">'+cats+'</div>'+
       '<div class="am-main"><div class="am-bar"><div class="am-tabs" role="tablist" aria-label="'+hud.escape(cat.label)+'">'+tabs+'</div>'+
         (custom?'<button type="button" class="am-reset" data-tip="Put the hotbar back to its default" data-tip-up>Reset hotbar</button>':'')+
-        '<button type="button" class="am-fold" aria-label="Hide the action menu (B)" data-tip="Hide the menu (B)" data-tip-up>'+Fable.hudIcons.svg('chevron')+'</button></div>'+
+        '<button type="button" class="am-fold" aria-expanded="true" aria-label="Hide the action menu (B)" data-tip="Hide the menu (B)" data-tip-up>'+Fable.hudIcons.svg('chevron')+'</button></div>'+
         '<div class="am-grid" role="tabpanel">'+grid+'</div></div>','sm');
     /* folded: only a thin handle remains, which brings the menu back */
     if(folded){
       var eshapes=menu.map(function(c){return '<svg class="'+c.id+(c.used?' spent':'')+'" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+{action:'<circle class="shape" cx="12" cy="12" r="8"/>',bonus:'<path class="shape" d="M12 4 21 19H3z"/>',reaction:'<path class="shape" d="M12 3 21 12 12 21 3 12z"/>'}[c.id]+'</svg>'}).join('');
       var state=menu.map(function(c){return c.label+(c.used?' spent':' available')}).join(', ');
-      menuEl.innerHTML='<button type="button" class="am-unfold" aria-label="Show the action menu (B). '+hud.escape(state)+'" data-tip="Show the action menu (B)\n'+hud.escape(state)+'" data-tip-up>'+Fable.hudIcons.svg('chevron')+'<span>Actions</span><span class="eshapes">'+eshapes+'</span></button>';
+      menuEl.innerHTML='<button type="button" class="am-unfold" aria-expanded="false" aria-label="Show the action menu (B). '+hud.escape(state)+'" data-tip="Show the action menu (B)\n'+hud.escape(state)+'" data-tip-up>'+Fable.hudIcons.svg('chevron')+'<span>Actions</span><span class="eshapes">'+eshapes+'</span></button>';
     }
+  }
+
+  function foldedSelector(){return hud.compact?!compactOpen?'.am-unfold':'.am-fold':Fable.hudSettings.get('menu')?'.am-fold':'.am-unfold'}
+  function toggleMenu(){
+    if(hud.compact){compactOpen=!compactOpen;render(true)}
+    else Fable.hudSettings.set('menu',!Fable.hudSettings.get('menu'));
   }
 
   function edit(next){
@@ -167,10 +178,11 @@ Fable.hudModules.actionBar=function(hud){
   host.addEventListener('click',function(e){
     var t=e.target.closest?e.target:null;if(!t)return;
     var b;
+    if(t.closest('.hot-page')){hotPage=1-hotPage;render(true);hotEl.querySelector('.hot-page').focus();return}
     if((b=t.closest('.pinb'))){pinToggle(b.getAttribute('data-pin'));return}
     if((b=t.closest('.am-cat'))){catId=b.getAttribute('data-cat');render(true);return}
     if((b=t.closest('.am-tab'))){tabOf[catId]=b.getAttribute('data-tab');render(true);return}
-    if(t.closest('.am-fold')||t.closest('.am-unfold')){Fable.hudSettings.set('menu',!Fable.hudSettings.get('menu'));return}
+    if(t.closest('.am-fold')||t.closest('.am-unfold')){toggleMenu();var focus=menuEl.querySelector(foldedSelector());if(focus)focus.focus();return}
     if(t.closest('.am-reset')){custom=null;var o=readStore();delete o[heroKey];writeStore(o);hud.announce('Hotbar reset');render(true);return}
     b=t.closest('.slotb');
     if(!b)return;
@@ -181,6 +193,7 @@ Fable.hudModules.actionBar=function(hud){
       return;
     }
     if(hud.intents.slot)hud.intents.slot(id);
+    if(hud.compact&&compactOpen){compactOpen=false;render(true)}
   });
   host.addEventListener('contextmenu',function(e){
     var h=e.target.closest&&e.target.closest('.hslot'),m=e.target.closest&&e.target.closest('.mslot');
@@ -220,8 +233,8 @@ Fable.hudModules.actionBar=function(hud){
   });
 
   var offSettings=Fable.hudSettings.onChange(function(k){if((k==='menu'||k==='*')&&host.isConnected)render(true)});
-  hud.hotbarId=function(i){var e=null;try{e=M.hotbar(pinsNow,[],memory)[i]}catch(x){}return e&&e.id?e.id:null};
-  hud.toggleMenu=function(){Fable.hudSettings.set('menu',!Fable.hudSettings.get('menu'))};
+  hud.hotbarId=function(i){if(hud.compact&&Math.floor(i/PAGE_SIZE)!==hotPage){hotPage=Math.floor(i/PAGE_SIZE);render(true)}var e=null;try{e=M.hotbar(pinsNow,[],memory)[i]}catch(x){}return e&&e.id?e.id:null};
+  hud.toggleMenu=toggleMenu;
   /* the item pictures are drawn for the screen's pixel density: zooming the page or moving the window to another screen changes it,
      and then the bar is painted again so they are drawn sharp for the new density */
   var dprNow=window.devicePixelRatio||1;
@@ -237,7 +250,8 @@ Fable.hudModules.actionBar=function(hud){
       lastS=s;lastCtx=ctx;
       render(false);
     },
-    destroy:function(){window.removeEventListener('resize',onScale);offSettings()}
+    resize:function(){render(true)},
+    destroy:function(){hud.root.classList.remove('drawer-open');window.removeEventListener('resize',onScale);offSettings()}
   };
 };
 })();

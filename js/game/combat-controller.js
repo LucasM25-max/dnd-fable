@@ -84,7 +84,9 @@ Fable.createCombatController=function(o){
     denied:function(reason){if(reason)hud.announce(reason)},
     sheet:function(){hud.openOverlay('sheet',s)},
     help:function(){hud.openOverlay('help',s)},
-    log:function(){Fable.hudSettings.set('log',!Fable.hudSettings.get('log'))}
+    log:function(){Fable.hudSettings.set('log',!Fable.hudSettings.get('log'))},
+    focusCreature:function(id){ctrl.centerCreature(id)},
+    frameAll:function(){ctrl.frameCombatants()}
   }});
   ctrl.hud=hud;
   /* the presentation director (Phase 7): animation, effects, sound and camera. The hooks are what the HUD and the world do at the cue
@@ -105,7 +107,7 @@ Fable.createCombatController=function(o){
   var items=Fable.createWorldItems({scene:scene,grid:grid});
   var runner=Fable.createAiRunner({base:(function(){try{return new URL('js/',document.baseURI).href}catch(e){return ''}})()});
   var mp=Fable.createMovePreview({scene:scene,camera:camera,grid:grid,hud:hud});
-  var labels=Fable.createWorldLabels({camera:camera,hud:hud,anchor:function(c){var w=entryOf(c).walker.position();return {x:w.x,y:c.kind==='hero'?19:14,z:w.z}}});
+  var labels=Fable.createWorldLabels({camera:camera,hud:hud,onSelect:selectCreature,onHover:hoverCreature,anchor:function(c){var w=entryOf(c).walker.position();return {x:w.x,y:c.kind==='hero'?19:14,z:w.z}}});
   var tut=null;
   if(o.encounter&&o.encounter.tutorial&&Fable.tutorials.get(o.encounter.tutorial)){
     tut=Fable.createTutorial({id:o.encounter.tutorial,state:s,hero:hero,foes:creatures.filter(function(c){return c.team!=='player'}),hud:hud,marks:marks,grid:grid,
@@ -118,8 +120,10 @@ Fable.createCombatController=function(o){
   var drops=[],busy=false,dirty=true,pointer=null,previewCell=null,ai={stage:'idle',t:0,token:0},clock=0,roundChanged=false;
   var targeting={attackId:null,hoverId:null},script=[],autoEnd=-1,overShown=false;
   var disposed=false,lastSig='',tail=0;
+  var cameraMode='all',cameraId=null,framePoint=null;
   /* once the result is on screen only cosmetic cues remain; the player gets the turn back after this long, at most */
   var TAIL=.45;
+  var creaturePicker=Fable.createCreaturePicker();
   var raycaster=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();
 
   function entryOf(c){return entries[c.id]}
@@ -133,6 +137,8 @@ Fable.createCombatController=function(o){
     ndc.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
     camera.updateMatrixWorld();
     raycaster.setFromCamera(ndc,camera);
+    var picked=creaturePicker.pick(raycaster.ray,entries);
+    if(picked)return picked.cell;
     if(!raycaster.ray.intersectPlane(plane,hit))return null;
     return G().cellAt(grid,hit.x,hit.z);
   }
@@ -226,6 +232,7 @@ Fable.createCombatController=function(o){
     var r=e.result,a=s.byId[r.attacker.id],t=s.byId[r.target.id];
     say({type:'attack',result:r});
     hud.rollFeed(r);
+    if(a===hero&&o.gear)o.gear.apply(Fable.creature.visuals(hero));
     if(r.hit)labels.float(t,r.crit?r.damage.total+'!':String(r.damage.total),r.crit?'crit':'hit');
     else labels.float(t,'Miss','miss');
     if(tut&&a===hero)tut.event('attack',{hit:!!r.hit});
@@ -239,6 +246,7 @@ Fable.createCombatController=function(o){
   }
   function onPickup(e){
     say(e);
+    if(e.result.creature.id===hero.id&&o.gear)o.gear.apply(Fable.creature.visuals(hero));
     (e.result.items||[]).forEach(function(i){items.remove(i.id)});
     if(e.result.creature.team==='player')labels.float(s.byId[e.result.creature.id],'Picked up','info');
     dirty=true;
@@ -303,7 +311,7 @@ Fable.createCombatController=function(o){
   }
   function onSwap(e){
     say(e);
-    if(o.gear&&e.result.visuals)o.gear.apply(e.result.visuals);
+    if(o.gear&&e.result.visuals)o.gear.apply(Fable.creature.visuals(hero)||e.result.visuals);
     pres.setIdle(hero.id,loadoutIdle());
     dirty=true;
   }
@@ -408,7 +416,10 @@ Fable.createCombatController=function(o){
     var b=Cb().beginAttack(s,hero,attackId,target,tut?tut.attackOpts():{});
     if(!b.ok){hud.announce(b.reason);labels.float(hero,b.reason,'info');return}
     targeting.attackId=null;
+    /* The attack itself draws carried gear; no intermediate Draw action or click. */
     var p=b.pending;
+    if(o.gear)o.gear.apply(p.visuals||hero.sheet.visuals);
+    pres.setIdle(hero.id,loadoutIdle());
     var finish=function(){Cb().completeAttack(s,p,{reroll:false});dirty=true};
     /* Heroic Inspiration is only offered on a roll that would miss: a roll that already hits has nothing to gain from a reroll (and the
        new roll must be kept), so asking would only interrupt the player. */
@@ -637,10 +648,9 @@ Fable.createCombatController=function(o){
     dirty=true;
   };
   inp.handlers.leave=function(){pointer=null;previewCell=null;targeting.hoverId=null;dirty=true};
-  inp.handlers.click=function(e){
+  function clickCell(cell,e){
     if(ctrl.active&&pres.busy()&&!hud.promptActive()){pres.skip();return}
     if(!ctrl.active||locked()||!heroTurn())return;
-    var cell=pick(e);
     if(!cell)return;
     /* a touch has no hover: the first tap previews the square, a second tap on it acts */
     if(e.pointerType==='touch'&&!(previewCell&&G().same(previewCell,cell))){
@@ -657,7 +667,18 @@ Fable.createCombatController=function(o){
     if(targeting.attackId){hud.announce('Pick an enemy to attack, or press Escape');return}
     if(hero.down)return;
     tryMove(cell);
-  };
+  }
+  inp.handlers.click=function(e){clickCell(pick(e),e)};
+  function selectCreature(id,e){
+    var c=s.byId[id];if(!c||!c.alive||!c.cell)return;
+    clickCell(c.cell,e);
+  }
+  function hoverCreature(id,e){
+    if(e&&e.pointerType==='touch')return;
+    var c=id&&s.byId[id];
+    previewCell=c&&c.cell||null;targeting.hoverId=c&&c!==hero?c.id:null;
+    pointer=e?{x:e.clientX,y:e.clientY}:null;dirty=true;
+  }
   inp.handlers.context=function(){if(tut)return;if(!disarm()){previewCell=null;dirty=true}};
   inp.handlers.key=function(e){
     if(!ctrl.active)return false;
@@ -666,6 +687,7 @@ Fable.createCombatController=function(o){
     if((e.code==='KeyH'||e.code==='Slash')&&!e.repeat){hud.openOverlay('help',s);return true}
     if(e.code==='KeyL'&&!e.repeat){Fable.hudSettings.set('log',!Fable.hudSettings.get('log'));return true}
     if(hud.overlayOpen())return false;
+    if(e.code==='KeyV'&&!e.repeat){ctrl.frameCombatants();return true}
     if(e.code==='Enter'&&!e.repeat&&pres.busy()){pres.skip();return true}
     if(e.code==='KeyF'&&!e.repeat){
       var order=['slow','normal','fast','instant'],cur=Fable.hudSettings.get('speed'),nx=order[(order.indexOf(cur)+1)%order.length];
@@ -704,9 +726,44 @@ Fable.createCombatController=function(o){
     hud.show();dirty=true;
     if(tut)tut.begin();
   };
+  ctrl.centerCreature=function(id){
+    var c=s.byId[id];
+    if(!ctrl.active||s.phase!=='running'||hud.promptActive()||hud.overlayOpen()||!c||!c.cell)return;
+    cameraMode='creature';cameraId=id;framePoint=null;inp.cam.dist=Math.min(inp.cam.dist,180);pres.camera.cancel();
+    hud.announce('Camera centred on '+c.name);
+  };
+  ctrl.frameCombatants=function(){
+    if(!ctrl.active||s.phase!=='running'||hud.promptActive()||hud.overlayOpen())return;
+    cameraMode='all';cameraId=null;pres.camera.cancel();
+    hud.announce('Framing all combatants. Drag or zoom to take camera control.');
+  };
+  ctrl.userCamera=function(){
+    /* A manual orbit/zoom keeps the fitted look point but stops fighting the player's zoom. */
+    if(cameraMode==='all'&&framePoint)cameraMode='point';
+    if(pres)pres.camera.cancel();
+    pointer=null;previewCell=null;targeting.hoverId=null;dirty=true;
+  };
   ctrl.focus=function(){
-    var a=Cb().active(s)||hero;
+    if((cameraMode==='all'||cameraMode==='point')&&framePoint)return framePoint;
+    var a=(cameraMode==='creature'&&s.byId[cameraId])||Cb().active(s)||hero;
     return entryOf(a).walker.position();
+  };
+  ctrl.cameraView=function(view){
+    if((cameraMode!=='all'&&cameraMode!=='creature')||s.phase==='over')return view;
+    var points=[];
+    creatures.forEach(function(c){
+      if(!c.cell||(cameraMode==='all'?!c.alive:c.id!==cameraId))return;
+      var p=entryOf(c).walker.position(),height=c.kind==='hero'?20:15;
+      /* Frame bodies, not only feet; leave room at either side of the silhouette too. */
+      [-5,5].forEach(function(dx){[0,height].forEach(function(y){points.push({x:p.x+dx,y:y,z:p.z})})});
+    });
+    if(!points.length)return view;
+    var safe=hud.cameraSafe(),minDist=cameraMode==='all'?70:view.dist,maxDist=cameraMode==='all'?1500:view.dist;
+    var fit=Fable.camera.frame(points,Object.assign({},view,{minDist:minDist,maxDist:maxDist}),safe);
+    /* A retreat to the far side of the map still fits on a narrow phone; the old 260-unit zoom limit is not a framing limit. */
+    while(cameraMode==='all'&&!fit.fits&&maxDist<12000){maxDist*=2;fit=Fable.camera.frame(points,Object.assign({},view,{minDist:minDist,maxDist:maxDist}),safe)}
+    if(cameraMode==='all'){framePoint=fit.focus;inp.cam.dist=fit.dist;inp.cam.maxDist=Math.max(260,fit.dist)}
+    return Object.assign({},view,{target:fit.focus,dist:fit.dist});
   };
   ctrl.update=function(ms,dt){
     clock=ms/1000;

@@ -6,7 +6,7 @@
 
    Fable.aiCore.odds(s, c, a, t, tc)             {hit, crit, state, ac, need, advantage, disadvantage} for an attack roll
    Fable.aiCore.damagePmf(a, hit, crit)          chances of 0, 1, 2 ... points of damage from one attack (misses count as 0)
-   Fable.aiCore.usable(c, a)                     whether a creature could make that attack at all (has the weapon in hand, some of it left, deals damage)
+   Fable.aiCore.usable(c, a)                     whether a creature could make that attack at all (can use or draw a carried weapon, has stock, deals damage)
    Fable.aiCore.dist.*                           damage distributions capped at a creature's hit points (the last entry is "dropped")
    Fable.aiCore.reach(ctx, c)                    the squares a creature could stand on after moving a full turn (cached per planning run)
    Fable.aiCore.reply(ctx, n)                    what the opposing side's best answer costs the actor in state n (section 16.6 expectimax) */
@@ -74,13 +74,12 @@ Core.odds=function(s,c,a,t,tc){
 
 function remaining(c,item){return ((c.stock&&c.stock[item])||0)-((c.thrown&&c.thrown[item])||0)}
 Core.remaining=remaining;
-/* Could this creature make this attack in a turn of its own: it deals damage, the weapon is in hand and there is stock. */
+/* Could this creature make this attack on its own turn, including drawing a carried weapon? */
 Core.usable=function(c,a){
   if(!a||!a.damage||!a.damage.stats||a.damage.stats.average<=0)return false;
   if(a.available===false)return false;
   if(a.mode==='light-extra')return false;
-  /* an item attack needs the item in hand (equipped), melee, thrown or ranged, and some of it left */
-  if(a.item&&(!a.equipped||remaining(c,a.item)<1))return false;
+  if(!Cb().weaponState(c,a,{}).ok)return false;
   return true;
 };
 Core.maxRange=function(c){

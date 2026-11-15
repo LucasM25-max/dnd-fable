@@ -9,6 +9,7 @@
 
    sheet = {
      v, fatal, name, level, complete, issues, pendingChoices, choices,
+     build          independent normalised build record, for combat equipment changes
      identity       {name, species, size, creatureType, background, classes:[{id,name,level,hitDie,subclass}], languages}
      abilities      {str:{score, mod, value, breakdown}, ...}
      stats          {'proficiency-bonus', ac, speed, initiative, 'hp-max', 'passive-perception'}, each {value, breakdown}
@@ -407,7 +408,8 @@ Ch.compute=function(input,options){
       dmgC=[modOf[abil]<0?{label:abilityName(abil)+' modifier',op:'base',value:modOf[abil]}:{label:'Light extra attack: no ability modifier',op:'base',value:0}];
     }else dmgC=[{label:abilityName(abil)+' modifier',op:'base',value:modOf[abil]}];
     dmgC=dmgC.concat(modsFor('damage',scope));
-    var useTwoHands=!!it.versatile&&mode==='melee'&&hand==='mainhand'&&offHandEmpty;
+    /* A stowed weapon is drawn into the main hand as part of its attack. Preview the same grip it will use. */
+    var useTwoHands=!!it.versatile&&mode==='melee'&&(hand==='mainhand'||hand===null)&&offHandEmpty;
     var one=damageObject(it.damage.dice,dmgC,it.damage.type);
     var two=it.versatile?damageObject(it.versatile,dmgC,it.damage.type):null;
     var adv=[],dis=[];
@@ -595,6 +597,7 @@ Ch.compute=function(input,options){
   var classLine=R.species.name+' '+classes.map(function(c){return c.name+' '+c.level}).join(' / ');
   return {
     v:Ch.CURRENT_VERSION,fatal:false,name:rec.name,level:R.level,
+    build:rec, /* a normalised, independent record: combat can draw carried weapons even when given only a sheet */
     complete:!errors.length&&!R.pending.length,issues:issues,
     pendingChoices:R.pending,choices:R.choices,
     identity:identity,abilities:abilities,
