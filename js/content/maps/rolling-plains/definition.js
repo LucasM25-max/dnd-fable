@@ -10,7 +10,7 @@ function reserved(x,z,p){
 Fable.content.maps.register({
   id:'rolling-plains',name:'Rolling Plains',environments:['grassland'],
   bounds:B,seed:20261101,sky:0x9cc8ee,fog:{near:300,far:1000},groundColor:0xa8a05a,
-  light:{hemi:[0xdfeeff,0x8a7a48,.9],sun:[0xfff1d0,1.0]},
+  light:{hemi:[0xdfeeff,0x8a7a48,.62],sun:[0xfff1d0,.82]},
   playerSpawn:{x:0,z:170,w:48,d:36,facing:Math.PI},enemySpawns:ZONES,isReserved:reserved,
   build:function(ctx){
     var r=ctx.rnd,G=ctx.ground,D=ctx.deco,S=ctx.solid;

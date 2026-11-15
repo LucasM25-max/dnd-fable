@@ -6,7 +6,7 @@ var ZONES=[{id:'dune-a',x:45,z:90,w:60,d:45},{id:'dune-b',x:-80,z:70,w:60,d:45}]
 Fable.content.maps.register({
   id:'scorched-dunes',name:'Scorched Dunes',environments:['desert'],
   bounds:B,seed:20261104,sky:0xe8d4a8,fog:{near:260,far:860},groundColor:0xdcb878,
-  light:{hemi:[0xfff0d0,0xc89a58,.9],sun:[0xfff4dc,1.15],sunAt:[-120,120,60]},
+  light:{hemi:[0xfff0d0,0xc89a58,.66],sun:[0xfff4dc,.92],sunAt:[-120,120,60]},
   playerSpawn:{x:0,z:170,w:48,d:36,facing:Math.PI},enemySpawns:ZONES,
   isReserved:function(x,z,p){return Math.hypot(x-OASIS.x,z-OASIS.z)<OASIS.r+p||Math.abs(x-TEMPLE.x)<52+p&&Math.abs(z-TEMPLE.z)<44+p},
   build:function(ctx){

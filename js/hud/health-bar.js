@@ -15,7 +15,7 @@ Fable.hudModules.healthBar=function(hud){
   host.innerHTML=hud.plate(
     '<div class="hb-port" aria-hidden="true"></div>'+
     '<div class="hb-main">'+
-      '<div class="hb-name"><span class="n"></span><i></i><b class="hb-star" data-tip="Heroic Inspiration" data-tip-up>'+Fable.hudIcons.svg('star')+'</b></div>'+
+      '<div class="hb-name"><span class="n"></span><b class="hb-star" data-tip="Heroic Inspiration" data-tip-up>'+Fable.hudIcons.svg('star')+'</b></div>'+
       '<div class="hb-row">'+
         '<div class="hb-ac" tabindex="0" data-tip="" data-tip-up>'+SHIELD+'<b></b><small>AC</small></div>'+
         '<div class="hb-bar" role="progressbar" aria-label="Hit points" aria-valuemin="0">'+
@@ -29,7 +29,7 @@ Fable.hudModules.healthBar=function(hud){
     '</div>');
   hud.root.appendChild(host);
   var q=function(s){return host.querySelector(s)};
-  var el={port:q('.hb-port'),name:q('.n'),sub:q('.hb-name i'),ac:q('.hb-ac'),acNum:q('.hb-ac b'),bar:q('.hb-bar'),chip:q('.hb-chip'),fill:q('.hb-fill'),temp:q('.hb-temp'),num:q('.hb-num span'),
+  var el={port:q('.hb-port'),name:q('.n'),ac:q('.hb-ac'),acNum:q('.hb-ac b'),bar:q('.hb-bar'),chip:q('.hb-chip'),fill:q('.hb-fill'),temp:q('.hb-temp'),num:q('.hb-num span'),
     star:q('.hb-star'),cond:q('.hb-cond'),dsv:q('.hb-dsv'),pools:q('.hb-pools')};
   var last='',portraitDone=false;
   function pips(kind,n,total){
@@ -52,7 +52,7 @@ Fable.hudModules.healthBar=function(hud){
         if(!(Fable.headPortrait&&Fable.headPortrait.fill(el.port,'hero',{heroId:hero.defId,w:68,h:80})))el.port.innerHTML=Fable.hudModels.portraitSvg(hero.portrait);
         portraitDone=true;
       }
-      el.name.textContent=m.name;el.sub.textContent=m.subtitle?'- '+m.subtitle:'';
+      el.name.textContent=m.name;
       el.acNum.textContent=m.ac;el.ac.setAttribute('data-tip',m.acTip);el.ac.setAttribute('aria-label',m.acTip.replace(/\n/g,', '));
       el.fill.style.width=m.pct+'%';el.chip.style.width=m.pct+'%';
       el.temp.style.width=m.temp?m.tempPct+'%':'0%';

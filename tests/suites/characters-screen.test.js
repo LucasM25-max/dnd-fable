@@ -106,10 +106,10 @@ module.exports=function({suite,test}){
       const js=read('js/game/game-scene.js');
       assert.ok(/tutorial/.test(js)&&/setEquipped/.test(js));
     });
-    test('the main menu keeps the Play row on screen: the middle row may shrink and the difficulty text has reserved room',()=>{
+    test('the main menu keeps the Play row on screen: the middle row may shrink and the reward line has reserved room',()=>{
       const css=read('css/menu.css');
       assert.ok(/minmax\(0,1fr\)/.test(css));
-      assert.ok(/\.diff-info\{[^}]*min-height/.test(css));
+      assert.ok(/\.rw\{[^}]*min-height/.test(css));
     });
   });
 };

@@ -17,7 +17,7 @@
      barks          creatures call out short lines in speech bubbles      shake   camera shake strength, 0 to 1 */
 (function(){
 var KEY='dicebound.hud.v1';
-var DEFAULTS={confirmEnd:true,scale:1,numbers:true,nameplates:true,log:true,menu:true,feed:4,motion:'auto',contrast:false,
+var DEFAULTS={confirmEnd:true,scale:1,numbers:true,nameplates:true,log:false,menu:true,feed:4,motion:'auto',contrast:false,
   speed:'normal',quality:'auto',volMaster:.8,volMusic:.55,volSfx:.9,volVoice:.8,mute:false,barks:true,shake:1,tactics:'auto',explainAi:false};
 var cur=Object.assign({},DEFAULTS),listeners=[];
 try{

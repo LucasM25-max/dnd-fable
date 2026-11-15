@@ -15,19 +15,19 @@ Fable.hudModules.combatLog=function(hud){
     host.classList.toggle('closed',!open);tab.setAttribute('aria-expanded',open?'true':'false');
   }
   tab.addEventListener('click',function(){Fable.hudSettings.set('log',!Fable.hudSettings.get('log'))});
-  Fable.hudSettings.onChange(function(k){if(k==='log'||k==='*')apply()});
+  var offSettings=Fable.hudSettings.onChange(function(k){if(k==='log'||k==='*')apply()});
   apply();
   return {
     push:function(entry){
       if(!entry)return;
       var li=document.createElement('li');
       li.className='ln '+entry.tone;li.textContent=entry.text;
-      var atBottom=body.scrollTop+body.clientHeight>=body.scrollHeight-24;
       body.appendChild(li);
       while(body.children.length>MAX)body.removeChild(body.firstChild);
-      if(atBottom||true)body.scrollTop=body.scrollHeight;
+      body.scrollTop=body.scrollHeight;
     },
     clear:function(){body.innerHTML=''},
+    destroy:function(){offSettings()},
     count:function(){return body.children.length},
     update:function(){}
   };

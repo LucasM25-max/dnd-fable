@@ -102,7 +102,7 @@ The tutorial plays only the first time the game is opened (`Fable.flags.tutorial
 
 ### Encounter generator and ordinary play
 
-Play on the main menu starts an unscripted fight with no Elminster. The difficulty selector (Low, Moderate, High, remembered between visits) replaces the old encounter picker; each is the 2024 XP budget for the hero's level. `Fable.encounterGen.generate` (`js/rules/encounter-gen.js`, pure and seeded) then chooses a map and the enemies:
+Play on the main menu starts an unscripted fight with no Elminster. The difficulty selector (Easy, Normal, Hard, remembered between visits; internally low, moderate, high) replaces the old encounter picker; each is the 2024 XP budget for the hero's level. `Fable.encounterGen.generate` (`js/rules/encounter-gen.js`, pure and seeded) then chooses a map and the enemies:
 
 1. Maps are those with an enemy spawn zone. Monsters fit a map by their `environments` tags (an untagged monster fits anywhere, at a lower score).
 2. It lists every mix of up to two kinds of monster, at most two per player character, within the budget, and keeps those that cannot take one more creature, so the budget is spent as fully as it can be (the unused part is in `meta.unused`).

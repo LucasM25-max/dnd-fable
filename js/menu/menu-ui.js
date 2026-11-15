@@ -2,30 +2,15 @@
 (function(){
 var toast=document.getElementById('toast'),tt;
 function say(m){toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove('show')},1800)}
-document.querySelectorAll('[data-t]').forEach(function(b){b.addEventListener('click',function(){say(b.dataset.t==='Quit'?'Dicebound runs in this tab. Close it when you are done; progress is saved.':'Volume, speed and accessibility options are in a fight: press H.')})});
 
 /* the hub shows the active character (Fable.character.roster.active), and follows a switch made on the Characters screen */
 var heroId='human-fighter',panel=null;
-/* What an encounter pays, worked out by the same rules that pay it. */
-function rewardText(e){
-  try{
-    var est=Fable.rewards.estimate(e,heroLevels()),bits=[];
-    if(est.xp)bits.push(est.xp+' XP');
-    if(est.gold)bits.push(est.maxGold>est.gold?est.gold+' to '+est.maxGold+' gp':est.gold+' gp');
-    return bits.length?'Reward: '+bits.join(' and '):'';
-  }catch(err){return ''}
-}
 function heroLevels(){
   var b=Fable.character.roster.build(heroId),n=0;
   ((b&&b.classLevels)||[]).forEach(function(c){n+=c.level||0});
   return [Math.max(1,n)];
 }
-/* The difficulty selector (gameplay vision, section 3): Low, Moderate and High are XP budgets for the party's level. */
-var DIFFS={
-  low:{name:'Low',text:'A light skirmish. You should come out of it with most of your strength.'},
-  moderate:{name:'Moderate',text:'A fair fight that rewards good choices.'},
-  high:{name:'High',text:'A hard fight. Expect to be pushed to the edge.'}
-};
+/* The difficulty selector (gameplay vision, section 3): low, moderate and high are XP budgets for the party's level, shown as Easy, Normal and Hard. */
 function paintDifficulty(){
   var cur=Fable.flags.difficulty(),box=document.getElementById('diff');
   if(!box)return;
@@ -33,13 +18,10 @@ function paintDifficulty(){
     var on=b.dataset.d===cur;
     b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;
   });
-  var d=DIFFS[cur],budget=Fable.encounterGen.budget(heroLevels(),cur);
-  document.getElementById('dn').textContent=d.name+', XP budget '+budget;
-  document.getElementById('dd').textContent=d.text;
   var rw=document.getElementById('rw');
   /* a dry run of the generator shows what this difficulty is worth right now */
   var g=Fable.encounterGen.generate({levels:heroLevels(),difficulty:cur,seed:1});
-  rw.textContent=g.ok?rewardText(g.encounter):'';
+  rw.textContent=g.ok?Fable.encounterPreview.rewardLine(g.encounter,heroLevels()):'';
 }
 function show(){paintDifficulty()}
 /* the hub profile and the purse are the saved hero's, and follow every XP, gold or loadout change */

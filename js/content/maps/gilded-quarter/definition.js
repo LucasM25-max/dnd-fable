@@ -14,7 +14,7 @@ function open(x,z){
 Fable.content.maps.register({
   id:'gilded-quarter',name:'Gilded Quarter',environments:['urban'],
   bounds:B,seed:20261110,sky:0xa8c4e0,fog:{near:300,far:1000},groundColor:0x7a7468,
-  light:{hemi:[0xdde8f4,0x8a7a64,.9],sun:[0xfff0d8,.95],sunAt:[-100,130,70]},
+  light:{hemi:[0xdde8f4,0x8a7a64,.72],sun:[0xfff0d8,.82],sunAt:[-100,130,70]},
   playerSpawn:{x:0,z:170,w:48,d:36,facing:Math.PI},enemySpawns:ZONES,
   isReserved:function(x,z,p){return Math.hypot(x-FOUNTAIN.x,z-FOUNTAIN.z)<24+p||Math.abs(x-TOWER.x)<26+p&&Math.abs(z-TOWER.z)<26+p||!open(x,z)},
   build:function(ctx){

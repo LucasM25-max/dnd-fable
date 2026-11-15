@@ -7,7 +7,7 @@ function inLake(x,z,p){var dx=(x-LAKE.x)/(LAKE.rx+p),dz=(z-LAKE.z)/(LAKE.rz+p);r
 Fable.content.maps.register({
   id:'frostbound-pass',name:'Frostbound Pass',environments:['arctic'],
   bounds:B,seed:20261102,sky:0xc4d8ea,fog:{near:200,far:720},groundColor:0xe4eef6,
-  light:{hemi:[0xe6f1ff,0x9fb4c8,.95],sun:[0xf2f6ff,.8],sunAt:[-70,120,90]},
+  light:{hemi:[0xe6f1ff,0x9fb4c8,.58],sun:[0xf2f6ff,.62],sunAt:[-70,120,90]},
   playerSpawn:{x:0,z:170,w:48,d:36,facing:Math.PI},enemySpawns:ZONES,
   isReserved:function(x,z,p){return inLake(x,z,p)||Math.hypot(x-CAMP.x,z-CAMP.z)<30+p},
   build:function(ctx){
