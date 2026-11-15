@@ -89,7 +89,6 @@
 .hb-port svg{width:62px;height:62px}
 .hb-main{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
 .hb-name{display:flex;align-items:center;font:800 20px/1.1 var(--serif);color:var(--hud-gold);text-shadow:0 2px 0 #3a1f08;letter-spacing:.01em;margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hb-name i{font-style:normal;font-weight:500;font-size:16px;color:var(--hud-muted);margin-left:8px}
 .hb-row{display:flex;align-items:center;width:100%;gap:0}
 .hb-ac{position:relative;flex:none;width:58px;height:66px;margin-right:-8px;z-index:2;display:grid;place-items:center;filter:drop-shadow(0 4px 0 var(--hud-shadow));outline-offset:2px}
 .hb-ac svg{position:absolute;inset:0;width:100%;height:100%}
@@ -106,8 +105,9 @@
 .hb-bar::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
   background:repeating-linear-gradient(90deg,transparent 0 calc(var(--seg,8.333%) - 2px),rgba(8,4,2,.82) calc(var(--seg,8.333%) - 2px) var(--seg,8.333%)),
   linear-gradient(rgba(255,255,255,.26),transparent 34%,transparent 66%,rgba(0,0,0,.3))}
-.hb-notch{position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--hud-gold-hi);opacity:.9;z-index:3}
-.hb-notch::before,.hb-notch::after{content:"";position:absolute;left:-3px;width:8px;height:5px;background:var(--hud-gold-hi)}
+/* the half-health mark is two small teeth on the bar's edges, so it never crosses the number */
+.hb-notch{position:absolute;left:50%;top:0;bottom:0;width:0;opacity:.9;z-index:3;pointer-events:none}
+.hb-notch::before,.hb-notch::after{content:"";position:absolute;left:-4px;width:8px;height:5px;background:var(--hud-gold-hi)}
 .hb-notch::before{top:0;clip-path:polygon(0 0,100% 0,50% 100%)}.hb-notch::after{bottom:0;clip-path:polygon(50% 0,100% 100%,0 100%)}
 .hb-num{position:absolute;inset:0;z-index:4;display:grid;place-items:center;font:800 20px/1 var(--serif);color:#fff;text-shadow:0 2px 0 #000,0 0 6px #000;letter-spacing:.04em}
 .hb-num em{font-style:normal;font-weight:500;color:var(--hud-steel);margin-left:6px;font-size:16px}
@@ -181,7 +181,6 @@ kbd{display:inline-block;min-width:22px;padding:2px 6px 3px;text-align:center;fo
 @media (max-width:760px){
   .end{right:12px}.end button{min-width:0;padding:10px 18px 11px;font-size:22px}#hud-layer .end button small{display:none}
   .hb{top:max(70px,calc(var(--hud-safe) + 56px));width:min(92vw,420px)}
-  .hb-name i{display:none}
   .ini{gap:8px}.round{min-width:64px}.round.plate>.edge>.in{padding:5px 8px 6px}.round b{font-size:22px}
   .chip,.chip .face{width:42px}.chip .face{height:50px}.chip .face svg{width:32px;height:32px}.chip.active{margin-right:8px}
   .sys{gap:6px}#hud-layer .sysb{width:40px;height:40px}

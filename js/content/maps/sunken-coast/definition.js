@@ -7,7 +7,7 @@ function shore(x){return -150+22*Math.sin(x*.021+1)+10*Math.sin(x*.063)+(x>120?-
 Fable.content.maps.register({
   id:'sunken-coast',name:'Sunken Coast',environments:['coastal'],
   bounds:B,seed:20261103,sky:0x9fd4f2,fog:{near:280,far:950},groundColor:0x2f86b4,
-  light:{hemi:[0xe2f3ff,0xc8b98a,.95],sun:[0xfff3d6,1.0],sunAt:[-100,130,60]},
+  light:{hemi:[0xe2f3ff,0xc8b98a,.5],sun:[0xfff3d6,.7],sunAt:[-100,130,60]},
   playerSpawn:{x:0,z:170,w:48,d:36,facing:Math.PI},enemySpawns:ZONES,
   isReserved:function(x,z,p){return z<shore(x)+14+p||Math.hypot(x-WRECK.x,z-WRECK.z)<44+p||Math.hypot(x-LIGHT.x,z-LIGHT.z)<26+p},
   build:function(ctx){

@@ -7,7 +7,7 @@ function inChasm(x,z,p){return Math.abs(x-CHASM.x)<CHASM.w/2+p&&Math.abs(z-CHASM
 Fable.content.maps.register({
   id:'stonespine-ridge',name:'Stonespine Ridge',environments:['mountain'],
   bounds:B,seed:20261106,sky:0x9ab8d8,fog:{near:220,far:780},groundColor:0x6a6862,
-  light:{hemi:[0xd6e4f4,0x6a6862,.9],sun:[0xfff6e4,1.0],sunAt:[-110,130,60]},
+  light:{hemi:[0xd6e4f4,0x6a6862,.74],sun:[0xfff6e4,.86],sunAt:[-110,130,60]},
   playerSpawn:{x:0,z:170,w:48,d:36,facing:Math.PI},enemySpawns:ZONES,
   isReserved:function(x,z,p){return inChasm(x,z,p+4)||Math.hypot(x-MINE.x,z-MINE.z)<44+p},
   build:function(ctx){

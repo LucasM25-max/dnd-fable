@@ -11,14 +11,14 @@
    right clicking it unpins it. The keys 1 to 9 and 0 use the hotbar slots. The player's own layout is kept in the browser per hero.
 
    Each slot shows an icon, a cost marker that uses the same shapes as the menu tabs (gold circle Action, green triangle Bonus
-   Action, violet diamond Reaction, grey square free) and says why it is unavailable instead of just greying out. Clicking an attack
+   Action, violet diamond Reaction; a free action has no marker) and says why it is unavailable instead of just greying out. Clicking an attack
    arms it and the player then picks a target; every other slot acts at once. The model is in models-combat.js. */
 (function(){
 var COSTSHAPE={
-  action:'<circle cx="6" cy="6" r="4.500"/>',bonus:'<path d="M6 1.500 11 10.500H1z"/>',reaction:'<path d="M6 .8 11.200 6 6 11.200.8 6z"/>',
-  free:'<rect x="1.800" y="1.800" width="8.400" height="8.400"/>',object:'<rect x="1.800" y="1.800" width="8.400" height="8.400"/>',move:'<rect x="1.800" y="1.800" width="8.400" height="8.400"/>'
+  action:'<circle cx="6" cy="6" r="4.500"/>',bonus:'<path d="M6 1.500 11 10.500H1z"/>',reaction:'<path d="M6 .8 11.200 6 6 11.200.8 6z"/>'
 };
-function costMark(cost){cost=cost==='move'?'free':cost;return '<svg class="cm '+cost+'" viewBox="0 0 12 12" aria-hidden="true" focusable="false">'+(COSTSHAPE[cost]||COSTSHAPE.free)+'</svg>'}
+/* only what spends something gets a marker; Move, free actions and object interactions are marked by nothing at all */
+function costMark(cost){return COSTSHAPE[cost]?'<svg class="cm '+cost+'" viewBox="0 0 12 12" aria-hidden="true" focusable="false">'+COSTSHAPE[cost]+'</svg>':''}
 function catShape(id){
   var d={action:'<circle class="shape" cx="12" cy="12" r="8"/>',bonus:'<path class="shape" d="M12 4 21 19H3z"/>',reaction:'<path class="shape" d="M12 3 21 12 12 21 3 12z"/>'}[id];
   return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+d+'</svg>';
@@ -131,7 +131,7 @@ Fable.hudModules.actionBar=function(hud){
       var pinnable=sl.pinnable!==false&&!sl.passive,at=pinned[sl.id];
       grid+='<div class="mslot'+(at!==undefined?' pinned':'')+'" data-id="'+hud.escape(sl.id)+'"'+(pinnable?' draggable="true"':'')+'>'+
         slotButton(sl,ctx,{pinTip:pinnable?(at!==undefined?'Right click to unpin':'Right click to pin to the hotbar'):''})+
-        '<span class="mname'+(sl.ok||sl.passive?'':' off')+'">'+hud.escape(sl.name.replace(/ \(thrown\)$/,'').replace(/^Throw /,''))+'<small>'+hud.escape(sl.passive?sl.sub:sl.kind==='attack'&&/thrown/.test(sl.name)?'Thrown':(sl.sub||'').replace(/ left$/,''))+'</small></span>'+
+        '<span class="mname'+(sl.ok||sl.passive?'':' off')+'">'+hud.escape(sl.name.replace(/ \(thrown\)$/,'').replace(/^Throw /,''))+'<small>'+hud.escape(sl.passive?sl.sub:sl.kind==='attack'&&/thrown/.test(sl.name)?'Thrown':(sl.sub||'').replace(/ left$/,'').replace(/ (slashing|piercing|bludgeoning)$/i,''))+'</small></span>'+
         (pinnable?'<button type="button" class="pinb" data-pin="'+hud.escape(sl.id)+'" aria-pressed="'+(at!==undefined?'true':'false')+'" aria-label="'+(at!==undefined?'Unpin ':'Pin ')+hud.escape(sl.name)+(at!==undefined?' from':' to')+' the hotbar" data-tip="'+(at!==undefined?'Unpin from hotbar':'Pin to hotbar')+'" data-tip-up>'+Fable.hudIcons.svg('pin')+'</button>':'')+
         '</div>';
     });
@@ -219,7 +219,7 @@ Fable.hudModules.actionBar=function(hud){
     }else if(over&&src.from>0){e.preventDefault();edit(M.pinRemove(pinsNow,src.from))}
   });
 
-  Fable.hudSettings.onChange(function(k){if((k==='menu'||k==='*')&&host.isConnected)render(true)});
+  var offSettings=Fable.hudSettings.onChange(function(k){if((k==='menu'||k==='*')&&host.isConnected)render(true)});
   hud.hotbarId=function(i){var e=null;try{e=M.hotbar(pinsNow,[],memory)[i]}catch(x){}return e&&e.id?e.id:null};
   hud.toggleMenu=function(){Fable.hudSettings.set('menu',!Fable.hudSettings.get('menu'))};
   /* the item pictures are drawn for the screen's pixel density: zooming the page or moving the window to another screen changes it,
@@ -237,7 +237,7 @@ Fable.hudModules.actionBar=function(hud){
       lastS=s;lastCtx=ctx;
       render(false);
     },
-    destroy:function(){window.removeEventListener('resize',onScale)}
+    destroy:function(){window.removeEventListener('resize',onScale);offSettings()}
   };
 };
 })();
