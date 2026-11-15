@@ -13,6 +13,17 @@ Examples:
 - index.html?encounter=tutorial-goblin-ambush
 - index.html?map=forest-clearing&zones
 
+## Combat selection, carried weapons and small screens
+
+- Click a creature's head, body or nameplate to target it. Touch uses one tap to preview and a second tap to commit; tutorial targeting rules still apply.
+- Attacks include the weapons in the active character's carried inventory from **Characters**, not just the weapon initially in hand. Committing an attack draws its weapon automatically; there is no separate Draw step. Remaining thrown copies, hand requirements and interaction costs still apply, and a Shield is never silently doffed.
+- Phones use five hotbar slots per page, an expandable Actions drawer and unscaled touch targets. All ten hotkeys and saved desktop pins remain available. On very short portrait screens, opening Actions temporarily hides the tutorial dialogue; closing it restores the same line.
+- Click an initiative portrait to centre its creature. **Frame all combatants** (top-right control, or **V**) restores the overview, including enemies that have retreated. Dragging or zooming takes manual camera control. Nameplates avoid the HUD and one another; if there is no clear space on a crowded small screen, excess plates are omitted rather than stacked (models and initiative remain available).
+
+Regression tests: `node tests/run.js "combat usability"`. For all Three.js-dependent tests, install `three@0.128.0` outside the repository and set `NODE_PATH` to that installation's `node_modules`.
+
+Optional real-browser interaction/layout checks live in `tests/browser/combat-usability.cjs`. Install Playwright and Three.js externally, install Playwright's Chromium, then run the script with that same `NODE_PATH`. It serves its own temporary local HTTP server. `CHROMIUM_PATH` and `CHROMIUM_ARGS` (a JSON array) can select another Chromium. `TEST_NO_GPU=1` suppresses GPU draws while retaining real matrices, DOM and pointer events; this mode checks interaction/layout, **not** rendering or performance. `TEST_SCREENSHOTS=/tmp/dicebound-checks` saves optional screenshots outside Git.
+
 ## Content-first architecture
 
 The engine is deliberately separated from game content:

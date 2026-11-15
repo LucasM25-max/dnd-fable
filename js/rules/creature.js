@@ -10,6 +10,7 @@
      economy {speedFt, movedFt, dashes, action, bonus, reaction, object, ...}  see newEconomy
      resources {<id>: {id, label, max, current, recharge}}     limited pools (Second Wind, Heroic Inspiration ...)
      stock {<item id>: qty}, thrown {<item id>: qty}           what it carries and what it has thrown this fight
+     hands {body, mainhand, offhand} | null                   runtime slots; a thrown copy leaves its hand (heroes)
      handlers [{handler, event, oncePerTurn, source}]          bespoke rules ids from its sheet
      death {successes, failures, stable, dead}                 death saving throws (heroes; monsters die at 0)
      conditions [status entries]                                see js/rules/status.js
@@ -83,10 +84,10 @@ Cr.fromSheet=function(sheet,opts){
     attacks:copy(sheet.attacks),actions:copy(sheet.actions),portrait:opts.portrait||null,
     subtitle:sheet.summary&&sheet.summary.classLine||'',
     inspiration:!!(sheet.resources&&sheet.resources['heroic-inspiration']&&sheet.resources['heroic-inspiration'].current>0),
-    resources:copy(sheet.resources)||{},handlers:copy(sheet.handlers)||[],build:opts.build?copy(opts.build):null,
+    resources:copy(sheet.resources)||{},handlers:copy(sheet.handlers)||[],build:copy(opts.build||sheet.build)||null,
     stock:stockOf(sheet)
   });
-  c.sheet=sheet;
+  c.sheet=sheet;c.hands=copy(sheet.loadout&&sheet.loadout.hands)||null;
   if(c.hp.current<=0){c.down=true}
   c.economy=Cr.newEconomy(c);
   return c;
@@ -151,17 +152,34 @@ Cr.setHp=function(c,value){
   if(c.kind==='monster')c.alive=!c.down;
 };
 
+/* The sheet describes the carried kit; combat additionally knows which copies left the hands and are on the ground.
+   Derive the same visuals without putting spent weapons back in a hand or duplicating the bundle on the back. */
+Cr.visuals=function(c){
+  var v=c.sheet&&c.sheet.visuals;if(!v)return null;
+  var pool={},left={},out={worn:{body:null,mainhand:null,offhand:null},stowed:[]};
+  Object.keys(v.worn).forEach(function(slot){var e=v.worn[slot];if(e)pool[e.item]=e});
+  (v.stowed||[]).forEach(function(e){pool[e.item]=e});
+  Object.keys(c.stock||{}).forEach(function(id){left[id]=Math.max(0,c.stock[id]-(c.thrown[id]||0))});
+  var h=c.hands||c.sheet.loadout&&c.sheet.loadout.hands||{};
+  ['body','mainhand','offhand'].forEach(function(slot){
+    var id=h[slot];
+    if(id&&left[id]>0&&pool[id]){out.worn[slot]=pool[id];left[id]--}
+  });
+  Object.keys(pool).forEach(function(id){if(left[id]>0&&pool[id].stow)out.stowed.push(Object.assign({},pool[id],{qty:left[id]}))});
+  return out;
+};
+
 /* ---------- plain copies (Phase 8) ---------- */
 /* A creature as JSON safe data for the enemy AI worker. The sheet keeps only what the rules read in a fight: the hands and the main
-   attack (reach, thrown weapons), the Stealth and Perception checks, and their roll states. */
+   attack (reach, thrown weapons), the Stealth and Perception checks, and their roll states. The build is kept so drawing a carried weapon works in worker forecasts too. */
 Cr.snapshot=function(c){
   var sheet=c.sheet,sb=c.statblock,build=c.build,portrait=c.portrait;
-  c.sheet=null;c.statblock=null;c.build=null;c.portrait=null;
+  c.sheet=null;c.statblock=null;c.portrait=null;
   var o;
   try{o=copy(c)}finally{c.sheet=sheet;c.statblock=sb;c.build=build;c.portrait=portrait}
   if(sheet){
     var rs=sheet.rollStates||{};
-    o.sheet={loadout:sheet.loadout?{hands:copy(sheet.loadout.hands),mainAttack:sheet.loadout.mainAttack}:null,loadouts:[],
+    o.sheet={loadout:sheet.loadout?{hands:copy(sheet.loadout.hands),mainAttack:sheet.loadout.mainAttack,lightPair:sheet.loadout.lightPair}:null,loadouts:[],
       skills:{stealth:sheet.skills&&sheet.skills.stealth?{value:sheet.skills.stealth.value}:undefined,perception:sheet.skills&&sheet.skills.perception?{value:sheet.skills.perception.value}:undefined},
       rollStates:{'skill:stealth':copy(rs['skill:stealth']),'skill:perception':copy(rs['skill:perception'])}};
   }
@@ -176,6 +194,7 @@ Cr.cloneForPlan=function(c){
   n.hp=Object.assign({},c.hp);
   n.conditions=(c.conditions||[]).map(function(e){return JSON.parse(JSON.stringify(e))});
   n.thrown=Object.assign({},c.thrown);n.stock=Object.assign({},c.stock);
+  if(c.hands)n.hands=Object.assign({},c.hands);
   n.death=Object.assign({},c.death);
   var r={};Object.keys(c.resources||{}).forEach(function(k){r[k]=Object.assign({},c.resources[k])});n.resources=r;
   return n;
@@ -207,7 +226,7 @@ Cr.applySheet=function(c,sheet){
   if(!sheet||sheet.fatal)throw new Error('Cannot apply a sheet that failed to compute');
   var reach=5;
   (sheet.attacks||[]).forEach(function(a){if(a.mode==='melee'&&a.equipped&&a.reach>reach)reach=a.reach});
-  c.sheet=sheet;c.ac=copy(sheet.stats.ac);c.reachFt=reach;
+  c.sheet=sheet;c.hands=copy(sheet.loadout&&sheet.loadout.hands)||null;c.ac=copy(sheet.stats.ac);c.reachFt=reach;
   c.attacks=copy(sheet.attacks);c.actions=copy(sheet.actions);c.handlers=copy(sheet.handlers);c.abilities=copy(sheet.abilities);
   c.speedFt=sheet.stats.speed.value;
   var old=c.resources||{},fresh=copy(sheet.resources)||{};
@@ -215,6 +234,8 @@ Cr.applySheet=function(c,sheet){
   c.resources=fresh;
   c.inspiration=!!(fresh['heroic-inspiration']&&fresh['heroic-inspiration'].current>0);
   c.stock=stockOf(sheet);
+  /* Recomputing equipment must not give back potions already drunk in this fight. */
+  Object.keys(c.itemsUsed||{}).forEach(function(id){c.stock[id]=Math.max(0,(c.stock[id]||0)-c.itemsUsed[id])});
   return c;
 };
 })(typeof window!=='undefined'?window:typeof self!=='undefined'?self:globalThis);

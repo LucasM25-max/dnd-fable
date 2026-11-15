@@ -97,9 +97,11 @@ module.exports=function({suite,test}){
     });
     test('a thrown attack releases a projectile before the impact; dagger pair uses the off hand clip',async()=>{
       const {plan}=await make();
-      const th=plan.attack(res({attack:{id:'javelin',mode:'thrown',item:'javelin',damageType:'piercing'}}));
-      const pr=th.cues.filter(c=>c.type==='call'&&c.name==='projectile')[0];
-      assert.ok(pr&&pr.t<th.meta.impact);
+      ['javelin','dagger'].forEach(item=>{
+        const th=plan.attack(res({attack:{id:item,mode:'thrown',item:item,damageType:'piercing'}}));
+        const pr=th.cues.filter(c=>c.type==='call'&&c.name==='projectile')[0];
+        assert.ok(pr&&pr.t<th.meta.impact,item+' is thrown, not animated as a melee stab');
+      });
       const off=plan.attack(res({attack:{id:'dagger-extra',mode:'light-extra',item:'dagger',damageType:'piercing'}}));
       assert.ok(off.cues.some(c=>c.type==='anim'&&c.clip==='fighter-stab-off'));
     });

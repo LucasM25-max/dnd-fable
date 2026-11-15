@@ -94,11 +94,17 @@ Fable.createGameScene=function(encounter){
      a blow, an orbit round the winner) and they fade away; the player taking the camera back cancels them at once. Shake is added to
      the final position only, so it never feeds back into the smoothing. */
   var shake=new THREE.Vector3(),BASE_FOV=45;
+  var baseFog=S.fog?{near:S.fog.near,far:S.fog.far}:null;
   function place(dt){
     var c=inp.cam,pd=combat.pres&&combat.pres.camera;
     var f=combat.focus();
-    var view={target:{x:f.x,y:6,z:f.z},yaw:c.yaw,pitch:c.pitch,dist:c.dist};
+    var view={target:{x:f.x,y:f.y===undefined?6:f.y,z:f.z},yaw:c.yaw,pitch:c.pitch,dist:c.dist,fov:BASE_FOV*Math.PI/180,aspect:cam.aspect};
+    view=combat.cameraView(view);
     if(pd)view=pd.modify(view);
+    /* Overview zoom must not clip distant combatants or hide the entire battlefield in camera-distance fog. */
+    var far=Math.max(1900,view.dist*2+400);
+    if(Math.abs(cam.far-far)>1){cam.far=far;cam.updateProjectionMatrix()}
+    if(baseFog){var extra=Math.max(0,view.dist-COMBAT.dist);S.fog.near=baseFog.near+extra;S.fog.far=baseFog.far+extra}
     var cp=Math.cos(view.pitch);
     tgt.set(view.target.x,view.target.y,view.target.z);
     want.set(tgt.x+Math.sin(view.yaw)*cp*view.dist,Math.max(3,tgt.y+Math.sin(view.pitch)*view.dist),tgt.z+Math.cos(view.yaw)*cp*view.dist);
@@ -160,7 +166,7 @@ Fable.createGameScene=function(encounter){
     combat:combat,
     enter:function(){
       inp.attach(Fable.canvas);
-      inp.onCamera=function(){if(!introActive&&combat.pres)combat.pres.camera.cancel()};
+      inp.onCamera=function(){if(!introActive)combat.userCamera()};
       /* a click or a key press skips the tour */
       var fight=inp.handlers;
       var click=fight.click,key=fight.key;
@@ -174,7 +180,7 @@ Fable.createGameScene=function(encounter){
       var t=ms/1000,k=inp.keys;
       if(!introActive){
         var turn=(k.KeyQ?1:0)-(k.KeyE?1:0);
-        if(turn&&combat.pres)combat.pres.camera.cancel();
+        if(turn)combat.userCamera();
         inp.cam.yaw+=turn*1.8*dt;
       }
       combat.update(ms,dt);

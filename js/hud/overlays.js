@@ -5,7 +5,7 @@
 var KEYMAP=[
   ['Hover a square','Preview a move'],['Click','Move there, or attack the target you aimed at'],['1-9, 0','Use that hotbar slot (1 is Move)'],['B','Fold or unfold the action menu'],['Right-click','Pin or unpin an action on the hotbar'],
   ['Space','End turn'],['Esc','Cancel aiming, close a panel, then the menu'],['C','Character sheet'],['L','Combat log'],['H or ?','Controls and settings'],
-  ['R / Enter','Reroll with Heroic Inspiration, when asked'],['K','Keep the roll, when asked'],['Q / E','Turn the camera'],['Drag, wheel','Orbit and zoom'],['Enter','Skip the action that is playing'],['F','Cycle playback speed (Slow, Normal, Fast, Instant)'],['M','Mute or unmute']
+  ['R / Enter','Reroll with Heroic Inspiration, when asked'],['K','Keep the roll, when asked'],['Q / E','Turn the camera'],['V','Frame all combatants'],['Initiative portrait','Centre the camera on that creature'],['Tap, then tap again','Preview and confirm a move or attack on touchscreens'],['Drag, wheel','Orbit and zoom'],['Enter','Skip the action that is playing'],['F','Cycle playback speed (Slow, Normal, Fast, Instant)'],['M','Mute or unmute']
 ];
 function plateHtml(hud,inner){return hud.plate(inner,'ov-p')}
 Fable.hudModules.overlays=function(hud){

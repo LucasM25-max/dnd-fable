@@ -11,9 +11,10 @@ Fable.hudModules.initiativeRibbon=function(hud){
     list.innerHTML='';nodes={};
     m.chips.forEach(function(c){
       var li=document.createElement('li');
-      li.className='chip';li.tabIndex=0;
-      li.innerHTML='<div class="face"><i class="mark"></i><i class="team"></i><div class="sliver" hidden><i></i></div></div><b class="num"></b>';
+      li.className='chip';
+      li.innerHTML='<button type="button" class="ini-focus"><div class="face"><i class="mark"></i><i class="team"></i><div class="sliver" hidden><i></i></div></div><b class="num"></b></button>';
       list.appendChild(li);nodes[c.id]=li;
+      li.querySelector('button').addEventListener('click',function(){if(hud.intents.focusCreature)hud.intents.focusCreature(c.id)});
       /* every chip carries the real voxel head of its creature; the flat picture is only the fallback when WebGL is missing */
       var face=li.querySelector('.face'),cr=hud.state&&hud.state.byId&&hud.state.byId[c.id],hp=Fable.headPortrait,ok=false;
       if(hp&&cr)ok=c.team==='player'?hp.fill(face,'hero',{heroId:cr.defId,w:48,h:56}):hp.fill(face,'monster',{monsterId:cr.defId,w:48,h:56});
@@ -32,7 +33,9 @@ Fable.hudModules.initiativeRibbon=function(hud){
       m.chips.forEach(function(c){
         var li=nodes[c.id];
         li.className='chip '+c.team+(c.active?' active':'')+(c.bloodied?' bloodied':'')+(c.defeated?' defeated':'');
-        li.setAttribute('aria-label',c.label);li.setAttribute('data-tip',c.name+(c.init!==null?'\nInitiative '+c.init:''));
+        var button=li.querySelector('button');
+        button.setAttribute('aria-label',c.label+'. Centre camera on '+c.name);
+        button.setAttribute('data-tip',c.name+(c.init!==null?'\nInitiative '+c.init:'')+'\nClick to centre camera');
         li.querySelector('.num').textContent=c.init===null?'':c.init;
         var sl=li.querySelector('.sliver');
         sl.hidden=c.hpPct===null;

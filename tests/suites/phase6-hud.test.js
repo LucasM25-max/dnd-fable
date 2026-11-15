@@ -46,7 +46,7 @@ module.exports=function(t){
       assert.ok(!M().hotbar(pins,all,{})[0].gone);
       assert.ok(!M().moveSlot(s,hero,'longsword:melee').selected,'arming an attack leaves Move mode');
     });
-    test('a thrown weapon is pinned by default and keeps its place when it is gone, once it is in hand',async()=>{
+    test('a thrown weapon is pinned by default and keeps its place when it is gone, including carried reserves',async()=>{
       const C=await world();
       const held=Fable.character.inventory.setEquipped(C.characters.get('human-fighter').build,{body:'chain-mail',mainhand:'javelin',offhand:'shield'});
       assert.ok(held.ok);
@@ -66,36 +66,36 @@ module.exports=function(t){
       assert.ok(bar[at].gone&&!bar[at].slot.ok&&bar[at].slot.name,'the slot keeps its place and name, dimmed');
       assert.strictEqual(bar[at].slot.reason,'Not available right now');
     });
-    test('only what is equipped is offered in combat: weapons carried in the pack are not on the bar, in the menu or on the sheet',async()=>{
-      const C=await world();
-      /* Longsword and Shield: the dagger pair and the four javelins are only carried */
-      const {s,hero}=fight(C);
+    test('all carried weapons are offered directly in combat, including stowed weapons, but never uncarried items',async()=>{
+      const C=await world(),{s,hero}=fight(C);
       const bar=M().actionBar(s,hero,null),atk=bar.filter(x=>x.kind==='attack');
-      assert.deepStrictEqual(atk.map(x=>x.id),['attack:longsword:melee'],'only the longsword: '+atk.map(x=>x.id));
-      assert.ok(!bar.filter(x=>x.kind!=='swap').some(x=>/dagger|javelin/i.test(x.name)),'no dagger or javelin slot (the Dagger pair loadout swap is a gear change, not a weapon)');
-      const menu=M().actionMenu(s,hero,[M().moveSlot(s,hero,null)].concat(bar));
-      const inMenu=[];menu.forEach(c=>c.tabs.forEach(t=>t.slots.forEach(x=>{if(x.kind!=='swap')inMenu.push(x.name)})));
-      assert.ok(!inMenu.some(n=>/dagger|javelin/i.test(n)),'the menu lists none of them: '+inMenu);
-      const sheet=M().sheetView(hero);
-      assert.deepStrictEqual(sheet.attacks.map(x=>x.name),['Longsword','Unarmed Strike'].filter(n=>sheet.attacks.some(y=>y.name===n)),'the sheet lists only held weapons: '+sheet.attacks.map(x=>x.name));
-      assert.ok(!sheet.attacks.some(x=>/dagger|javelin/i.test(x.name)));
-      /* the dagger loadout puts both daggers in hand: they are offered, melee and thrown, and the longsword leaves */
+      ['attack:longsword:melee','attack:dagger:melee','attack:dagger:thrown','attack:javelin:melee','attack:javelin:thrown'].forEach(id=>assert.ok(atk.some(x=>x.id===id&&x.ok),id));
+      assert.ok(atk.every(x=>!x.item||hero.stock[x.item]>0));
+      assert.ok(!bar.some(x=>x.kind==='draw'),'no separate Draw step');
+      const menu=M().actionMenu(s,hero,bar),names=[];
+      menu.forEach(c=>c.tabs.forEach(t=>t.slots.forEach(x=>names.push(x.name))));
+      assert.ok(names.some(n=>/Javelin.*thrown/.test(n))&&names.some(n=>/Dagger.*thrown/.test(n)));
+      assert.ok(M().sheetView(hero).attacks.some(x=>x.name==='Javelin (thrown)'));
+      const pins=M().defaultPins([M().moveSlot(s,hero,null)].concat(bar));
+      assert.deepStrictEqual(pins.slice(0,4),['move','attack:longsword:melee','attack:javelin:thrown','action:second-wind']);
       const b=fight(C,'b'),bb=M().actionBar(b.s,b.hero,null).filter(x=>x.kind==='attack').map(x=>x.id);
-      assert.ok(bb.indexOf('attack:dagger:melee')>=0&&bb.indexOf('attack:dagger:thrown')>=0,'daggers in hand: '+bb);
-      assert.ok(!bb.some(id=>/longsword|javelin/.test(id)),'nothing else: '+bb);
+      assert.ok(bb.includes('attack:dagger:light-extra')&&bb.includes('attack:longsword:melee')&&bb.includes('attack:javelin:thrown'));
+      hero.stock.javelin=0;
+      assert.ok(!M().actionBar(s,hero,null).some(x=>x.item==='javelin'),'uncarried weapons are not offered');
     });
-    test('the rules refuse to throw or shoot a weapon that is not in hand, with the same reason the bar gives',async()=>{
+    test('a carried thrown weapon is drawn by its attack, spends stock, and is a threat the AI recognises',async()=>{
       const C=await world(),{s,hero,a}=fight(C);
-      const jav=hero.attacks.find(x=>x.id==='javelin:thrown'),dag=hero.attacks.find(x=>x.id==='dagger:thrown');
-      assert.ok(jav&&dag&&!jav.equipped&&!dag.equipped,'the pack holds them but the hands do not');
-      [jav,dag].forEach(at=>{
-        const st=Fable.combat.attackState(s,hero,at,{});
-        assert.ok(!st.ok);assert.match(st.reason,/Not in hand/);
-        const r=Fable.combat.attack(s,hero,at.id,a);
-        assert.ok(!r.ok&&/Not in hand/.test(r.reason));
-      });
-      assert.strictEqual(hero.thrown.javelin||0,0,'a refused throw is not counted');
-      assert.ok(!Fable.aiCore.usable(hero,jav),'the enemy AI does not count what the hero carries as a threat');
+      const jav=hero.attacks.find(x=>x.id==='javelin:thrown');
+      assert.ok(jav&&!jav.equipped);
+      assert.ok(Fable.aiCore.usable(hero,jav),'the enemy AI recognises carried ranged threats');
+      const st=Fable.combat.attackState(s,hero,jav,{});assert.ok(st.ok);
+      const r=Fable.combat.attack(s,hero,jav.id,a,{noReroll:true});assert.ok(r.ok);
+      assert.strictEqual(hero.thrown.javelin,1);
+      assert.strictEqual(hero.build.equipped.mainhand,'javelin');
+      assert.strictEqual(hero.build.equipped.offhand,'shield');
+      assert.strictEqual(hero.hands.mainhand,null,'the thrown copy left the hand');
+      const slot=M().actionBar(s,hero,null).find(x=>x.id==='attack:javelin:thrown');
+      assert.strictEqual(slot.uses.current,3,'the remaining stock is visible, even while the Action is spent');
     });
     test('pins: toggle, place, swap and remove never touch Move, never repeat an id and report a full bar',async()=>{
       const m=M();

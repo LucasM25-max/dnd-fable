@@ -37,7 +37,8 @@ Fable.createHud=function(opts){
     '<div class="hud-vignette"></div>'+
     '<div class="banner" aria-hidden="true"><span></span></div>'+
     '<div class="sr-only" role="status" aria-live="polite" id="hud-live"></div>';
-  var hud={root:root,plate:plate,intents:intents,mods:{},escape:M.escape};
+  function isCompact(){return window.innerWidth<=760||(window.innerHeight<=500&&window.innerWidth<=1100)}
+  var hud={root:root,plate:plate,intents:intents,mods:{},escape:M.escape,isCompact:isCompact,compact:isCompact()};
   var bannerWrap=root.querySelector('.banner'),bannerText=bannerWrap.firstChild,live=root.querySelector('#hud-live'),bannerTimer=0;
   MODULE_ORDER.forEach(function(name){
     var f=Fable.hudModules[name];
@@ -105,22 +106,52 @@ Fable.createHud=function(opts){
   hud.update=function(s,ctx){
     ctx=ctx||{};hud.state=s;
     Object.keys(hud.mods).forEach(function(k){hud.mods[k].update(s,ctx)});
-    tipRefresh();
+    layoutHeader();tipRefresh();
   };
   hud.hideTip=hideTip;
   hud.rollFeed=function(result){var m=hud.mods.rollFeed;if(m)m.show(M.rollCard(result,hud.state))};
   hud.logEvent=function(e,s){var m=hud.mods.combatLog,entry=M.logEntry(e,s);if(m&&entry)m.push(entry);return entry};
   function applySettings(){
     var S=Fable.hudSettings;
-    /* the HUD also shrinks on small windows so every plate fits (a phone held sideways, a small laptop window) */
+    /* Phones get a reflowed layout with unscaled touch targets, not a miniature desktop HUD. */
+    hud.compact=isCompact();root.classList.toggle('compact',hud.compact);
+    root.classList.toggle('compact-landscape',hud.compact&&window.innerWidth>window.innerHeight);
     var fit=Math.max(.6,Math.min(1,Math.min(window.innerHeight/720,window.innerWidth/1100)));
+    if(hud.compact)fit=1/S.get('scale');
     root.style.setProperty('--hud-scale',String(Math.round(S.get('scale')*fit*100)/100));
     /* the bottom stack sits above End Turn instead of beside it when the window is too narrow for both at this size */
     var sc=Math.round(S.get('scale')*fit*100)/100;
     root.classList.toggle('dockhigh',window.innerWidth<(window.innerWidth>1360?1150:1070)*sc);
     root.classList.toggle('contrast',!!S.get('contrast'));
     root.classList.toggle('calm',S.reducedMotion());
+    root.style.setProperty('--hud-font-scale',String(Math.max(1,S.get('scale'))));
+    layoutHeader();
+    Object.keys(hud.mods).forEach(function(k){var m=hud.mods[k];if(m.resize)m.resize()});
   }
+  function rects(selectors){
+    return Array.prototype.map.call(root.querySelectorAll(selectors),function(el){
+      var r=el.getBoundingClientRect();return r.width&&r.height&&!el.hidden?{x:r.left,y:r.top,w:r.width,h:r.height}:null;
+    }).filter(Boolean);
+  }
+  var headerBottom=0,infoBottom=0;
+  function layoutHeader(){
+    if(!hud.compact)return;
+    var bottom=rects('.ini,.sys,.hb').reduce(function(n,r){return Math.max(n,r.y+r.h)},0);
+    bottom=Math.ceil(bottom);
+    if(bottom!==headerBottom){headerBottom=bottom;root.style.setProperty('--hud-header-bottom',bottom+'px')}
+    var info=Math.ceil(rects('.ini,.sys,.hb,.elm.on').reduce(function(n,r){return Math.max(n,r.y+r.h)},bottom));
+    if(info!==infoBottom){infoBottom=info;root.style.setProperty('--hud-info-bottom',info+'px')}
+  }
+  hud.occlusions=function(){return rects('.ini,.sys,.hb,.elm.on,.hotbar,.amenu,.end,.clog:not(.closed)')};
+  hud.cameraSafe=function(){
+    var W=window.innerWidth,H=window.innerHeight,side=hud.compact&&W>H;
+    var top=rects(side?'.ini,.sys':hud.compact?'.ini,.sys,.hb,.elm.on':'.ini,.sys,.elm.on').reduce(function(n,r){return Math.max(n,r.y+r.h)},0);
+    var bottom=rects(hud.compact?'.hotbar,.end':'.abar,.hb,.end').reduce(function(n,r){return Math.min(n,r.y)},H);
+    var left=side?rects('.hb,.elm.on').reduce(function(n,r){return Math.max(n,r.x+r.w)},0):0;
+    return {top:Math.min(.58,(top+12)/H),bottom:Math.min(.38,(H-bottom+12)/H),left:Math.max(.06,(left+12)/W),right:.06};
+  };
+  var observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(layoutHeader):null;
+  if(observer)root.querySelectorAll('.hb,.ini,.elm').forEach(function(el){observer.observe(el)});
   var offSettings=Fable.hudSettings.onChange(applySettings);
   applySettings();
   window.addEventListener('resize',applySettings);
@@ -139,7 +170,7 @@ Fable.createHud=function(opts){
   hud.hide=function(){root.classList.remove('on')};
   hud.destroy=function(){
     Object.keys(hud.mods).forEach(function(k){if(hud.mods[k]&&hud.mods[k].destroy)hud.mods[k].destroy()});
-    clearTimeout(bannerTimer);offSettings();window.removeEventListener('resize',applySettings);
+    clearTimeout(bannerTimer);if(observer)observer.disconnect();offSettings();window.removeEventListener('resize',applySettings);
     document.removeEventListener('mousemove',onMove);window.removeEventListener('blur',hideTip);
     ['mouseover','mouseout','focusin','focusout','pointerdown','dragstart','wheel'].forEach(function(n){
       root.removeEventListener(n,{mouseover:onOver,mouseout:onOut,focusin:onFocus,focusout:hideTip,pointerdown:hideTip,dragstart:hideTip,wheel:hideTip}[n]);

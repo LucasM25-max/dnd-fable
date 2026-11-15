@@ -8,6 +8,9 @@ var handlers={};
 /* Fable.input.onCamera, when set, is told whenever the player moves the camera (drag or wheel), so a cinematic move can give way */
 function kd(e){
   if(e.code==='Escape'){if(handlers.escape)handlers.escape(e);else Fable.enterMenu();return}
+  /* Native controls keep text editing, arrow keys and button activation. Space on an initiative portrait must centre it, not end a turn. */
+  var target=e.target&&e.target.closest?e.target:null;
+  if(target&&(target.closest('input,select,textarea,[contenteditable="true"]')||target.closest('button')&&/^(Space|Enter|NumpadEnter)$/.test(e.code)))return;
   if(handlers.key&&handlers.key(e)){e.preventDefault();return}
   keys[e.code]=true;if(/^(Space|Arrow)/.test(e.code))e.preventDefault();
 }
@@ -21,7 +24,8 @@ function pm(e){
   if(Fable.input&&Fable.input.onCamera)Fable.input.onCamera();
   cam.yaw-=(e.clientX-px)*.005;cam.pitch=Math.max(.12,Math.min(1.25,cam.pitch+(e.clientY-py)*.004));px=e.clientX;py=e.clientY}
 function pu(e){var was=drag;drag=false;if(was&&!moved&&e&&e.type==='pointerup'&&e.button===0&&handlers.click)handlers.click(e)}
-function lv(){if(handlers.leave)handlers.leave()}
+/* Touch dispatches pointerleave after every tap. Keep its preview alive for the confirming second tap. */
+function lv(e){if(e&&e.pointerType==='touch')return;if(handlers.leave)handlers.leave()}
 function cx(e){if(handlers.context){e.preventDefault();handlers.context(e)}}
 function wh(e){if(Fable.input&&Fable.input.onCamera)Fable.input.onCamera();cam.dist=Math.max(cam.minDist,Math.min(cam.maxDist,cam.dist+e.deltaY*(cam.maxDist>150?.12:.04)));e.preventDefault()}
 Fable.input={onCamera:null,keys:keys,cam:cam,handlers:handlers,

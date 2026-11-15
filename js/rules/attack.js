@@ -23,7 +23,8 @@
      - An attack roll is d20 + the attack bonus against the target's AC. A natural 1 misses and a natural 20 hits and is a Critical
        Hit; a hit on an Unconscious or Paralyzed target from within 5 feet is a Critical Hit too. A Critical Hit doubles the
        damage dice.
-     - A weapon attack needs the weapon in hand (equipped): a thrown or ranged attack too, not only a melee one. What the pack holds is not drawn.
+     - An attack on your turn can draw a carried weapon into the main hand, stowing the old weapon as part of the Attack action.
+       A Shield still takes an Action to doff; it is never silently removed. Reactions and Light extra attacks use held weapons only.
      - A thrown or ranged attack has Disadvantage beyond its normal range (up to the long range) and when an enemy that can act is
        within 5 feet. A thrown weapon leaves the hand: it is counted as thrown for the rest of the fight.
      - The Attack action allows one attack (attacksAllowed). A Light weapon attack opens the extra attack of the Light property:
@@ -58,6 +59,45 @@ function heldCount(c,item){
 }
 function itemName(a){return a.name}
 
+/* Equipment legality shared by the HUD, rules and AI forecasts. This does not draw anything or spend anything.
+   Drawing is part of the attack, never a separate button; any additional ordinary stow uses the free object interaction. */
+Cb.weaponState=function(c,a,opts){
+  opts=opts||{};
+  if(!a)return {ok:false,reason:'Unknown attack'};
+  if(!a.item)return {ok:true,draw:false};
+  var left=remaining(c,a.item),need=a.mode==='light-extra'?Math.max(1,heldCount(c,a.item)):1;
+  if(left<need)return {ok:false,reason:a.mode==='thrown'?'No '+itemName(a)+' left to throw':a.mode==='light-extra'?'A Light weapon was thrown':'No '+itemName(a)+' carried or remaining'};
+  var declared=c.sheet&&c.sheet.loadout&&c.sheet.loadout.hands||c.build&&c.build.equipped||{};
+  var h=c.hands||declared;
+  var held=c.hands?(h.mainhand===a.item?1:0)+(h.offhand===a.item?1:0):(a.equipped?1:0);
+  if(a.mode==='light-extra'&&c.hands&&held<need)return {ok:false,reason:'A Light weapon was thrown; the extra attack needs both weapons in hand'};
+  if(!held&&(opts.reaction||a.mode==='light-extra'||!c.build))return {ok:false,reason:'Not in hand'};
+  var off=h.offhand&&Fable.content.items.get(h.offhand);
+  var needsFreeOff=(a.properties||[]).indexOf('two-handed')>=0||(a.properties||[]).indexOf('ammunition')>=0;
+  if(needsFreeOff&&off&&off.type==='armor')return {ok:false,reason:a.name+' needs a free off hand. Doff '+off.name+' with a gear change (Action) first'};
+  var refill=!opts.reaction&&a.mode!=='light-extra'&&a.hand==='mainhand'&&h.mainhand!==a.item&&left>held;
+  var draw=!held||refill,clear=needsFreeOff&&!!off;
+  /* One equip/unequip belongs to the Attack action; Thrown also allows its draw as part of the throw. Any second ordinary
+     interaction uses the turn's free object interaction. Never hide a Shield's Utilize action inside an attack. */
+  var changes=(draw?1+(h.mainhand?1:0):0)+(clear?1:0),free=1+(draw&&a.mode==='thrown'?1:0);
+  if(changes>free+1)return {ok:false,reason:'Free both hands with a gear change before attacking with '+a.name};
+  return {ok:true,draw:draw,clearOffhand:clear,object:changes>free};
+};
+
+/* Called only after both the attack and target have passed their checks. Inventory is the authority for carried quantities and
+   legal slots. Applying the sheet replaces, rather than mutates, data shared with an AI planning clone. */
+function drawForAttack(c,a,ready){
+  if(!ready.draw&&!ready.clearOffhand)return a;
+  var eq=Object.assign({},c.build.equipped,{mainhand:a.item});
+  if(c.hands)eq.offhand=c.hands.offhand||null;
+  if(ready.clearOffhand)delete eq.offhand;
+  var r=Fable.character.inventory.setEquipped(c.build,eq,{inCombat:true});
+  if(!r.ok||r.cost.utilize||r.cost.minutes)return null;
+  c.build=r.build;
+  Cr().applySheet(c,Fable.character.compute(c.build));
+  return findAttack(c,a.id);
+}
+
 /* ---------- can it be done ---------- */
 Cb.attackState=function(s,c,a,opts){
   opts=opts||{};
@@ -72,18 +112,11 @@ Cb.attackState=function(s,c,a,opts){
   if(opts.reaction&&a.mode!=='melee')return no('An Opportunity Attack is a melee attack');
   if(a.available===false)return no(a.reason||'Not available');
   var e=c.economy;
-  if(a.item){
-    /* only what is equipped (held in a hand) can be used: a javelin carried in the pack is not a weapon the hero has drawn */
-    if((a.mode==='thrown'||a.mode==='ranged')&&!a.equipped)return no('Not in hand (swap loadout)');
-    if(a.mode==='thrown'){
-      if(remaining(c,a.item)<1)return no('No '+itemName(a)+' left to throw');
-    }else if(a.mode==='melee'||a.mode==='light-extra'){
-      if(!a.equipped)return no('Not in hand (swap loadout)');
-      var need=a.mode==='light-extra'?Math.max(1,heldCount(c,a.item)):1;
-      if(remaining(c,a.item)<need)return no(a.mode==='light-extra'?'A Light weapon was thrown':itemName(a)+' was thrown');
-    }
-  }
+  var ready=Cb.weaponState(c,a,opts);
+  if(!ready.ok)return no(ready.reason);
+  if(ready.object&&e.object)return no('Free interaction already used; change gear before this attack');
   if(a.mode==='light-extra'){
+    if(c.sheet&&c.sheet.loadout&&!c.sheet.loadout.lightPair)return no('A Light weapon is needed in each hand');
     if(!e.lightAttack)return no('Attack with a Light weapon first');
     if(e.extraUsed)return no('Extra attack already used this turn');
     var nick=a.mastery&&a.mastery.usable&&H().has(a.mastery.handler)?H().run(a.mastery.handler,{attack:a,creature:c,phase:'cost'}):null;
@@ -262,7 +295,13 @@ Cb.beginAttack=function(s,c,attack,target,opts){
   if(!st.ok)return {ok:false,reason:st.reason};
   var tc=Cb.checkTarget(s,c,a,target,opts);
   if(!tc.ok)return {ok:false,reason:tc.reason};
+  var ready=Cb.weaponState(c,a,opts);
+  if(ready.draw||ready.clearOffhand){
+    a=drawForAttack(c,a,ready);
+    if(!a)return {ok:false,reason:'Cannot draw that carried weapon'};
+  }
   var e=c.economy;
+  if(ready.object)e.object=true;
   if(st.cost==='action'){e.action=true;e.attackAction=true;e.attacksUsed=0}
   else if(st.cost==='bonus')e.bonus=true;
   else if(st.cost==='reaction')e.reaction=true;
@@ -271,7 +310,12 @@ Cb.beginAttack=function(s,c,attack,target,opts){
     e.attacksUsed++;
     if(isLight(a)&&(a.mode==='melee'||a.mode==='thrown'))e.lightAttack=true;
   }
-  if(a.mode==='thrown'&&a.item)c.thrown[a.item]=(c.thrown[a.item]||0)+1;
+  var visuals=Cr().visuals(c);
+  if(a.mode==='thrown'&&a.item){
+    c.thrown[a.item]=(c.thrown[a.item]||0)+1;
+    /* Reserves stay in the pack until an attack draws them. They cannot become an off-turn weapon by magic. */
+    if(c.hands){var hand=c.hands.mainhand===a.item?'mainhand':'offhand';c.hands[hand]=null}
+  }
   var rs=Cb.attackRollState(s,c,a,target,tc);
   var fx=takeFixed(s,opts);
   var d=Fable.dice.d20(fx&&fx.d20?Cb.scriptedRng([].concat(fx.d20).map(function(f){return [f,20]}),s.rng):s.rng,{mode:rs.state,bonus:a.bonus.value});
@@ -280,7 +324,7 @@ Cb.beginAttack=function(s,c,attack,target,opts){
   var p={type:'attack',attacker:c.id,target:target.id,attackId:a.id,cost:st.cost,reaction:!!opts.reaction,silent:!!opts.silent,
     roll:{rolls:d.rolls.slice(),natural:d.natural,bonus:d.bonus,total:d.total,mode:d.mode,rerolled:null},
     state:{state:rs.state,advantage:rs.advantage,disadvantage:rs.disadvantage,autoCrit:rs.autoCrit},
-    band:tc.band,distanceFt:tc.distanceFt,ac:Cb.targetAc(s,c,target,tc),cover:tc.cover?tc.cover.name:'none',canReroll:false,fixed:fx};
+    band:tc.band,distanceFt:tc.distanceFt,ac:Cb.targetAc(s,c,target,tc),cover:tc.cover?tc.cover.name:'none',canReroll:false,fixed:fx,visuals:visuals};
   p.canReroll=!opts.noReroll&&c.alive&&Cb.canReroll(s,c);
   s.pending=p;
   return {ok:true,pending:p};

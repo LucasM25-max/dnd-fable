@@ -425,8 +425,14 @@
 
 /* ---------- nameplates and floating numbers ---------- */
 .wl{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.np{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:3px;will-change:transform;margin-top:-6px}
-.np b{padding:1px 8px 2px;font:800 13px/1.2 var(--serif);color:var(--hud-text);background:rgba(18,10,6,.78);border:1px solid var(--hud-edge);white-space:nowrap;text-shadow:0 1px 0 #000}
+.np{appearance:none;position:absolute;left:0;top:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;will-change:transform;margin:0;padding:4px;min-height:32px;max-width:calc(100vw - 16px);box-sizing:border-box;border:0;background:none;cursor:pointer;pointer-events:auto;touch-action:manipulation}
+.np[hidden]{display:none}
+.np:focus-visible{outline:2px solid var(--hud-gold-hi);outline-offset:1px}
+.np:hover b{border-color:var(--hud-gold)}
+.wl-leaders{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.wl-leaders line{stroke:var(--hud-brass-hi);stroke-width:1.5;stroke-opacity:.8;filter:drop-shadow(0 1px 1px #000)}
+.hot-page{display:none}
+.np b{padding:1px 8px 2px;font:800 13px/1.2 var(--serif);color:var(--hud-text);background:rgba(18,10,6,.78);border:1px solid var(--hud-edge);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 0 #000}
 .np.enemy b{color:#f0b9b3}.np.hero b{color:var(--hud-gold)}
 .np.active b{border-color:var(--hud-gold);color:var(--hud-gold-hi)}
 .np .bar{display:block;width:46px;height:5px;background:#0b0603;border:1px solid #000;box-shadow:0 1px 0 #000a}
@@ -439,7 +445,7 @@
 .fl.hit{color:#ff8a7e}.fl.crit{color:var(--hud-gold-hi);font-size:42px}.fl.miss{color:var(--hud-muted);font-size:22px;letter-spacing:.06em}.fl.heal{color:#8ce07a}.fl.info{color:var(--hud-text);font-size:22px}
 
 /* ---------- Elminster's dialogue box (top centre) ---------- */
-.elm{position:absolute;left:50%;top:var(--hud-safe);width:min(580px,calc(100vw - 480px));min-width:340px;transform-origin:top center;
+.elm{position:absolute;left:50%;top:var(--hud-safe);width:min(580px,calc(100vw - 620px));min-width:340px;transform-origin:top center;
   transform:translate(-50%,-14px) scale(var(--hud-scale));opacity:0;transition:opacity .35s ease,transform .45s cubic-bezier(.2,.8,.25,1);pointer-events:none}
 .elm.on{opacity:1;transform:translate(-50%,0) scale(var(--hud-scale))}
 .elm[hidden]{display:none}

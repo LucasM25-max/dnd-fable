@@ -49,6 +49,9 @@ function voxelize(part,direct){
     if(g[id]>=0&&(g[id-1]<0||g[id+1]<0||g[id-nx]<0||g[id+nx]<0||g[id-sl]<0||g[id+sl]<0))L.push(i,j,k,g[id])}
   var N=L.length/4,im=new THREE.InstancedMesh(new THREE.BoxGeometry(cs,cs,cs),new THREE.MeshLambertMaterial(),N),mm=new THREE.Matrix4(),col=new THREE.Color();
   for(var q=0;q<N;q++){mm.makeTranslation(o[0]+(L[q*4]+.5)*cs,o[1]+(L[q*4+1]+.5)*cs,o[2]+(L[q*4+2]+.5)*cs);im.setMatrixAt(q,mm);col.setHex(L[q*4+3]).multiplyScalar(.9+Math.random()*.1);im.setColorAt(q,col)}
+  /* Coarse local bounds for creature picking. Raycasting every one-centimetre instance is unnecessarily expensive.
+     One box per animated body part follows the joints and covers the whole visible head/body, not just its ground square. */
+  im.userData.pickBounds={min:mn.slice(),max:mx.slice()};
   im.castShadow=im.receiveShadow=true;im.frustumCulled=false;part.add(im);
   ms.forEach(function(m){m.parent.remove(m)});
 }

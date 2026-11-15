@@ -33,11 +33,11 @@ M.COST_LABEL={action:'Action',bonus:'Bonus Action',reaction:'Reaction',free:'Fre
 
 M.actionBar=function(s,hero,selectedAttackId){
   var slots=[],mine=Cb().active(s)===hero&&s.phase==='running'&&!s.pending;
-  var hasWeapon=(hero.attacks||[]).some(function(a){return a.equipped&&a.item&&a.mode!=='thrown'});
+  var hasWeapon=(hero.attacks||[]).some(function(a){return a.item&&Cb().weaponState(hero,a,{}).ok});
   (hero.attacks||[]).forEach(function(a){
-    /* only what the hero actually holds is offered: a javelin carried in the pack is not on the bar until it is equipped */
-    if(a.mode==='thrown'){if(!a.item||!a.equipped||((hero.stock[a.item]||0)-(hero.thrown[a.item]||0))<1)return}
-    else if(!a.equipped)return;
+    /* Every carried weapon is an attack, including stowed ones. Keep spent weapons visible with their reason and count. */
+    if(a.item&&!(hero.stock[a.item]>0))return;
+    if(a.mode==='light-extra'&&!a.equipped)return;
     if(a.id==='unarmed-strike:melee'&&hasWeapon)return;
     var st=Cb().attackState(s,hero,a,{});
     var reason=!mine&&!st.ok&&st.reason?st.reason:st.reason;
@@ -46,8 +46,12 @@ M.actionBar=function(s,hero,selectedAttackId){
     if(a.mode==='thrown')tip+='\nRange '+a.range.normal+'/'+a.range.long+' ft';
     else tip+='\nReach '+(a.reach||5)+' ft';
     if(a.mastery&&a.mastery.usable)tip+='\nMastery: '+a.mastery.name;
+    if(a.item&&Cb().weaponState(hero,a,{}).draw)tip+='\nDrawn automatically when you attack';
+    var left=a.item?Math.max(0,(hero.stock[a.item]||0)-(hero.thrown[a.item]||0)):0;
+    if(a.mode==='thrown')tip+='\n'+left+' carried and remaining';
     slots.push({id:'attack:'+a.id,kind:'attack',attackId:a.id,name:a.mode==='light-extra'?a.name+' (off-hand)':a.mode==='thrown'?a.name+' (thrown)':weaponName(a),
-      sub:a.damage.expression+' '+a.damage.type,icon:iconFor(a),item:a.item||null,thrown:a.mode==='thrown',cost:st.cost||(a.mode==='light-extra'?'bonus':'action'),group:'attack',
+      sub:a.damage.expression+' '+a.damage.type,icon:iconFor(a),item:a.item||null,thrown:a.mode==='thrown',held:!!a.equipped,range:a.range||null,
+      uses:a.mode==='thrown'?{current:left,max:hero.stock[a.item]||0}:null,cost:st.cost||(a.mode==='light-extra'?'bonus':'action'),group:'attack',
       ok:st.ok&&mine,reason:st.ok&&mine?'':reason,selected:selectedAttackId===a.id,tip:tip,mastery:a.mastery&&a.mastery.usable?a.mastery.name:null});
   });
   (hero.actions||[]).forEach(function(a){
@@ -149,14 +153,16 @@ M.actionMenu=function(s,hero,slots){
 
 /* ---------- the hotbar ---------- */
 /* Ten slots. Slot 1 is Move and never changes. A layout is an array of 10 slot ids or null. Until the player pins or unpins
-   something the layout is the default, worked out again each time from what the hero has, so a gear swap re-pins the new weapons;
-   after that it is theirs and is kept as they left it. */
+   something the layout is the default. The view keeps that layout stable for the fight, including after automatic draws. */
 M.PIN_COUNT=10;
 M.hotkeyFor=function(i){return i<9?String(i+1):i===9?'0':''};
 M.defaultPins=function(slots){
   var ids=['move'];
-  slots.filter(function(x){return x.kind==='attack'}).concat(slots.filter(function(x){return x.kind==='action'&&x.group==='ability'})).forEach(function(x){
-    if(ids.length<M.PIN_COUNT&&ids.indexOf(x.id)<0)ids.push(x.id);
+  var attacks=slots.filter(function(x){return x.kind==='attack'}),abilities=slots.filter(function(x){return x.kind==='action'&&x.group==='ability'});
+  /* Move, the main weapon, a ranged option and healing stay on the first mobile page. */
+  var first=attacks[0],ranged=attacks.filter(function(x){return x.thrown}).sort(function(a,b){return (b.range&&b.range.normal||0)-(a.range&&a.range.normal||0)})[0];
+  [first,ranged].concat(abilities,attacks).forEach(function(x){
+    if(x&&ids.length<M.PIN_COUNT&&ids.indexOf(x.id)<0)ids.push(x.id);
   });
   while(ids.length<M.PIN_COUNT)ids.push(null);
   return ids;
@@ -347,7 +353,7 @@ M.deathPips=function(c){
 M.sheetView=function(c){
   var sh=c.sheet;if(!sh)return null;
   var ab=['str','dex','con','int','wis','cha'].map(function(k){var a=sh.abilities[k];return {id:k,name:k.toUpperCase(),score:a.score,mod:sgn(a.mod!==undefined?a.mod:a.modifier)}});
-  var attacks=(sh.attacks||[]).filter(function(a){return a.equipped}).map(function(a){
+  var attacks=(c.attacks||sh.attacks||[]).filter(function(a){return !a.item||c.stock[a.item]>0}).map(function(a){
     return {name:a.name+(a.mode==='thrown'?' (thrown)':''),bonus:sgn(a.bonus.value),damage:a.damage.expression+' '+a.damage.type,mastery:a.mastery&&a.mastery.usable?a.mastery.name:''};
   });
   return {name:sh.identity&&sh.identity.name||c.name,abilities:ab,ac:c.ac.value,hp:c.hp.current+' / '+c.hp.max,speed:c.speedFt+' ft',attacks:attacks,

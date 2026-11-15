@@ -39,7 +39,7 @@ Fable.createPlanner=function(o){
   function entryFor(profile,a){
     var t=(profile&&profile.attacks)||{};
     var keys=[];
-    if(a&&a.item)keys.push('item:'+a.item);
+    if(a&&a.item){if(a.mode)keys.push('item:'+a.item+':'+a.mode);keys.push('item:'+a.item)}
     if(a&&a.mode&&a.mode!=='melee'&&a.mode!=='light-extra')keys.push('mode:'+a.mode);
     if(a&&a.damageType)keys.push('damage:'+a.damageType);
     keys.push('default');

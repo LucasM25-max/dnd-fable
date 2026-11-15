@@ -13,6 +13,7 @@ P.registerAll([
  sounds:{hit:'sfx-hit',block:'sfx-block'},
  attacks:{
   'item:longsword':{clip:'fighter-slash',swing:'fx-slash-arc',swingSound:'sfx-whoosh',effort:true},
+  'item:dagger:thrown':{clip:'fighter-throw',swingSound:'sfx-throw',projectile:{size:.8,long:4,spin:12,arc:5,dur:.38,color:0xcfd6dc},trail:'fx-trail'},
   'item:dagger':{clip:'fighter-stab',clipOff:'fighter-stab-off',swing:'fx-thrust-streak',swingSound:'sfx-whoosh-thrust'},
   'mode:thrown':{clip:'fighter-throw',swingSound:'sfx-throw',projectile:{size:1,long:7,spin:0,arc:5,dur:.38,color:0xcfd6dc},trail:'fx-trail'},
   'mode:ranged':{clip:'fighter-throw',swingSound:'sfx-throw',projectile:{size:.7,long:5,arc:2,dur:.3,color:0xb69a6a},trail:'fx-trail'},
@@ -29,6 +30,7 @@ P.registerAll([
  sounds:{hit:'sfx-hit',block:'sfx-block',pop:'sfx-pop'},
  attacks:{
   'mode:thrown':{clip:'goblin-throw',swingSound:'sfx-throw',projectile:{size:.8,long:5,spin:0,arc:5,dur:.34,color:0xc2cbd0},trail:'fx-trail'},
+  'item:dagger:thrown':{clip:'goblin-throw',swingSound:'sfx-throw',projectile:{size:.8,long:4,spin:12,arc:5,dur:.34,color:0xc2cbd0},trail:'fx-trail'},
   'item:dagger':{clip:'goblin-stab',clipOff:'goblin-stab-off',swing:'fx-thrust-streak',swingSound:'sfx-whoosh-thrust'},
   'default':{clip:'goblin-stab',clipOff:'goblin-stab-off',swing:'fx-thrust-streak',swingSound:'sfx-whoosh-thrust'}}},
 {id:'goblin-warrior',name:'Goblin Warrior presentation',source:'original',blocks:true,
